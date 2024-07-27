@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+*.env
+*.old
+*.log
+*.bak
+.bashrc
+.ssh/
+.vscode-server/
+.gitconfig
+.cache/
+.gnupg/
+.bash_history
+.dotnet/
+app-main/node_modules/
+app-main/.next/
+.updateContentCommandMarker
+.postStartCommandMarker
+.postCreateCommandMarker
+.onCreateCommandMarker
+requirements.txt
