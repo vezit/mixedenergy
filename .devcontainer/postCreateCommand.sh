@@ -21,16 +21,8 @@ git config --global core.fileMode false
 echo "Enter your username:"
 read username
 case $username in
-    afos)
-        git config --global user.email "afos@dtu.dk"
-        git config --global user.name "Anders Fosgerau"
-        ;;
-    jaholm)
-        git config --global user.email "jaholm@dtu.dk"
-        git config --global user.name "Jakob Holm"
-        ;;
-    vicre)
-        git config --global user.email "vicre@dtu.dk"
+    vicmrp)
+        git config --global user.email "victor.reipur@gmail.com"
         git config --global user.name "Victor Reipur"
         ;;
     *)
