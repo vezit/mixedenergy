@@ -18,3 +18,4 @@ app-main/.next/
 .postCreateCommandMarker
 .onCreateCommandMarker
 requirements.txt
+.env.local
