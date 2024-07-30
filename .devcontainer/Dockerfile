@@ -31,14 +31,14 @@ ENV LANGUAGE=en_US.UTF-8
 # Set the working directory to the home directory of the created user
 WORKDIR $HOME
 
-# Copy the package.json and package-lock.json (if available)
-COPY package*.json ./
+# # Copy the package.json and package-lock.json (if available)
+# COPY package*.json ./
 
-# Install dependencies including Tailwind CSS
-RUN npm install
+# # Install dependencies including Tailwind CSS
+# RUN npm install
 
-# Install Firebase CLI globally
-RUN npm install -g firebase-tools
+# # Install Firebase CLI globally
+# RUN npm install -g firebase-tools
 
 # Copy the project files into the container
 COPY --chown=$DOCKERUSER_NAME:$DOCKERUSER_NAME . .
