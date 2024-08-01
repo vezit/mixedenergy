@@ -38,5 +38,14 @@
         "<node_internals>/**"
       ]
     }
+    ,{
+      "name": "Browser: chromium",
+      "runtimeExecutable": "C:\\Program Files\\chrome-win\\chrome.exe",
+      "request": "launch",
+      "type": "msedge",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/app-main",
+      "disableNetworkCache": true,
+  }
   ]
 }

@@ -84,17 +84,6 @@ function HomePage() {
     });
   };
 
-  const handleRemoveFromBasket = (size) => {
-    setBasket(prevBasket => {
-      const newBasket = [...prevBasket];
-      const index = newBasket.findIndex(item => item.size === size);
-      if (index !== -1) {
-        newBasket.splice(index, 1);
-      }
-      return newBasket;
-    });
-  };
-
   const increaseMatrixSize = () => {
     if (matrixSize === 3) {
       setMatrixSize(4);
@@ -119,17 +108,16 @@ function HomePage() {
     generateRandomMatrix(matrixSize);
   };
 
-  const calculateBasketCounts = () => {
-    const counts = { 9: 0, 16: 0, 24: 0 };
-    basket.forEach(item => {
-      if (item.size === 3) counts[9]++;
-      if (item.size === 4) counts[16]++;
-      if (item.size === 6) counts[24]++;
+  const handleBasketSlider = (size, direction) => {
+    setCurrentBasketIndex(prevState => {
+      const newIndex = prevState[size] + direction;
+      const sizeCount = basket.filter(item => item.size === size).length;
+      return {
+        ...prevState,
+        [size]: (newIndex + sizeCount) % sizeCount
+      };
     });
-    return counts;
   };
-
-  const basketCounts = calculateBasketCounts();
 
   return (
     <div className="flex justify-center items-center h-screen bg-gradient-to-r from-blue-200 to-blue-500">
@@ -158,12 +146,6 @@ function HomePage() {
 
         <div className="mt-4">
           <h2 className="text-2xl font-bold text-blue-900 mb-2">Random Energy Drink Matrix:</h2>
-          <button
-            onClick={handleGenerateMatrix}
-            className="mt-4 mb-4 bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition duration-300"
-          >
-            Generate Matrix
-          </button>
           <div className="flex justify-between items-center mb-4">
             <button
               onClick={decreaseMatrixSize}
@@ -188,13 +170,18 @@ function HomePage() {
               row.map((color, colIndex) => (
                 <div
                   key={`${rowIndex}-${colIndex}`}
-                  className="w-8 h-8 rounded-full"
+                  className="w-8 h-8"
                   style={{ backgroundColor: color }}
                 ></div>
               ))
             )}
           </div>
-
+          <button
+            onClick={handleGenerateMatrix}
+            className="mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition duration-300"
+          >
+            Generate Matrix
+          </button>
           <button
             onClick={handleAddToBasket}
             className="mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition duration-300"
@@ -205,35 +192,50 @@ function HomePage() {
 
         <div className="mt-4">
           <h2 className="text-2xl font-bold text-blue-900 mb-2">Basket:</h2>
-          <div className="mb-2">
-            <span className="text-blue-900 font-bold text-xl">Box of 9: {basketCounts[9]}</span>
-            <button
-              onClick={() => handleRemoveFromBasket(3)}
-              className="ml-4 bg-red-600 text-white font-bold py-1 px-3 rounded hover:bg-red-700 transition duration-300"
-            >
-              Remove
-            </button>
-          </div>
-          <div className="mb-2">
-            <span className="text-blue-900 font-bold text-xl">Box of 16: {basketCounts[16]}</span>
-            <button
-              onClick={() => handleRemoveFromBasket(4)}
-              className="ml-4 bg-red-600 text-white font-bold py-1 px-3 rounded hover:bg-red-700 transition duration-300"
-            >
-              Remove
-            </button>
-          </div>
-          <div className="mb-2">
-            <span className="text-blue-900 font-bold text-xl">Box of 24: {basketCounts[24]}</span>
-            <button
-              onClick={() => handleRemoveFromBasket(6)}
-              className="ml-4 bg-red-600 text-white font-bold py-1 px-3 rounded hover:bg-red-700 transition duration-300"
-            >
-              Remove
-            </button>
-          </div>
+          {[9, 16, 24].map(size => {
+            const sizeBasket = basket.filter(item => item.size === size / 4 * 4);
+            console.log(`Size Basket for ${size}:`, sizeBasket); // Add this line
+            if (sizeBasket.length > 0) {
+              const currentIndex = currentBasketIndex[size];
+              console.log(`Current index for ${size}:`, currentIndex); // Add this line
+              return (
+                <div key={size} className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <button
+                      onClick={() => handleBasketSlider(size, -1)}
+                      className="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition duration-300"
+                      disabled={sizeBasket.length <= 1}
+                    >
+                      -
+                    </button>
+                    <span className="text-blue-900 font-bold text-xl">
+                      {size === 9 ? "Box of 9" : size === 16 ? "Box of 16" : "Box of 24"}
+                    </span>
+                    <button
+                      onClick={() => handleBasketSlider(size, 1)}
+                      className="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition duration-300"
+                      disabled={sizeBasket.length <= 1}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className={`grid gap-1 ${size === 24 ? 'grid-cols-6' : size === 16 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                    {sizeBasket[currentIndex]?.matrix.map((row, rowIndex) =>
+                      row.map((color, colIndex) => (
+                        <div
+                          key={`${rowIndex}-${colIndex}`}
+                          className="w-8 h-8"
+                          style={{ backgroundColor: color }}
+                        ></div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
         </div>
-
 
 
         <div className="mt-4">

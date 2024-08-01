@@ -9,7 +9,6 @@ function HomePage() {
   const [matrix, setMatrix] = useState([]);
   const [matrixSize, setMatrixSize] = useState(3); // Default to 3x3
   const [basket, setBasket] = useState([]);
-  const [currentBasketIndex, setCurrentBasketIndex] = useState({ 9: 0, 16: 0, 24: 0 });
 
   useEffect(() => {
     axios.get('/api/hello')
@@ -76,23 +75,7 @@ function HomePage() {
   };
 
   const handleAddToBasket = () => {
-    console.log('Adding to basket...');
-    setBasket(prevBasket => {
-      const newBasket = [...prevBasket, { size: matrixSize, matrix }];
-      console.log('New basket:', newBasket);
-      return newBasket;
-    });
-  };
-
-  const handleRemoveFromBasket = (size) => {
-    setBasket(prevBasket => {
-      const newBasket = [...prevBasket];
-      const index = newBasket.findIndex(item => item.size === size);
-      if (index !== -1) {
-        newBasket.splice(index, 1);
-      }
-      return newBasket;
-    });
+    setBasket([...basket, matrix]);
   };
 
   const increaseMatrixSize = () => {
@@ -119,18 +102,6 @@ function HomePage() {
     generateRandomMatrix(matrixSize);
   };
 
-  const calculateBasketCounts = () => {
-    const counts = { 9: 0, 16: 0, 24: 0 };
-    basket.forEach(item => {
-      if (item.size === 3) counts[9]++;
-      if (item.size === 4) counts[16]++;
-      if (item.size === 6) counts[24]++;
-    });
-    return counts;
-  };
-
-  const basketCounts = calculateBasketCounts();
-
   return (
     <div className="flex justify-center items-center h-screen bg-gradient-to-r from-blue-200 to-blue-500">
       <div className="p-8 bg-white rounded-lg shadow-lg max-w-sm w-full">
@@ -144,8 +115,8 @@ function HomePage() {
           <ul>
             {energyDrinks.map((drink, index) => (
               <li key={index} className="flex items-center mb-2">
-                <span
-                  className="w-4 h-4 mr-2 rounded-full"
+                <span 
+                  className="w-4 h-4 mr-2 rounded-full" 
                   style={{ backgroundColor: drink.color }}
                 ></span>
                 <span>{drink.name}</span>
@@ -154,7 +125,28 @@ function HomePage() {
           </ul>
         </div>
 
-
+        <div className="mt-4">
+          <h2 className="text-2xl font-bold text-blue-900 mb-2">Address Autocomplete:</h2>
+          <input
+            type="text"
+            value={address}
+            onChange={handleAddressChange}
+            placeholder="Start typing your address..."
+            className="w-full p-2 border border-blue-300 rounded"
+          />
+          {isLoading && <p>Loading suggestions...</p>}
+          <ul className="mt-2 border border-blue-300 rounded max-h-32 overflow-y-auto">
+            {suggestions.map((suggestion, index) => (
+              <li
+                key={index}
+                className="p-2 hover:bg-blue-100 cursor-pointer"
+                onClick={() => setAddress(suggestion.tekst)}
+              >
+                {suggestion.tekst}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <div className="mt-4">
           <h2 className="text-2xl font-bold text-blue-900 mb-2">Random Energy Drink Matrix:</h2>
@@ -164,6 +156,7 @@ function HomePage() {
           >
             Generate Matrix
           </button>
+        
           <div className="flex justify-between items-center mb-4">
             <button
               onClick={decreaseMatrixSize}
@@ -188,7 +181,7 @@ function HomePage() {
               row.map((color, colIndex) => (
                 <div
                   key={`${rowIndex}-${colIndex}`}
-                  className="w-8 h-8 rounded-full"
+                  className="w-8 h-8"
                   style={{ backgroundColor: color }}
                 ></div>
               ))
@@ -205,58 +198,21 @@ function HomePage() {
 
         <div className="mt-4">
           <h2 className="text-2xl font-bold text-blue-900 mb-2">Basket:</h2>
-          <div className="mb-2">
-            <span className="text-blue-900 font-bold text-xl">Box of 9: {basketCounts[9]}</span>
-            <button
-              onClick={() => handleRemoveFromBasket(3)}
-              className="ml-4 bg-red-600 text-white font-bold py-1 px-3 rounded hover:bg-red-700 transition duration-300"
-            >
-              Remove
-            </button>
-          </div>
-          <div className="mb-2">
-            <span className="text-blue-900 font-bold text-xl">Box of 16: {basketCounts[16]}</span>
-            <button
-              onClick={() => handleRemoveFromBasket(4)}
-              className="ml-4 bg-red-600 text-white font-bold py-1 px-3 rounded hover:bg-red-700 transition duration-300"
-            >
-              Remove
-            </button>
-          </div>
-          <div className="mb-2">
-            <span className="text-blue-900 font-bold text-xl">Box of 24: {basketCounts[24]}</span>
-            <button
-              onClick={() => handleRemoveFromBasket(6)}
-              className="ml-4 bg-red-600 text-white font-bold py-1 px-3 rounded hover:bg-red-700 transition duration-300"
-            >
-              Remove
-            </button>
-          </div>
-        </div>
-
-
-
-        <div className="mt-4">
-          <h2 className="text-2xl font-bold text-blue-900 mb-2">Address Autocomplete:</h2>
-          <input
-            type="text"
-            value={address}
-            onChange={handleAddressChange}
-            placeholder="Start typing your address..."
-            className="w-full p-2 border border-blue-300 rounded"
-          />
-          {isLoading && <p>Loading suggestions...</p>}
-          <ul className="mt-2 border border-blue-300 rounded max-h-32 overflow-y-auto">
-            {suggestions.map((suggestion, index) => (
-              <li
-                key={index}
-                className="p-2 hover:bg-blue-100 cursor-pointer"
-                onClick={() => setAddress(suggestion.tekst)}
-              >
-                {suggestion.tekst}
-              </li>
-            ))}
-          </ul>
+          {basket.map((basketMatrix, index) => (
+            <div key={index} className="mb-4">
+              <div className={`grid gap-1 ${basketMatrix[0].length === 6 ? 'grid-cols-6' : basketMatrix.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                {basketMatrix.map((row, rowIndex) =>
+                  row.map((color, colIndex) => (
+                    <div
+                      key={`${index}-${rowIndex}-${colIndex}`}
+                      className="w-8 h-8"
+                      style={{ backgroundColor: color }}
+                    ></div>
+                  ))
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
