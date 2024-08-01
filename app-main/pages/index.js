@@ -10,6 +10,13 @@ function HomePage() {
   const [matrixSize, setMatrixSize] = useState(3); // Default to 3x3
   const [basket, setBasket] = useState([]);
   const [currentBasketIndex, setCurrentBasketIndex] = useState({ 9: 0, 16: 0, 24: 0 });
+  const [address, setAddress] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [matrix, setMatrix] = useState([]);
+  const [matrixSize, setMatrixSize] = useState(3); // Default to 3x3
+  const [basket, setBasket] = useState([]);
+  const [currentBasketIndex, setCurrentBasketIndex] = useState({ 9: 0, 16: 0, 24: 0 });
 
   useEffect(() => {
     axios.get('/api/hello')
