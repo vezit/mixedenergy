@@ -21,7 +21,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="min-h-screen bg-white text-black relative">
       {/* Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
@@ -41,7 +41,7 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow p-8">
+      <main className="p-8">
         <section className="text-center mb-8">
           <h2 className="text-2xl font-bold mb-4">Mixed Energy Bokse</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -93,7 +93,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="p-4 bg-gray-200 text-center text-gray-600 mt-auto">
+      <footer className="p-4 bg-gray-200 text-center text-gray-600">
         <div className="flex justify-between text-sm">
           <div>
             <p>Information</p>
