@@ -14,7 +14,7 @@ RUN groupadd --gid $DOCKERUSER_GID $DOCKERUSER_NAME \
 ENV HOME=/home/$DOCKERUSER_NAME
 
 # Install locales and basic utilities
-RUN apt-get update && apt-get install -y locales sudo \
+RUN apt-get update && apt-get install -y locales sudo tree \
     && echo "$DOCKERUSER_NAME ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$DOCKERUSER_NAME \
     && chmod 0440 /etc/sudoers.d/$DOCKERUSER_NAME \
     && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
