@@ -32,7 +32,7 @@ export default function ProductDetail() {
         className="rounded-lg shadow-lg"
       />
       <p className="text-xl text-gray-700 mt-4">{product.description}</p>
-      <p className="text-2xl font-bold mt-4">${product.price}</p>
+      <p className="text-2xl font-bold mt-4">{product.price}kr</p>
       <div className="mt-4">
         <button onClick={() => setQuantity(quantity - 1)} disabled={quantity <= 1} className="px-4 py-2 bg-gray-200 rounded-l">
           -

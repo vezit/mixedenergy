@@ -53,7 +53,9 @@ export default function Basket() {
                     </div>
                     <div className="flex items-center mt-6">
                         <input type="checkbox" id="terms" className="mr-2" />
-                        <label htmlFor="terms">accept terms and conditions</label>
+                        <label htmlFor="terms">
+                            Jeg accepterer <a href="/handelsbetingelser" className="text-blue-500 underline">handelsbetingeler</a>
+                        </label>
                     </div>
                     <button onClick={() => alert('Checkout process')} className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition">
                         CHECKOUT

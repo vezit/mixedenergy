@@ -15,7 +15,7 @@ function MyApp({ Component, pageProps }) {
       <div className="flex flex-col min-h-screen">
         {/* Modal */}
         <Modal isOpen={isModalOpen} onClose={closeModal}>
-          <p>This is the Handelsbetingelser page. The site is still under development.</p>
+          <p>The site is still under development.</p>
         </Modal>
 
         {/* Header */}
