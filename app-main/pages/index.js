@@ -207,9 +207,7 @@ function HomePage() {
       <footer className="p-4 bg-gray-200 text-center text-gray-600 mt-auto">
         <div className="flex justify-between text-sm">
           <div>
-            <p>Information</p>
-            <p>Handelsbetingelser</p>
-            <p>Min Konto</p>
+            <p><a href="/handelsbetingelser">Handelsbetingelser</a></p> {/* Added link */}
           </div>
           <div>
             <p>MixedEnergy</p>
