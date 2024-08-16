@@ -1,9 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../lib/BasketContext';
 
 const Header = () => {
     const { basketItems } = useBasket();
+    const [showEmptyMessage, setShowEmptyMessage] = useState(false);
+
+    const handleMouseEnter = () => {
+        if (basketItems.length === 0) {
+            setShowEmptyMessage(true);
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setShowEmptyMessage(false);
+    };
+
+    const handleBasketClick = (e) => {
+        if (basketItems.length === 0) {
+            e.preventDefault(); // Prevent navigation if the basket is empty
+        }
+    };
 
     return (
         <header className="flex justify-between items-center p-4 bg-gray-300 shadow">
@@ -14,10 +31,13 @@ const Header = () => {
             <nav className="flex space-x-4">
                 {/* Add navigation links here if needed */}
             </nav>
-            <div className="flex items-center space-x-4">
-                {/* Basket Icon SVG */}
-                <div className="relative">
-                    <a href="/basket">
+            <div className="relative flex items-center space-x-4">
+                <div
+                    className="relative"
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                >
+                    <a href="/basket" onClick={handleBasketClick}>
                         <img
                             src="/icons/basket-icon.svg"
                             alt="Basket Icon"
@@ -30,6 +50,11 @@ const Header = () => {
                             </div>
                         )}
                     </a>
+                    {showEmptyMessage && (
+                        <div className="absolute top-full mt-1 -left-24 bg-black text-white text-xs rounded p-2 shadow-lg">
+                            Din indkøbskurv er tom
+                        </div>
+                    )}
                 </div>
             </div>
         </header>
