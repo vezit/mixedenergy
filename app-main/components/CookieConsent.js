@@ -4,8 +4,8 @@ export default function CookieConsent() {
     const [show, setShow] = useState(false);
 
     useEffect(() => {
-        // Check if the user has already accepted or declined cookies
-        const consent = getCookie('cookie_consent');
+        // Check if the user has already accepted cookies
+        const consent = getCookie('cookie_consent_id');
         if (!consent) {
             setShow(true);
         }
@@ -13,12 +13,8 @@ export default function CookieConsent() {
 
     const acceptCookies = () => {
         setShow(false);
-        setCookie('cookie_consent', 'accepted', 365);
-    };
-
-    const declineCookies = () => {
-        setShow(false);
-        setCookie('cookie_consent', 'declined', 365);
+        const consentId = generateConsentId();
+        setCookie('cookie_consent_id', consentId, 365);
     };
 
     const setCookie = (name, value, days) => {
@@ -42,6 +38,12 @@ export default function CookieConsent() {
         return null;
     };
 
+    const generateConsentId = () => {
+        return 'xxxx-xxxx-xxxx-xxxx'.replace(/x/g, () => {
+            return Math.floor(Math.random() * 16).toString(16);
+        });
+    };
+
     if (!show) return null;
 
     return (
@@ -51,8 +53,7 @@ export default function CookieConsent() {
                 <a href="/cookiepolitik" className="underline ml-2">Learn more</a>.
             </p>
             <div>
-                <button onClick={acceptCookies} className="bg-green-500 text-white px-4 py-2 rounded mr-2">Allow all cookies</button>
-                <button onClick={declineCookies} className="bg-gray-500 text-white px-4 py-2 rounded">Do not allow cookies</button>
+                <button onClick={acceptCookies} className="bg-green-500 text-white px-4 py-2 rounded">Allow all cookies</button>
             </div>
         </div>
     );
