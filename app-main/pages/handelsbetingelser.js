@@ -5,21 +5,12 @@ import Footer from '../components/Footer';  // Import the Footer component
 import { useModal } from '../lib/modals';
 
 export default function Handelsbetingelser() {
-  const { isModalOpen, closeModal } = useModal(true);
 
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Modal */}
-      {/* Modal */}
-      <Modal isOpen={isModalOpen} onClose={closeModal}>
-        <p>This is the Handelsbetingelser page. The site is still under development.</p>
-      </Modal>
-      {/* Header */}
-      <Header />  {/* Use the Header component here */}
 
       {/* Main Content */}
-      <main className="flex-grow p-8">
       <div className="container mx-auto p-8">
       <h1 className="text-3xl font-bold mb-4">Handelsbetingelser hos Mixed Energy</h1>
       
@@ -204,10 +195,8 @@ export default function Handelsbetingelser() {
         Angiver du en klage her, skal du oplyse vores E-mail adresse: mixedenergy.dk@gmail.com
       </p>
     </div>
-      </main>
 
-      {/* Footer */}
-      <Footer /> 
+
     </div>
   );
 }
