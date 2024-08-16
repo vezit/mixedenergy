@@ -14,7 +14,20 @@ export const BasketProvider = ({ children }) => {
     }, []);
 
     const addItemToBasket = (item) => {
-        const updatedBasket = [...basketItems, item];
+        const existingItemIndex = basketItems.findIndex(basketItem => basketItem.title === item.title);
+
+        let updatedBasket;
+
+        if (existingItemIndex >= 0) {
+            updatedBasket = basketItems.map((basketItem, index) =>
+                index === existingItemIndex
+                    ? { ...basketItem, quantity: basketItem.quantity + item.quantity }
+                    : basketItem
+            );
+        } else {
+            updatedBasket = [...basketItems, item];
+        }
+
         setBasketItems(updatedBasket);
         localStorage.setItem('basket', JSON.stringify(updatedBasket));
     };
@@ -26,7 +39,7 @@ export const BasketProvider = ({ children }) => {
     };
 
     return (
-        <BasketContext.Provider value={{ basketItems, addItemToBasket, removeItemFromBasket }}>
+        <BasketContext.Provider value={{ basketItems, addItemToBasket, removeItemFromBasket, setBasketItems }}>
             {children}
         </BasketContext.Provider>
     );

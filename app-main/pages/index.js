@@ -23,8 +23,8 @@ export default function Home() {
                 className="w-full h-48 object-cover"
               />
               <div className="p-4 flex-grow">
-                <h2 className="text-xl font-bold">Mixed Any</h2>
-                <p className="text-gray-700">Bland Selv</p>
+                <h2 className="text-xl font-bold">Mixed Bland Selv</h2>
+                <p className="text-gray-700">Her kan du selv blande</p>
               </div>
             </div>
           </a>
