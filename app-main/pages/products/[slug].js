@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState } from 'react';
+import { useBasket } from '../../lib/BasketContext';
 
 const products = {
     'mixed-any': {
@@ -28,11 +29,13 @@ const products = {
       price: '1.99',
     },
   };
+
 export default function ProductDetail() {
     const router = useRouter();
     const { slug } = router.query;
     const product = products[slug];
     const [quantity, setQuantity] = useState(1);
+    const { addItemToBasket } = useBasket();
 
     if (!product) {
         return <p>Loading...</p>;
@@ -40,9 +43,7 @@ export default function ProductDetail() {
 
     const addToBasket = () => {
         const newProduct = { ...product, quantity };
-        let basket = JSON.parse(localStorage.getItem('basket')) || [];
-        basket.push(newProduct);
-        localStorage.setItem('basket', JSON.stringify(basket));
+        addItemToBasket(newProduct);
         router.push('/basket');
     };
 
