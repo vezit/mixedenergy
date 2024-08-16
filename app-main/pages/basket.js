@@ -1,26 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useBasket } from '../lib/BasketContext';
 
 export default function Basket() {
-    const [basketItems, setBasketItems] = useState([]);
-
-    useEffect(() => {
-        // Fetch basket items from the server or local storage
-        const storedBasket = localStorage.getItem('basket');
-        if (storedBasket) {
-            setBasketItems(JSON.parse(storedBasket));
-        }
-    }, []);
-
-    const removeItem = (index) => {
-        const newBasketItems = basketItems.filter((_, i) => i !== index);
-        setBasketItems(newBasketItems);
-        localStorage.setItem('basket', JSON.stringify(newBasketItems));
-    };
-
-    const handleCheckout = () => {
-        // Logic for checkout, could include sending data to the server
-        console.log("Proceeding to checkout with items:", basketItems);
-    };
+    const { basketItems, removeItemFromBasket } = useBasket();
 
     return (
         <div className="p-8 w-full max-w-screen-lg mx-auto">
@@ -37,7 +18,7 @@ export default function Basket() {
                                 <p className="text-gray-700">Antal: {item.quantity}</p>
                                 <p className="text-gray-700">Pris pr ramme: {item.price}kr</p>
                             </div>
-                            <button onClick={() => removeItem(index)} className="text-red-600">Remove</button>
+                            <button onClick={() => removeItemFromBasket(index)} className="text-red-600">Remove</button>
                         </div>
                     ))}
                     <div className="text-right text-xl font-bold">
@@ -47,7 +28,7 @@ export default function Basket() {
                         <input type="checkbox" id="terms" className="mr-2" />
                         <label htmlFor="terms">accept terms and conditions</label>
                     </div>
-                    <button onClick={handleCheckout} className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition">
+                    <button onClick={() => alert('Checkout process')} className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition">
                         CHECKOUT
                     </button>
                 </>
