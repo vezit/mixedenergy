@@ -1,14 +1,35 @@
 const Footer = () => {
     return (
         <footer className="p-4 bg-gray-200 text-center text-gray-600 mt-auto">
-            <div className="flex justify-between items-center text-sm">
-                <div>
+            <div className="flex flex-col sm:flex-row justify-between items-center text-sm space-y-4 sm:space-y-0">
+                <div className="space-y-2">
                     {/* left */}
-                    <p><a href="/handelsbetingelser">Handelsbetingelser</a></p>
-                    <p><a href="/fortrolighedspolitik">Fortrolighedspolitik</a></p>
-                    <p><a href="/cookiepolitik">Cookiepolitik</a></p>
+                    <p>
+                        <a 
+                            href="/handelsbetingelser" 
+                            className="font-bold text-gray-700 rounded-full px-3 py-1 hover:bg-gray-300 transition"
+                        >
+                            Handelsbetingelser
+                        </a>
+                    </p>
+                    <p>
+                        <a 
+                            href="/fortrolighedspolitik" 
+                            className="font-bold text-gray-700 rounded-full px-3 py-1 hover:bg-gray-300 transition"
+                        >
+                            Fortrolighedspolitik
+                        </a>
+                    </p>
+                    <p>
+                        <a 
+                            href="/cookiepolitik" 
+                            className="font-bold text-gray-700 rounded-full px-3 py-1 hover:bg-gray-300 transition"
+                        >
+                            Cookiepolitik
+                        </a>
+                    </p>
                 </div>
-                <div>
+                <div className="space-y-2 text-center">
                     {/* center */}
                     <p>MixedEnergy</p>
                     <p>Bagværds Hovedgade 141, 2800 Bagsværd</p>

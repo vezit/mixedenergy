@@ -1,3 +1,5 @@
+// /pages/_app.js
+
 import '../styles/globals.css';
 import { useState } from 'react';
 import Header from '../components/Header';  // Import the Header component
@@ -20,7 +22,7 @@ function MyApp({ Component, pageProps }) {
       <Header />
 
       {/* Main Content */}
-      <main className="flex-grow p-8">
+      <main className="flex-grow flex flex-col items-center justify-center bg-gray-100">
         <Component {...pageProps} />
       </main>
       
