@@ -1,17 +1,8 @@
-import { useState } from 'react';
-import Modal from '../components/Modal';
-import Header from '../components/Header';  // Import the Header component
-import Footer from '../components/Footer';  // Import the Footer component
-import { useModal } from '../lib/modals';
+import React from 'react';
 
 export default function Handelsbetingelser() {
-
-
   return (
-    <div className="flex flex-col min-h-screen">
-
-      {/* Main Content */}
-      <div className="container mx-auto p-8">
+    <div className="container mx-auto p-8">
       <h1 className="text-3xl font-bold mb-4">Handelsbetingelser hos Mixed Energy</h1>
       
       <h2 className="text-2xl font-bold mt-4 mb-2">Generelle oplysninger</h2>
@@ -195,10 +186,5 @@ export default function Handelsbetingelser() {
         Angiver du en klage her, skal du oplyse vores E-mail adresse: mixedenergy.dk@gmail.com
       </p>
     </div>
-
-
-    </div>
   );
 }
-
-

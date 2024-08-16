@@ -202,9 +202,37 @@ function HomePage() {
                 <h2 className="text-xl font-bold">Mixed Booster</h2>
               </div>
             </div>
-          </a>
-        </Link>
-      </div>
+          </div>
+        </section>
+
+        <section className="text-center">
+          <h2 className="text-xl font-bold mb-4">Mest Populære Mærker eller Nye Smags Varianter?</h2>
+          <div className="flex justify-center space-x-8">
+            <Image src="/images/redbull_logo.png" alt="Red Bull" width={100} height={50} />
+            <Image src="/images/monster_logo.png" alt="Monster Energy" width={100} height={50} />
+            <Image src="/images/booster_logo_transparent.png" alt="Booster" width={100} height={50} />
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="p-4 bg-gray-200 text-center text-gray-600 mt-auto">
+        <div className="flex justify-between text-sm">
+          <div>
+            <p><a href="/handelsbetingelser">Handelsbetingelser</a></p> {/* Added link */}
+          </div>
+          <div>
+            <p>MixedEnergy</p>
+            <p>Bagværds Hovedgade 141, 2800 Bagsværd</p>
+            <p>CVR: 40493032</p>
+            <p>info@mixedenergy.dk</p>
+          </div>
+          <div>
+            <p>Sociale Medier</p>
+            <p>(links)</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
