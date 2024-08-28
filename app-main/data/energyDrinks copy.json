@@ -3,7 +3,7 @@
         "id": "31",
         "name": "Faxe Kondi Booster Original",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.07 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -16,12 +16,13 @@
                 "salt": "0.05 g"
             }
         }
-    },
+    }
+    ,
     {
         "id": "32",
         "name": "Faxe Kondi Booster Free",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.07 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -34,12 +35,12 @@
                 "salt": "0.05 g"
             }
         }
-    },
+    },    
     {
         "id": "33",
         "name": "Faxe Kondi Booster Black Edition",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.07 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -52,12 +53,12 @@
                 "salt": "0.133 g"
             }
         }
-    },
+    },    
     {
         "id": "34",
         "name": "Faxe Kondi Booster Frosty Blue",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.77 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -70,12 +71,13 @@
                 "salt": "0.2 g"
             }
         }
-    },
+    }
+,    
     {
         "id": "35",
         "name": "Faxe Kondi Booster Pink Dragon",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.07 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -93,7 +95,7 @@
         "id": "36",
         "name": "Faxe Kondi Booster Energy",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.07 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -106,12 +108,12 @@
                 "salt": "0.133 g"
             }
         }
-    },
+    },    
     {
         "id": "37",
         "name": "Faxe Kondi Booster Sort Passion",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.07 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -129,7 +131,7 @@
         "id": "38",
         "name": "Faxe Kondi Booster Sort Zero",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.07 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -143,12 +145,14 @@
                 "caffeine": "32 mg"
             }
         }
-    },
+    }
+    
+,    
     {
         "id": "39",
         "name": "Faxe Kondi Booster Twisted Ice Zero",
         "size": "0.5 l",
-        "price": "20.00 kr",
+        "price": "9.07 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -171,7 +175,7 @@
         "id": "20",
         "name": "Red Bull Original",
         "size": "0.25 l",
-        "price": "20.00 kr",
+        "price": "10.79 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -194,7 +198,7 @@
         "id": "21",
         "name": "Red Bull Sugarfree",
         "size": "0.25 l",
-        "price": "20.00 kr",
+        "price": "10.79 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -217,7 +221,7 @@
         "id": "22",
         "name": "Red Bull Zero",
         "size": "0.25 l",
-        "price": "20.00 kr",
+        "price": "10.79 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -235,12 +239,12 @@
                 "vitaminB12": "2 µg (80% NRV)"
             }
         }
-    },
+    },    
     {
         "id": "23",
         "name": "Red Bull Original Large",
         "size": "0.355 l",
-        "price": "20.00 kr",
+        "price": "14.75 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -263,7 +267,7 @@
         "id": "24",
         "name": "Red Bull Sugarfree Large",
         "size": "0.473 l",
-        "price": "20.00 kr",
+        "price": "17.46 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -286,7 +290,7 @@
         "id": "25",
         "name": "Red Bull Red Edition Watermelon",
         "size": "0.25 l",
-        "price": "20.00 kr",
+        "price": "10.79 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -304,12 +308,12 @@
                 "vitaminB12": "2 µg (80% NRV)"
             }
         }
-    },
+    },    
     {
         "id": "26",
         "name": "Red Bull Blue Edition",
         "size": "0.25 l",
-        "price": "20.00 kr",
+        "price": "10.79 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -332,7 +336,7 @@
         "id": "27",
         "name": "Red Bull Apricot Edition",
         "size": "0.25 l",
-        "price": "20.00 kr",
+        "price": "10.79 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -351,11 +355,12 @@
             }
         }
     },
+    
     {
         "id": "29",
         "name": "Red Bull Purple Edition",
         "size": "0.25 l",
-        "price": "20.00 kr",
+        "price": "10.79 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {
@@ -378,7 +383,7 @@
         "id": "30",
         "name": "Red Bull Summer Edition",
         "size": "0.25 l",
-        "price": "20.00 kr",
+        "price": "10.79 kr",
         "packageQuantity": "24",
         "nutrition": {
             "per100ml": {

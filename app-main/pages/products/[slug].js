@@ -1,8 +1,10 @@
+// products/[slug].js
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useBasket } from '../../lib/BasketContext';
 import products from '../../lib/products'; // Import the products data
+import Link from 'next/link';
 
 export default function ProductDetail() {
   const router = useRouter();
@@ -45,6 +47,13 @@ export default function ProductDetail() {
       <button onClick={addToBasket} className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition">
         Add to Cart
       </button>
+
+      {/* Add a link to the drinks page */}
+      <Link href="/drinks">
+        <a className="mt-4 text-blue-500 hover:underline">
+          List of drinks
+        </a>
+      </Link>
     </div>
   );
 }
