@@ -42,7 +42,7 @@ WORKDIR $HOME
 RUN npm install next
 
 # chown -R dockeruser:dockeruser /usr/src/project/app-main
-RUN chown -R $DOCKERUSER_NAME:$DOCKERUSER_NAME /usr/src/project/app-main
+RUN chown -R $DOCKERUSER_NAME:$DOCKERUSER_NAME /usr/src/project
 
 
 # # Install Firebase CLI globally
