@@ -37,6 +37,14 @@ WORKDIR $HOME
 # # Install dependencies including Tailwind CSS
 # RUN npm install
 
+
+# add npm install next
+RUN npm install next
+
+# chown -R dockeruser:dockeruser /usr/src/project/app-main
+RUN chown -R $DOCKERUSER_NAME:$DOCKERUSER_NAME /usr/src/project/app-main
+
+
 # # Install Firebase CLI globally
 # RUN npm install -g firebase-tools
 
