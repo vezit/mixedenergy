@@ -25,6 +25,10 @@ case $username in
         git config --global user.email "victor.reipur@gmail.com"
         git config --global user.name "Victor Reipur"
         ;;
+    crazydude92)
+        git config --global user.email "christian12_5@hotmail.com"
+        git config --global user.name "Christian Jensen"
+        ;;
     *)
         echo "Enter your email:"
         read email
@@ -34,7 +38,6 @@ case $username in
         git config --global user.name "$name"
         ;;
 esac
-
 # git config --global --add safe.directory /usr/src/project
 # git config --global --add safe.directory /mnt/project
 # git config --global --add safe.directory /usr/src/project/.devcontainer/.docker-migrate

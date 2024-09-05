@@ -31,3 +31,6 @@ public/ is for static files.
 lib/ or utils/ is for utility files or configurations.
 pages/ is for route components and API endpoints.
 styles/ is for global or shared CSS files.
+
+
+ tree -I 'node_modules'
