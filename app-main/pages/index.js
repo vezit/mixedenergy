@@ -53,7 +53,7 @@ export default function Home() {
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <img
-                src="/images/monster-surge-energy.jpg"
+                src="/images/iceblast-energy.jpg"
                 alt="Mixed Monsters"
                 className="w-full h-48 object-cover"
               />
