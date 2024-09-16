@@ -1,7 +1,18 @@
+import { useState } from 'react';
 import { useBasket } from '../lib/BasketContext';
 
 export default function Basket() {
     const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
+    const [customerDetails, setCustomerDetails] = useState({
+        customerType: 'Privat',
+        fullName: '',
+        mobileNumber: '',
+        email: '',
+        address: '',
+        postalCode: '',
+        city: '',
+        country: 'Danmark',
+    });
 
     const updateQuantity = (index, newQuantity) => {
         if (newQuantity <= 0) {
@@ -13,6 +24,14 @@ export default function Basket() {
             setBasketItems(updatedBasket);
             localStorage.setItem('basket', JSON.stringify(updatedBasket));
         }
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setCustomerDetails((prevState) => ({
+            ...prevState, 
+            [name]: value 
+        }));
     };
 
     return (
@@ -48,13 +67,97 @@ export default function Basket() {
                             <button onClick={() => removeItemFromBasket(index)} className="text-red-600">Remove</button>
                         </div>
                     ))}
-                    <div className="text-right text-xl font-bold">
+
+                    <div className="mt-8">
+                        <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
+                        <div className="mb-4">
+                            <label className="block mb-2">Fulde Navn</label>
+                            <input
+                                type="text"
+                                name="fullName"
+                                value={customerDetails.fullName}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border rounded"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block mb-2">Mobilnummer</label>
+                            <input
+                                type="text"
+                                name="mobileNumber"
+                                value={customerDetails.mobileNumber}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border rounded"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block mb-2">E-mail Adresse</label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={customerDetails.email}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border rounded"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block mb-2">Adresse</label>
+                            <input
+                                type="text"
+                                name="address"
+                                value={customerDetails.address}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border rounded"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block mb-2">Postnummer</label>
+                            <input
+                                type="text"
+                                name="postalCode"
+                                value={customerDetails.postalCode}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border rounded"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block mb-2">By</label>
+                            <input
+                                type="text"
+                                name="city"
+                                value={customerDetails.city}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border rounded"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block mb-2">Land</label>
+                            <select
+                                name="country"
+                                value={customerDetails.country}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border rounded"
+                            >
+                                <option value="Danmark">Danmark</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="text-right text-xl font-bold mt-6">
                         Total: {basketItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}kr
                     </div>
+
                     <div className="flex items-center mt-6">
                         <input type="checkbox" id="terms" className="mr-2" />
-                        <label htmlFor="terms">accept terms and conditions</label>
+                        <label htmlFor="terms">Accept terms and conditions</label>
                     </div>
+
                     <button onClick={() => alert('Checkout process')} className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition">
                         CHECKOUT
                     </button>
