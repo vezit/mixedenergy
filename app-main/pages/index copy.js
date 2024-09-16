@@ -18,7 +18,6 @@ export default function Home() {
       </div>
 
       <div className="flex flex-wrap justify-center p-4 max-w-screen-xl mx-auto">
-        {/* First set of 4 cards */}
         <Link href="/products/mixed-any">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
@@ -75,52 +74,6 @@ export default function Home() {
               />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Booster</h2>
-              </div>
-            </div>
-          </a>
-        </Link>
-
-        {/* New 3 cards */}
-        <Link href="/products/mixed-guava-energy">
-          <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <img
-                src="/images/guava-blast-energy.jpg"
-                alt="Mixed Guava Energy"
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-4 flex-grow">
-                <h2 className="text-xl font-bold">Mixed Guava Energy</h2>
-              </div>
-            </div>
-          </a>
-        </Link>
-
-        <Link href="/products/mixed-blue-energy">
-          <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <img
-                src="/images/blue-lightning-energy.jpg"
-                alt="Mixed Blue Energy"
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-4 flex-grow">
-                <h2 className="text-xl font-bold">Mixed Blue Energy</h2>
-              </div>
-            </div>
-          </a>
-        </Link>
-
-        <Link href="/products/mixed-grape-energy">
-          <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <img
-                src="/images/grape-energy.jpg"
-                alt="Mixed Grape Energy"
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-4 flex-grow">
-                <h2 className="text-xl font-bold">Mixed Grape Energy</h2>
               </div>
             </div>
           </a>
