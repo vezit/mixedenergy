@@ -32,7 +32,7 @@ const Footer = () => {
                 <div className="space-y-2 text-center">
                     {/* center */}
                     <p>Mixed Energy</p>
-                    <p>Bagværds Hovedgade 141, 2800 Bagsværd</p>
+                    <p>Bagværds Hovedgade 141, 2880 Bagsværd</p>
                     <p>CVR: 40493032</p>
                     <p>kontakt@mixedenergy.dk</p>
                 </div>

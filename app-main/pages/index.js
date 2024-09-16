@@ -7,9 +7,10 @@ export default function Home() {
         className="w-full hidden lg:block"
         style={{
           height: '50vh', // This sets the height to 50% of the viewport height
-          backgroundImage: "url('/images/startpage-background.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundImage: "url('/images/Color-logo-with-background.png')",
+          backgroundSize: 'contain', // Ensures the entire image is visible
+          backgroundPosition: 'center', // Centers the image
+          backgroundRepeat: 'no-repeat', // Prevents the image from repeating
         }}
       ></div>
 
