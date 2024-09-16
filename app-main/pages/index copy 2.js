@@ -79,17 +79,14 @@ export default function Home() {
             </div>
           </a>
         </Link>
-     {/* Insert the headline "Populære bokse" here */}
-     <div className="w-full text-center py-6">
-          <h1 className="text-2xl font-bold">Populære bokse</h1>
-        </div>
+
         {/* New 3 cards */}
         <Link href="/products/Monster 8 Bland selv">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <img
                 src="/images/iceblast-energy.jpg"
-                alt="Mixed Monster"
+                alt="Mixed Guava Energy"
                 className="w-full h-48 object-cover"
               />
               <div className="p-4 flex-grow">
@@ -104,7 +101,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <img
                 src="/images/thunder-punch-energy.jpg"
-                alt="Bland Selv Mix"
+                alt="Mixed Blue Energy"
                 className="w-full h-48 object-cover"
               />
               <div className="p-4 flex-grow">
@@ -119,7 +116,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <img
                 src="/images/volt-burst-energy.jpg"
-                alt="Mixed Red Bull"
+                alt="Mixed Grape Energy"
                 className="w-full h-48 object-cover"
               />
               <div className="p-4 flex-grow">
