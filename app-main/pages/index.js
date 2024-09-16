@@ -100,7 +100,7 @@ export default function Home() {
                 style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
-                <h2 className="text-xl font-bold">Mixed Guava Energy</h2>
+                <h2 className="text-xl font-bold">Mix 8 Monster</h2>
               </div>
             </div>
           </a>
@@ -116,7 +116,7 @@ export default function Home() {
                 style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
-                <h2 className="text-xl font-bold">Mixed Blue Energy</h2>
+                <h2 className="text-xl font-bold">Bland Selv Mix 8</h2>
               </div>
             </div>
           </a>
@@ -132,7 +132,7 @@ export default function Home() {
                 style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
-                <h2 className="text-xl font-bold">Mixed Grape Energy</h2>
+                <h2 className="text-xl font-bold">Mix 8 Red Bull</h2>
               </div>
             </div>
           </a>
