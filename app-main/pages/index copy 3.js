@@ -26,7 +26,6 @@ export default function Home() {
                 src="/images/thunder-punch-energy.jpg"
                 alt="Mixed Any"
                 className="w-full h-48 object-cover"
-                style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Bland Selv</h2>
@@ -43,7 +42,6 @@ export default function Home() {
                 src="/images/volt-burst-energy.jpg"
                 alt="Mixed Red Bulls"
                 className="w-full h-48 object-cover"
-                style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Red Bulls</h2>
@@ -59,7 +57,6 @@ export default function Home() {
                 src="/images/iceblast-energy.jpg"
                 alt="Mixed Monsters"
                 className="w-full h-48 object-cover"
-                style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Monsters</h2>
@@ -75,7 +72,6 @@ export default function Home() {
                 src="/images/booster-attack-energy.jpg"
                 alt="Mixed Booster"
                 className="w-full h-48 object-cover"
-                style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Booster</h2>
@@ -83,12 +79,10 @@ export default function Home() {
             </div>
           </a>
         </Link>
-
-        {/* Insert the headline "Populære bokse" here */}
-        <div className="w-full text-center py-6">
+     {/* Insert the headline "Populære bokse" here */}
+     <div className="w-full text-center py-6">
           <h1 className="text-2xl font-bold">Populære bokse</h1>
         </div>
-
         {/* New 3 cards */}
         <Link href="/products/Monster 8 Bland selv">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
@@ -97,7 +91,6 @@ export default function Home() {
                 src="/images/iceblast-energy.jpg"
                 alt="Mix 8 Monster"
                 className="w-full h-48 object-cover"
-                style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Guava Energy</h2>
@@ -113,7 +106,6 @@ export default function Home() {
                 src="/images/thunder-punch-energy.jpg"
                 alt="Bland Selv Mix 8"
                 className="w-full h-48 object-cover"
-                style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Blue Energy</h2>
@@ -129,7 +121,6 @@ export default function Home() {
                 src="/images/volt-burst-energy.jpg"
                 alt="Mix 8 Red Bull"
                 className="w-full h-48 object-cover"
-                style={{ objectFit: 'cover', height: '200px' }}
               />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Grape Energy</h2>
