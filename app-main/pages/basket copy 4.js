@@ -39,7 +39,6 @@ export default function Basket() {
     }));
   };
 
-  // Function to fetch pickup points
   const fetchPickupPoints = () => {
     if (customerDetails.city && customerDetails.postalCode && customerDetails.streetNumber) {
       setLoading(true);
@@ -56,37 +55,9 @@ export default function Basket() {
     }
   };
 
-  // Function to call DAWA API
-  const validateAddressWithDAWA = async () => {
-    try {
-      const response = await fetch('/api/dawa/datavask', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(customerDetails),
-      });
-
-      const data = await response.json();
-
-        // Update the customerDetails object with the street number from the DAWA response
-      customerDetails.streetNumber = data.dawaResponse.resultater[0].adresse.husnr
-      // Log the DAWA response to inspect it and set a breakpoint here
-    //   console.log('DAWA Response:', data);
-
-
-      
-      // Now you can extract relevant details from the DAWA response and use them in fetchPickupPoints, if necessary
-      // For now, we will simply proceed with fetchPickupPoints
-      fetchPickupPoints();
-      
-    } catch (error) {
-      console.error('Error validating address with DAWA:', error);
-    }
-  };
-
   const handleShowPickupPoints = () => {
-    validateAddressWithDAWA();
+    
+    fetchPickupPoints();
     setShowPickupPoints(true);
   };
 
