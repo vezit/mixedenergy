@@ -3,16 +3,19 @@ import Link from 'next/link';
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center w-full h-full">
-      <div
-        className="w-full hidden lg:block"
-        style={{
-          height: '50vh', // This sets the height to 50% of the viewport height
-          backgroundImage: "url('/images/Color-logo-with-background.png')",
-          backgroundSize: 'contain', // Ensures the entire image is visible
-          backgroundPosition: 'center', // Centers the image
-          backgroundRepeat: 'no-repeat', // Prevents the image from repeating
-        }}
-      ></div>
+      {/* Wrapper for the banner with full width and background color */}
+      <div className="w-full" style={{ backgroundColor: '#212121' }}>
+        <div
+          className="w-full hidden lg:block"
+          style={{
+            height: '50vh', // This sets the height to 50% of the viewport height
+            backgroundImage: "url('/images/Color-logo-with-background.png')",
+            backgroundSize: 'contain', // Ensures the entire image is visible
+            backgroundPosition: 'center', // Centers the image
+            backgroundRepeat: 'no-repeat', // Prevents the image from repeating
+          }}
+        ></div>
+      </div>
 
       <div className="flex flex-wrap justify-center p-4 max-w-screen-xl mx-auto">
         <Link href="/products/mixed-any">
