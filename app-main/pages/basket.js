@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList'; // Adjust path if necessary
+import MapComponent from "../components/MapComponent";
 
 export default function Basket() {
   const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
@@ -213,6 +214,8 @@ export default function Basket() {
               </div>
             )}
           </div>
+
+          
 
           <div className="text-right text-xl font-bold mt-6">
             Total: {basketItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}kr
