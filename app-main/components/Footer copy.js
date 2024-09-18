@@ -1,14 +1,13 @@
 const Footer = () => {
     return (
-        <footer className="p-4 text-center mt-auto" style={{ backgroundColor: '#fab93d', color: '#212121' }}>
+        <footer className="p-4 text-center text-gray-600 mt-auto" style={{ backgroundColor: '#fab93d' }}>
             <div className="flex flex-col sm:flex-row justify-between items-center text-sm space-y-4 sm:space-y-0">
                 <div className="space-y-2">
                     {/* left */}
                     <p>
                         <a 
                             href="/handelsbetingelser" 
-                            className="font-bold rounded-full px-3 py-1 hover:bg-gray-300 transition" 
-                            style={{ color: '#212121' }}
+                            className="font-bold text-gray-700 rounded-full px-3 py-1 hover:bg-gray-300 transition"
                         >
                             Handelsbetingelser
                         </a>
@@ -16,8 +15,7 @@ const Footer = () => {
                     <p>
                         <a 
                             href="/fortrolighedspolitik" 
-                            className="font-bold rounded-full px-3 py-1 hover:bg-gray-300 transition" 
-                            style={{ color: '#212121' }}
+                            className="font-bold text-gray-700 rounded-full px-3 py-1 hover:bg-gray-300 transition"
                         >
                             Fortrolighedspolitik
                         </a>
@@ -25,14 +23,13 @@ const Footer = () => {
                     <p>
                         <a 
                             href="/cookiepolitik" 
-                            className="font-bold rounded-full px-3 py-1 hover:bg-gray-300 transition" 
-                            style={{ color: '#212121' }}
+                            className="font-bold text-gray-700 rounded-full px-3 py-1 hover:bg-gray-300 transition"
                         >
                             Cookiepolitik
                         </a>
                     </p>
                 </div>
-                <div className="space-y-2 text-center" style={{ color: '#212121' }}>
+                <div className="space-y-2 text-center">
                     {/* center */}
                     <p>Mixed Energy</p>
                     <p>Bagsværd Hovedgade 141, 2880 Bagsværd</p>

@@ -2,19 +2,19 @@ const products = {
     'mixed-any': {
       title: 'Mixed Any',
       description: 'Bland Selv',
-      image: '/images/chaos-splash-energy.jpg',
+      image: '/images/thunder-punch-energy.jpg',
       price: '1.99',
     },
     'mixed-red-bulls': {
       title: 'Mixed Red Bulls',
       description: '',
-      image: '/images/blazebox-energy.jpg',
+      image: '/images/volt-burst-energy.jpg',
       price: '1.99',
     },
     'mixed-monsters': {
       title: 'Mixed Monsters',
       description: '',
-      image: '/images/monster-surge-energy.jpg',
+      image: '/images/iceblast-energy.jpg',
       price: '1.99',
     },
     'mixed-booster': {

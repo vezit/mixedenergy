@@ -17,21 +17,16 @@ export default function Home() {
         ></div>
       </div>
 
-      {/* Headline above the cards */}
-      <div className="w-full text-center py-6">
-        <h1 className="text-3xl font-bold">Bland selv mix</h1>
-      </div>
-
       <div className="flex flex-wrap justify-center p-4 max-w-screen-xl mx-auto">
         {/* First set of 4 cards */}
         <Link href="/products/mixed-any">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <div className="w-full h-60"> {/* Set a height for the image container */} 
+              <div className="w-full h-60"> {/* Set a height for the image container */}
                 <img
                   src="/images/thunder-punch-energy.jpg"
                   alt="Mixed Any"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover"  // Adjust image to take full height/width of container
                 />
               </div>
               <div className="p-4 flex-grow">
