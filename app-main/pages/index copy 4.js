@@ -22,13 +22,12 @@ export default function Home() {
         <Link href="/products/mixed-any">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <div className="w-full h-60"> {/* Set a height for the image container */}
-                <img
-                  src="/images/thunder-punch-energy.jpg"
-                  alt="Mixed Any"
-                  className="w-full h-full object-cover"  // Adjust image to take full height/width of container
-                />
-              </div>
+              <img
+                src="/images/thunder-punch-energy.jpg"
+                alt="Mixed Any"
+                className="w-full h-48 object-cover"
+                style={{ objectFit: 'cover', height: '200px' }}
+              />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Bland Selv</h2>
                 <p className="text-gray-700">Bland alle varianter i en kasse</p>
@@ -40,13 +39,12 @@ export default function Home() {
         <Link href="/products/mixed-red-bulls">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <div className="w-full h-60">
-                <img
-                  src="/images/volt-burst-energy.jpg"
-                  alt="Mixed Red Bulls"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <img
+                src="/images/volt-burst-energy.jpg"
+                alt="Mixed Red Bulls"
+                className="w-full h-48 object-cover"
+                style={{ objectFit: 'cover', height: '200px' }}
+              />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Red Bulls</h2>
                 <p className="text-gray-700">Bland Red Bull varianter i en kasse</p>
@@ -58,13 +56,12 @@ export default function Home() {
         <Link href="/products/mixed-monsters">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <div className="w-full h-60">
-                <img
-                  src="/images/iceblast-energy.jpg"
-                  alt="Mixed Monsters"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <img
+                src="/images/iceblast-energy.jpg"
+                alt="Mixed Monsters"
+                className="w-full h-48 object-cover"
+                style={{ objectFit: 'cover', height: '200px' }}
+              />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Monsters</h2>
                 <p className="text-gray-700">Bland Monster varianter i en kasse</p>
@@ -76,13 +73,12 @@ export default function Home() {
         <Link href="/products/mixed-booster">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <div className="w-full h-60">
-                <img
-                  src="/images/booster-attack-energy.jpg"
-                  alt="Mixed Booster"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <img
+                src="/images/booster-attack-energy.jpg"
+                alt="Mixed Booster"
+                className="w-full h-48 object-cover"
+                style={{ objectFit: 'cover', height: '200px' }}
+              />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Booster</h2>
                 <p className="text-gray-700">Bland Booster varianter i en kasse</p>
@@ -100,13 +96,12 @@ export default function Home() {
         <Link href="/products/Monster 8 Bland selv">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <div className="w-full h-60">
-                <img
-                  src="/images/iceblast-energy.jpg"
-                  alt="Mix 8 Monster"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <img
+                src="/images/iceblast-energy.jpg"
+                alt="Mix 8 Monster"
+                className="w-full h-48 object-cover"
+                style={{ objectFit: 'cover', height: '200px' }}
+              />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mix 8 Monster</h2>
                 <p className="text-gray-700">Bland 8 Monster forskellige varianter i en kasse</p>
@@ -118,13 +113,12 @@ export default function Home() {
         <Link href="/products/Bland selv 8">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <div className="w-full h-60">
-                <img
-                  src="/images/thunder-punch-energy.jpg"
-                  alt="Bland Selv Mix 8"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <img
+                src="/images/thunder-punch-energy.jpg"
+                alt="Bland Selv Mix 8"
+                className="w-full h-48 object-cover"
+                style={{ objectFit: 'cover', height: '200px' }}
+              />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Bland Selv Mix 8</h2>
                 <p className="text-gray-700">Bland 8 forskellige varianter i en kasse</p>
@@ -136,13 +130,12 @@ export default function Home() {
         <Link href="/products/Red Bull Bland selv 8">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-              <div className="w-full h-60">
-                <img
-                  src="/images/volt-burst-energy.jpg"
-                  alt="Mix 8 Red Bull"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <img
+                src="/images/volt-burst-energy.jpg"
+                alt="Mix 8 Red Bull"
+                className="w-full h-48 object-cover"
+                style={{ objectFit: 'cover', height: '200px' }}
+              />
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mix 8 Red Bull</h2>
                 <p className="text-gray-700">Bland 8 Forskellige Red Bull varianter i en kasse</p>
