@@ -28,25 +28,12 @@ ENV LC_ALL=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8
 
-# Set the working directory to the home directory of the created user
-WORKDIR $HOME
-
-# # Copy the package.json and package-lock.json (if available)
-# COPY package*.json ./
-
-# # Install dependencies including Tailwind CSS
-# RUN npm install
-
+# Set the working directory to the app-main directory
+WORKDIR /usr/src/project/app-main
 
 # add npm install next
 RUN npm install next
-
-# chown -R dockeruser:dockeruser /usr/src/project/app-main
-# RUN chown -R $DOCKERUSER_NAME:$DOCKERUSER_NAME /usr/src/project
-
-
-# # Install Firebase CLI globally
-# RUN npm install -g firebase-tools
+# npm install -g firebase-tools
 
 # Copy the project files into the container
 COPY --chown=$DOCKERUSER_NAME:$DOCKERUSER_NAME . .
