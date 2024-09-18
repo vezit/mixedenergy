@@ -1,9 +1,10 @@
 import '../styles/globals.css';
 import Header from '../components/Header';  // Import the Header component
 import Footer from '../components/Footer';  // Import the Footer component
-import { useModal } from '../lib/modals';  // Import the useModal hook
+import { useModal } from '../lib/modals';   // Import the useModal hook
 import CookieConsent from '../components/CookieConsent';  // Import the CookieConsent component
-import { BasketProvider } from '../lib/BasketContext'; // Import BasketProvider
+import { BasketProvider } from '../lib/BasketContext';  // Import BasketProvider
+import Head from 'next/head';  // Import Head component from Next.js
 
 function MyApp({ Component, pageProps }) {
   const { isModalOpen, closeModal } = useModal(true);
@@ -11,6 +12,15 @@ function MyApp({ Component, pageProps }) {
   return (
     <BasketProvider>
       <div className="flex flex-col min-h-screen">
+
+        {/* Load Google Maps API */}
+        <Head>
+          <script
+            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.GOOGLE_MAPS_API_KEY}`}
+            async
+            defer
+          ></script>
+        </Head>
 
         {/* Header */}
         <Header />
