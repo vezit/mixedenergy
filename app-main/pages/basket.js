@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useBasket } from '../lib/BasketContext';
+import PickupPointsList from '../components/PickupPointsList'; // Adjust path if necessary
 
 export default function Basket() {
   const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
@@ -14,7 +15,7 @@ export default function Basket() {
     country: 'Danmark',
     streetNumber: '',
   });
-  
+
   const [pickupPoints, setPickupPoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPickupPoints, setShowPickupPoints] = useState(false);
@@ -69,17 +70,17 @@ export default function Basket() {
 
       const data = await response.json();
 
-        // Update the customerDetails object with the street number from the DAWA response
+      // Update the customerDetails object with the street number from the DAWA response
       customerDetails.streetNumber = data.dawaResponse.resultater[0].adresse.husnr
       // Log the DAWA response to inspect it and set a breakpoint here
-    //   console.log('DAWA Response:', data);
+      //   console.log('DAWA Response:', data);
 
 
-      
+
       // Now you can extract relevant details from the DAWA response and use them in fetchPickupPoints, if necessary
       // For now, we will simply proceed with fetchPickupPoints
       fetchPickupPoints();
-      
+
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
     }
@@ -194,7 +195,7 @@ export default function Basket() {
             </div>
 
             {/* "Fortsæt" button */}
-            <button 
+            <button
               onClick={handleShowPickupPoints}
               className="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
             >
@@ -207,16 +208,7 @@ export default function Basket() {
                 {loading ? (
                   <p>Indlæser afhentningssteder...</p>
                 ) : (
-                  pickupPoints.length > 0 ? (
-                    pickupPoints.map((point) => (
-                      <div key={point.servicePointId} className="card">
-                        <h3>{point.name}</h3>
-                        <p>{`${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}, ${point.visitingAddress.postalCode} ${point.visitingAddress.city}`}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p>Ingen afhentningssteder fundet for denne adresse.</p>
-                  )
+                  <PickupPointsList pickupPoints={pickupPoints} />
                 )}
               </div>
             )}
