@@ -12,13 +12,17 @@ const MapComponent = () => {
   ];
 
   useEffect(() => {
-    // Initialize the map when the component mounts
+    if (typeof window.google === 'undefined') {
+      console.error('Google Maps API not loaded');
+      return;
+    }
+  
     const mapInstance = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 55.6761, lng: 12.5683 }, // Default to Copenhagen
+      center: { lat: 55.6761, lng: 12.5683 },
       zoom: 12,
     });
     setMap(mapInstance);
-
+  
     // Add markers to the map
     const markerInstances = locations.map((location, index) => {
       return new window.google.maps.Marker({
@@ -29,6 +33,7 @@ const MapComponent = () => {
     });
     setMarkers(markerInstances);
   }, []);
+  
 
   // Function to highlight a marker when a radio button is clicked
   const highlightMarker = (index) => {

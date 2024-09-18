@@ -13,15 +13,6 @@ function MyApp({ Component, pageProps }) {
     <BasketProvider>
       <div className="flex flex-col min-h-screen">
 
-        {/* Load Google Maps API */}
-        <Head>
-          <script
-            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.GOOGLE_MAPS_API_KEY}`}
-            async
-            defer
-          ></script>
-        </Head>
-
         {/* Header */}
         <Header />
 

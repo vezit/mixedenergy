@@ -95,6 +95,7 @@ export default function Basket() {
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
+      <MapComponent />
       {basketItems.length === 0 ? (
         <p>Din kurv er tom</p>
       ) : (
