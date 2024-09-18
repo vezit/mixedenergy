@@ -72,14 +72,9 @@ export default function Basket() {
       const data = await response.json();
 
       // Update the customerDetails object with the street number from the DAWA response
-      customerDetails.streetNumber = data.dawaResponse.resultater[0].adresse.husnr
-      // Log the DAWA response to inspect it and set a breakpoint here
-      //   console.log('DAWA Response:', data);
+      customerDetails.streetNumber = data.dawaResponse.resultater[0].adresse.husnr;
 
-
-
-      // Now you can extract relevant details from the DAWA response and use them in fetchPickupPoints, if necessary
-      // For now, we will simply proceed with fetchPickupPoints
+      // Now you can extract relevant details from the DAWA response and use them in fetchPickupPoints
       fetchPickupPoints();
 
     } catch (error) {
@@ -95,7 +90,12 @@ export default function Basket() {
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
-      <MapComponent />
+
+      {/* Conditionally render MapComponent based on showPickupPoints */}
+      {showPickupPoints && (
+        <MapComponent />
+      )}
+
       {basketItems.length === 0 ? (
         <p>Din kurv er tom</p>
       ) : (
@@ -205,18 +205,26 @@ export default function Basket() {
             </button>
 
             {showPickupPoints && (
-              <div className="mt-8">
-                <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
-                {loading ? (
-                  <p>Indlæser afhentningssteder...</p>
-                ) : (
-                  <PickupPointsList pickupPoints={pickupPoints} />
-                )}
-              </div>
-            )}
-          </div>
+  <div className="mt-8 flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+    <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
+      <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
+      {loading ? (
+        <p>Indlæser afhentningssteder...</p>
+      ) : (
+        <PickupPointsList pickupPoints={pickupPoints} />
+      )}
+    </div>
+    <div className="w-full lg:w-1/2">
+      <div style={{ height: '545px' }}>
+        <MapComponent />
+      </div>
+    </div>
+  </div>
+)}
 
-          
+
+
+          </div>
 
           <div className="text-right text-xl font-bold mt-6">
             Total: {basketItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}kr

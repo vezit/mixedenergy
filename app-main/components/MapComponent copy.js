@@ -46,13 +46,28 @@ const MapComponent = () => {
 
   return (
     <div>
+      <h3>Select a Location:</h3>
+      <div>
+        <label>
+          <input type="radio" name="location" value="location1" onClick={() => highlightMarker(0)} /> Location 1
+        </label>
+        <br />
+        <label>
+          <input type="radio" name="location" value="location2" onClick={() => highlightMarker(1)} /> Location 2
+        </label>
+        <br />
+        <label>
+          <input type="radio" name="location" value="location3" onClick={() => highlightMarker(2)} /> Location 3
+        </label>
+        <br />
+      </div>
 
       {/* The map container */}
       <div
         id="map"
         ref={mapRef}
         style={{
-          height: "545px",
+          height: "400px",
           width: "100%",
         }}
       ></div>
