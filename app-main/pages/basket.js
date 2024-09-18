@@ -91,11 +91,6 @@ export default function Basket() {
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
 
-      {/* Conditionally render MapComponent based on showPickupPoints */}
-      {showPickupPoints && (
-        <MapComponent />
-      )}
-
       {basketItems.length === 0 ? (
         <p>Din kurv er tom</p>
       ) : (
@@ -216,6 +211,7 @@ export default function Basket() {
     </div>
     <div className="w-full lg:w-1/2">
       <div style={{ height: '545px' }}>
+        {/* <MapComponent pickupPoints={pickupPoints} /> */}
         <MapComponent />
       </div>
     </div>
