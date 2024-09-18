@@ -90,39 +90,39 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full p-4 md:p-8">
+    <div className="flex flex-col items-center justify-center w-full h-full p-8">
       {/* Centered title at the top */}
-      <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 md:mb-8">Mixed Red Bulls</h1>
+      <h1 className="text-5xl font-bold text-center mb-8">Mixed Red Bulls</h1>
 
       {/* Center the image and product selection */}
-      <div className="flex flex-col md:flex-row items-start justify-center w-full max-w-4xl gap-8">
+      <div className="flex flex-row items-start justify-center w-full max-w-4xl gap-8">
         {/* Image and description container */}
-        <div className="w-full md:w-auto flex-shrink-0">
-          <div className="w-full md:w-[500px]"> {/* Ensures the content inside is responsive */}
+        <div className="flex-shrink-0">
+          <div className="w-[500px]"> {/* This div ensures the content inside is the same width as the image */}
             <Image
               src={product.image}
               alt={product.title}
-              width={500}
-              height={500}
+              width={500}  // Adjusted image width
+              height={500} // Adjusted image height
               className="rounded-lg shadow-lg"
             />
 
-            {/* Beskrivelse section directly under the image */}
-            <div className="mt-4 md:mt-6">
-              <h2 className="text-xl md:text-2xl font-bold mb-2">Beskrivelse</h2>
-              <p className="text-base md:text-lg text-gray-700">
+            {/* Beskrivelse section directly under the image with the same width */}
+            <div className="mt-6">
+              <h2 className="text-2xl font-bold mb-2">Beskrivelse</h2>
+              <p className="text-lg text-gray-700">
                 Lad selv en kasse med jeres favorit Red Bulls, vi har alle de forskellige smage som Red Bull har i Danmark, vi vil derefter pakke dem for jer og sende det til jer.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Product selection */}
-        <div className="flex-grow w-full">
+        {/* Product selection on the right */}
+        <div className="flex-grow self-start"> {/* self-start aligns the top of this section with the top of the image */}
           {/* Radio buttons for selecting the size */}
-          <div className="mt-4 md:mt-0">
+          <div className="mt-0">
             <p>Vælg størrelse:</p>
-            <label className="mr-2">
+            <label className="mr-4">
               <input
                 type="radio"
                 name="size"
@@ -132,7 +132,7 @@ export default function ProductDetail() {
               />
               8
             </label>
-            <label className="mr-2">
+            <label className="mr-4">
               <input
                 type="radio"
                 name="size"
@@ -154,47 +154,49 @@ export default function ProductDetail() {
             </label>
           </div>
 
-          {/* Product selection list */}
-          <div className="mt-4">
-            <p>Vælg produkter (præcis {maxProducts}):</p>
-            {allProducts.map((product, index) => (
-              <div key={index} className="flex items-center justify-between mt-2">
-                <span>{product}</span>
-                <div className="flex items-center">
-                  <button
-                    onClick={() => handleProductQuantityChange(product, 'decrement')}
-                    className="px-2 py-1 bg-gray-200 rounded-l"
-                    disabled={selectedProducts[product] <= 0 || !selectedProducts[product]}
-                  >
-                    -
-                  </button>
-                  <span className="px-4 py-2 bg-gray-100">
-                    {selectedProducts[product] || 0}
-                  </span>
-                  <button
-                    onClick={() => handleProductQuantityChange(product, 'increment')}
-                    className="px-2 py-1 bg-gray-200 rounded-r"
-                    disabled={totalSelected >= maxProducts}
-                  >
-                    +
-                  </button>
+          {/* Display all 10 products regardless of selected size */}
+          {(selectedSize === '8' || selectedSize === '12' || selectedSize === '18') && (
+            <div className="mt-4">
+              <p>Vælg produkter (præcis {maxProducts}):</p>
+              {allProducts.map((product, index) => (
+                <div key={index} className="flex items-center justify-between mt-2">
+                  <span>{product}</span>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => handleProductQuantityChange(product, 'decrement')}
+                      className="px-2 py-1 bg-gray-200 rounded-l"
+                      disabled={selectedProducts[product] <= 0 || !selectedProducts[product]}
+                    >
+                      -
+                    </button>
+                    <span className="px-4 py-2 bg-gray-100">
+                      {selectedProducts[product] || 0}
+                    </span>
+                    <button
+                      onClick={() => handleProductQuantityChange(product, 'increment')}
+                      className="px-2 py-1 bg-gray-200 rounded-r"
+                      disabled={totalSelected >= maxProducts}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-            <p className="mt-2 text-red-600">{`Du har valgt ${totalSelected} af ${maxProducts} produkter.`}</p>
-          </div>
+              ))}
+              <p className="mt-2 text-red-600">{`Du har valgt ${totalSelected} af ${maxProducts} produkter.`}</p>
+            </div>
+          )}
 
           {/* Add to basket button */}
           <button
             onClick={addMixedToBasket}
-            className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full md:w-auto"
-            disabled={totalSelected !== maxProducts}
+            className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition"
+            disabled={totalSelected !== maxProducts} // Button is only enabled when the exact number of products is selected
           >
             Tilføj blandet til kurv
           </button>
 
-          {/* Price */}
-          <p className="text-2xl font-bold mt-4">{price} kr</p>
+          {/* Price below add to cart */}
+          <p className="text-2xl font-bold mt-4">{price} kr</p> {/* Dynamic Price Display */}
 
           {/* Link to the list of drinks */}
           <Link href="/drinks">
