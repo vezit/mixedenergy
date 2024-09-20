@@ -21,7 +21,7 @@ export default function Basket() {
   const [pickupPoints, setPickupPoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPickupPoints, setShowPickupPoints] = useState(false);
-  const [isCityDisabled, setIsCityDisabled] = useState(false);
+
 
   const updateQuantity = (index, newQuantity) => {
     if (newQuantity <= 0) {
@@ -59,13 +59,11 @@ export default function Basket() {
                 ...prevState,
                 city: cityName,
               }));
-              setIsCityDisabled(true);
             } else {
               setCustomerDetails((prevState) => ({
                 ...prevState,
                 city: "",
               }));
-              setIsCityDisabled(false);
             }
           })
           .catch((error) => {
@@ -74,7 +72,6 @@ export default function Basket() {
               ...prevState,
               city: "",
             }));
-            setIsCityDisabled(false);
           });
       } else {
         // If postal code is not 4 digits, enable city input
@@ -82,7 +79,6 @@ export default function Basket() {
           ...prevState,
           city: "",
         }));
-        setIsCityDisabled(false);
       }
     }
   };
