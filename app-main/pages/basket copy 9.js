@@ -255,6 +255,7 @@ export default function Basket() {
   const renderShippingAndPayment = () => (
     <div>
       <h2 className="text-2xl font-bold mb-4">Fragt og betaling</h2>
+      {/* Payment options, shipping methods, and pickup points go here */}
       {showPickupPoints && (
         <div className="mt-8">
           {loading ? (
@@ -266,25 +267,12 @@ export default function Basket() {
             </div>
           ) : (
             <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
-              <div
-                className="w-full lg:w-1/2 overflow-y-scroll"
-                style={{ maxHeight: '545px' }}
-              >
-                <h2 className="text-xl font-bold mb-4">
-                  Vælg et afhentningssted
-                </h2>
-                <PickupPointsList
-                  pickupPoints={pickupPoints}
-                  selectedPoint={selectedPoint}
-                  setSelectedPoint={setSelectedPoint}
-                />
+              <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
+                <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
+                <PickupPointsList pickupPoints={pickupPoints} />
               </div>
               <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
-                <MapComponent
-                  pickupPoints={pickupPoints}
-                  selectedPoint={selectedPoint}
-                  setSelectedPoint={setSelectedPoint}
-                />
+                <MapComponent pickupPoints={pickupPoints} />
               </div>
             </div>
           )}
@@ -292,7 +280,6 @@ export default function Basket() {
       )}
     </div>
   );
-  
 
   const renderOrderConfirmation = () => (
     <div>

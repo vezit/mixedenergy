@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 
-const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
+const MapComponent = ({ pickupPoints }) => {
   const mapRef = useRef(null); // Reference to the map DOM element
   const [map, setMap] = useState(null);
+  const [markers, setMarkers] = useState([]);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
-  const markersMapRef = useRef({});
-
-  // Define marker icons
   const defaultMarkerIcon = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
   const selectedMarkerIcon = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
 
+  const markersMapRef = useRef({});
+  
   // Initialize the map only once
   useEffect(() => {
     if (typeof window.google === 'undefined') {
@@ -38,11 +38,10 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
     if (!map || !pickupPoints) return;
 
     // Clear existing markers
-    Object.values(markersMapRef.current).forEach(marker => marker.setMap(null));
-    markersMapRef.current = {};
+    markers.forEach(marker => marker.setMap(null));
 
     // Add new markers
-    const newMarkers = pickupPoints.map((point) => {
+    const newMarkers = pickupPoints.map((point, index) => {
       const lat = parseFloat(point.coordinates[0].northing);
       const lng = parseFloat(point.coordinates[0].easting);
 
@@ -50,32 +49,28 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
         position: { lat, lng },
         map: map,
         title: point.name,
-        icon: selectedPoint === point.servicePointId ? selectedMarkerIcon : defaultMarkerIcon,
       });
 
-      // Store servicePointId and infoWindow with the marker
-      marker.servicePointId = point.servicePointId;
-
+      // Create content for the info window
       // Create content for the info window
       const contentString = `
-        <div style="font-family: Arial, sans-serif; width: 200px;">
-          <div style="background-color: #fff; padding: 10px; border-radius: 8px;">
-            <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 10px;">${point.name}</h2>
-            <p style="font-size: 14px; margin: 0;">${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()}</p>
-            <p style="font-size: 14px; margin: 0;">${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}</p>
-            <hr style="margin: 10px 0;">
-            <b style="font-size: 14px;">Åbningstider</b>
-            ${formatOpeningHours(point.openingHours.postalServices)}
-          </div>
-        </div>
-      `;
+  <div style="font-family: Arial, sans-serif; width: 200px;">
+    <div style="background-color: #fff; padding: 10px; border-radius: 8px;">
+      <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 10px;">${point.name}</h2>
+      <p style="font-size: 14px; margin: 0;">${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()}</p>
+      <p style="font-size: 14px; margin: 0;">${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}</p>
+      <hr style="margin: 10px 0;">
+      <b style="font-size: 14px;">Åbningstider</b>
+      ${formatOpeningHours(point.openingHours.postalServices)}
+    </div>
+  </div>
+`;
+
 
       // Create an info window
       const infoWindow = new window.google.maps.InfoWindow({
         content: contentString,
       });
-
-      marker.infoWindow = infoWindow;
 
       // Add click listener to the marker
       marker.addListener('click', () => {
@@ -87,16 +82,12 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
         infoWindow.open(map, marker);
         // Set the active info window
         setActiveInfoWindow(infoWindow);
-
-        // Update selected point
-        setSelectedPoint(point.servicePointId);
       });
-
-      // Store marker in the ref
-      markersMapRef.current[point.servicePointId] = marker;
 
       return marker;
     });
+
+    setMarkers(newMarkers);
 
     // Adjust map bounds to fit all markers
     if (newMarkers.length > 0) {
@@ -108,33 +99,8 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
     // Cleanup function to remove markers when pickupPoints change
     return () => {
       newMarkers.forEach(marker => marker.setMap(null));
-      markersMapRef.current = {};
     };
-  }, [map, pickupPoints, selectedPoint]);
-
-  // Update markers when selectedPoint changes
-  useEffect(() => {
-    if (!map || !selectedPoint || !markersMapRef.current[selectedPoint]) return;
-
-    // Close any active info windows
-    if (activeInfoWindow) {
-      activeInfoWindow.close();
-    }
-
-    // Highlight the selected marker
-    Object.values(markersMapRef.current).forEach((marker) => {
-      if (marker.servicePointId === selectedPoint) {
-        marker.setIcon(selectedMarkerIcon);
-        // Open the info window
-        marker.infoWindow.open(map, marker);
-        setActiveInfoWindow(marker.infoWindow);
-        // Optionally pan to the selected marker
-        map.panTo(marker.getPosition());
-      } else {
-        marker.setIcon(defaultMarkerIcon);
-      }
-    });
-  }, [selectedPoint, map]);
+  }, [map, pickupPoints]);
 
   // Function to format opening hours
   const formatOpeningHours = (openingHours) => {
@@ -148,6 +114,7 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
 
     return hoursHtml;
   };
+
 
   // Function to translate day names to Danish (if needed)
   const translateDay = (day) => {

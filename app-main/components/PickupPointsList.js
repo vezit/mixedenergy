@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PickupPointCard from './PickupPointCard';
 
-const PickupPointsList = ({ pickupPoints }) => {
-  const [selectedPoint, setSelectedPoint] = useState(null);
-
+const PickupPointsList = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
   const handleSelectPoint = (pointId) => {
     setSelectedPoint(pointId);
   };
