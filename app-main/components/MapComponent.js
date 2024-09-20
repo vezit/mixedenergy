@@ -16,9 +16,9 @@ const MapComponent = ({ pickupPoints }) => {
       const defaultCenter =
         pickupPoints && pickupPoints.length > 0
           ? {
-              lat: parseFloat(pickupPoints[0].coordinates[0].northing),
-              lng: parseFloat(pickupPoints[0].coordinates[0].easting),
-            }
+            lat: parseFloat(pickupPoints[0].coordinates[0].northing),
+            lng: parseFloat(pickupPoints[0].coordinates[0].easting),
+          }
           : { lat: 55.6761, lng: 12.5683 }; // Default to Copenhagen if no pickupPoints
 
       const mapInstance = new window.google.maps.Map(mapRef.current, {
@@ -48,14 +48,20 @@ const MapComponent = ({ pickupPoints }) => {
       });
 
       // Create content for the info window
+      // Create content for the info window
       const contentString = `
-        <div>
-          <h1>${point.name}</h1>
-          <p>${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()} ${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}</p>
-          <b>Åbningstider</b>
-          ${formatOpeningHours(point.openingHours.postalServices)}
-        </div>
-      `;
+  <div style="font-family: Arial, sans-serif; width: 200px;">
+    <div style="background-color: #fff; padding: 10px; border-radius: 8px;">
+      <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 10px;">${point.name}</h2>
+      <p style="font-size: 14px; margin: 0;">${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()}</p>
+      <p style="font-size: 14px; margin: 0;">${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}</p>
+      <hr style="margin: 10px 0;">
+      <b style="font-size: 14px;">Åbningstider</b>
+      ${formatOpeningHours(point.openingHours.postalServices)}
+    </div>
+  </div>
+`;
+
 
       // Create an info window
       const infoWindow = new window.google.maps.InfoWindow({
@@ -96,7 +102,7 @@ const MapComponent = ({ pickupPoints }) => {
   const formatOpeningHours = (openingHours) => {
     if (!openingHours || openingHours.length === 0) return '<p>Ingen åbningstider tilgængelige</p>';
 
-    let hoursHtml = '<ul>';
+    let hoursHtml = '<ul style="list-style-type: none; padding: 0; margin: 0; font-size: 12px;">';
     openingHours.forEach((day) => {
       hoursHtml += `<li>${translateDay(day.openDay)}: ${day.openTime} - ${day.closeTime}</li>`;
     });
@@ -104,6 +110,7 @@ const MapComponent = ({ pickupPoints }) => {
 
     return hoursHtml;
   };
+
 
   // Function to translate day names to Danish (if needed)
   const translateDay = (day) => {
