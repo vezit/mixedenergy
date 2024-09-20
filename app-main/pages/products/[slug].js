@@ -9,18 +9,49 @@ export default function ProductDetail() {
   const router = useRouter();
   const { slug } = router.query;
   const product = products[slug];
-  const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState('8'); // New state for radio buttons
-  const [selectedProducts, setSelectedProducts] = useState({});
+  const [selectedSize, setSelectedSize] = useState('8'); // State for radio buttons
+  const [selectedProducts, setSelectedProducts] = useState([]);
   const [price, setPrice] = useState(175); // State for price
   const { addItemToBasket } = useBasket();
 
+  // List of all products (for links other than /products/mixed-booster)
   const allProducts = [
-    'Red Bull Original - 0.25 l',
+    { name: 'Red Bull Original - 0.25 l', weight: 5 },
+    { name: 'Red Bull Sukkerfri - 0.25 l', weight: 5 },
+    { name: 'Red Bull Zero - 0.25 l', weight: 3 },
+    { name: 'Red Bull Original Stor - 0.355 l', weight: 3 },
+    { name: 'Red Bull Sukkerfri Stor - 0.473 l', weight: 3 },
+    { name: 'Red Bull Red Edition Vandmelon - 0.25 l', weight: 2 },
+    { name: 'Red Bull Blue Edition - 0.25 l', weight: 2 },
+    { name: 'Red Bull Abrikos Edition - 0.25 l', weight: 1 },
+    { name: 'Red Bull Lilla Edition - 0.25 l', weight: 1 },
+    { name: 'Red Bull Summer Edition - 0.25 l', weight: 1 },
+  ];
+
+  // List of Faxe Kondi Booster products (for /products/mixed-booster)
+  const boosterProducts = [
+    'Faxe Kondi Booster Original - 0.5 l',
+    'Faxe Kondi Booster Free - 0.5 l',
+    'Faxe Kondi Booster Black Edition - 0.5 l',
+    'Faxe Kondi Booster Frosty Blue - 0.5 l',
+    'Faxe Kondi Booster Pink Dragon - 0.5 l',
+    'Faxe Kondi Booster Energy - 0.5 l',
+    'Faxe Kondi Booster Sort Passion - 0.5 l',
+    'Faxe Kondi Booster Sort Zero - 0.5 l',
+    'Faxe Kondi Booster Twisted Ice Zero - 0.5 l',
+  ];
+
+  // Products for sukkerfri (only Red Bull Sukkerfri and Zero variants)
+  const sukkerfriProducts = [
     'Red Bull Sukkerfri - 0.25 l',
-    'Red Bull Zero - 0.25 l',
-    'Red Bull Original Stor - 0.355 l',
     'Red Bull Sukkerfri Stor - 0.473 l',
+    'Red Bull Zero - 0.25 l',
+  ];
+
+  // Products with sugar (excluding sukkerfri variants)
+  const medSukkerProducts = [
+    'Red Bull Original - 0.25 l',
+    'Red Bull Original Stor - 0.355 l',
     'Red Bull Red Edition Vandmelon - 0.25 l',
     'Red Bull Blue Edition - 0.25 l',
     'Red Bull Abrikos Edition - 0.25 l',
@@ -28,14 +59,10 @@ export default function ProductDetail() {
     'Red Bull Summer Edition - 0.25 l',
   ];
 
-  // Determine the max number of products that can be selected based on the selected size
+  // Calculate max products based on selected size
   const maxProducts = selectedSize === '8' ? 8 : selectedSize === '12' ? 12 : 18;
 
-  // Calculate the total number of selected products
-  const totalSelected = Object.values(selectedProducts).reduce((acc, qty) => acc + qty, 0);
-
   useEffect(() => {
-    // Dynamically update price based on selected size
     if (selectedSize === '8') {
       setPrice(175); // Price for 8 items
     } else if (selectedSize === '12') {
@@ -49,56 +76,98 @@ export default function ProductDetail() {
     return <p>Indlæser...</p>;
   }
 
-  const handleProductQuantityChange = (product, action) => {
-    setSelectedProducts((prevSelected) => {
-      const currentQty = prevSelected[product] || 0;
+  // Function to randomly pick products from the weighted "allProducts" array (for other links)
+  const getRandomProducts = () => {
+    const weightedProducts = allProducts.flatMap(product =>
+      Array(product.weight).fill(product.name)
+    );
 
-      // Increase the product quantity
-      if (action === 'increment' && totalSelected < maxProducts) {
-        return { ...prevSelected, [product]: currentQty + 1 };
-      }
+    const randomSelection = [];
+    for (let i = 0; i < maxProducts; i++) {
+      const randomProduct = weightedProducts[Math.floor(Math.random() * weightedProducts.length)];
+      randomSelection.push(randomProduct);
+    }
+    return randomSelection;
+  };
 
-      // Decrease the product quantity
-      if (action === 'decrement' && currentQty > 0) {
-        const updated = { ...prevSelected, [product]: currentQty - 1 };
-        if (updated[product] === 0) delete updated[product]; // Remove product from object if quantity is 0
-        return updated;
-      }
+  // Function to randomly pick only sukkerfri products
+  const getSukkerfriProducts = () => {
+    const randomSelection = [];
+    for (let i = 0; i < maxProducts; i++) {
+      const randomProduct = sukkerfriProducts[Math.floor(Math.random() * sukkerfriProducts.length)];
+      randomSelection.push(randomProduct);
+    }
+    return randomSelection;
+  };
 
-      return prevSelected; // Return the same state if no changes
-    });
+  // Function to randomly pick only "Med Sukker" products
+  const getMedSukkerProducts = () => {
+    const randomSelection = [];
+    for (let i = 0; i < maxProducts; i++) {
+      const randomProduct = medSukkerProducts[Math.floor(Math.random() * medSukkerProducts.length)];
+      randomSelection.push(randomProduct);
+    }
+    return randomSelection;
+  };
+
+  // Function to randomly pick products from the Faxe Kondi Booster product list
+  const getBoosterProducts = () => {
+    const randomSelection = [];
+    for (let i = 0; i < maxProducts; i++) {
+      const randomProduct = boosterProducts[Math.floor(Math.random() * boosterProducts.length)];
+      randomSelection.push(randomProduct);
+    }
+    return randomSelection;
+  };
+
+  // Handling for product selections
+  const handleRandomSelection = () => {
+    const randomProducts = getRandomProducts();
+    setSelectedProducts(randomProducts);
+  };
+
+  const handleSukkerfriSelection = () => {
+    const sukkerfriProducts = getSukkerfriProducts();
+    setSelectedProducts(sukkerfriProducts);
+  };
+
+  const handleMedSukkerSelection = () => {
+    const medSukkerProducts = getMedSukkerProducts();
+    setSelectedProducts(medSukkerProducts);
+  };
+
+  const handleBoosterSelection = () => {
+    const boosterProducts = getBoosterProducts();
+    setSelectedProducts(boosterProducts);
   };
 
   const addMixedToBasket = () => {
-    if (totalSelected !== maxProducts) {
+    if (selectedProducts.length !== maxProducts) {
       alert(`Vælg præcis ${maxProducts} produkter.`);
       return;
     }
 
     const mixedProduct = {
-      title: `Blandet Red Bulls - Størrelse ${selectedSize}`,
-      description: `En blanding af følgende Red Bulls: ${Object.entries(selectedProducts)
-        .map(([product, qty]) => `${product} (x${qty})`)
-        .join(', ')}`,
-      price, // Using the dynamically set price
-      quantity,
+      title: `Blandet - Størrelse ${selectedSize}`,
+      description: `En blanding af følgende produkter: ${selectedProducts.join(', ')}`,
+      price,
       selectedSize,
-      selectedProducts, // Store the selected products for later reference
+      selectedProducts,
     };
 
-    addItemToBasket(mixedProduct); // Send the mixed product to the basket
+    addItemToBasket(mixedProduct);
   };
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-4 md:p-8">
       {/* Centered title at the top */}
-      <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 md:mb-8">Mixed Red Bulls</h1>
+      <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 md:mb-8">Blandet Produkter</h1>
 
       {/* Center the image and product selection */}
       <div className="flex flex-col md:flex-row items-start justify-center w-full max-w-4xl gap-8">
         {/* Image and description container */}
         <div className="w-full md:w-auto flex-shrink-0">
-          <div className="w-full md:w-[500px]"> {/* Ensures the content inside is responsive */}
+          <div className="w-full md:w-[500px]">
             <Image
               src={product.image}
               alt={product.title}
@@ -107,11 +176,11 @@ export default function ProductDetail() {
               className="rounded-lg shadow-lg"
             />
 
-            {/* Beskrivelse section directly under the image */}
+            {/* Beskrivelse section */}
             <div className="mt-4 md:mt-6">
               <h2 className="text-xl md:text-2xl font-bold mb-2">Beskrivelse</h2>
               <p className="text-base md:text-lg text-gray-700">
-                Lad selv en kasse med jeres favorit Red Bulls, vi har alle de forskellige smage som Red Bull har i Danmark, vi vil derefter pakke dem for jer og sende det til jer.
+                Vælg en tilfældig blanding af dine favoritter, og vi pakker det for dig.
               </p>
             </div>
           </div>
@@ -154,41 +223,57 @@ export default function ProductDetail() {
             </label>
           </div>
 
-          {/* Product selection list */}
+          {/* Random product selection button: "Alle Varianter" */}
+          <button
+            onClick={handleRandomSelection}
+            className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition w-full md:w-auto"
+          >
+            Alle Varianter
+          </button>
+
+          {/* Random sukkerfri product selection button: "Kun Sukkerfri Varianter" */}
+          <button
+            onClick={handleSukkerfriSelection}
+            className="mt-4 bg-green-500 text-white px-6 py-2 rounded-full shadow hover:bg-green-600 transition w-full md:w-auto"
+          >
+            Kun Sukkerfri Varianter
+          </button>
+
+          {/* Random med sukker product selection button: "Med Sukker" */}
+          <button
+            onClick={handleMedSukkerSelection}
+            className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-full shadow hover:bg-orange-600 transition w-full md:w-auto"
+          >
+            Med Sukker
+          </button>
+
+          {/* Random Faxe Kondi Booster product selection button for /products/mixed-booster */}
+          {slug === 'mixed-booster' && (
+            <button
+              onClick={handleBoosterSelection}
+              className="mt-4 bg-yellow-500 text-white px-6 py-2 rounded-full shadow hover:bg-yellow-600 transition w-full md:w-auto"
+            >
+              Vælg tilfældige Booster produkter
+            </button>
+          )}
+
+          {/* Selected products display */}
           <div className="mt-4">
-            <p>Vælg produkter (præcis {maxProducts}):</p>
-            {allProducts.map((product, index) => (
-              <div key={index} className="flex items-center justify-between mt-2">
-                <span>{product}</span>
-                <div className="flex items-center">
-                  <button
-                    onClick={() => handleProductQuantityChange(product, 'decrement')}
-                    className="px-2 py-1 bg-gray-200 rounded-l"
-                    disabled={selectedProducts[product] <= 0 || !selectedProducts[product]}
-                  >
-                    -
-                  </button>
-                  <span className="px-4 py-2 bg-gray-100">
-                    {selectedProducts[product] || 0}
-                  </span>
-                  <button
-                    onClick={() => handleProductQuantityChange(product, 'increment')}
-                    className="px-2 py-1 bg-gray-200 rounded-r"
-                    disabled={totalSelected >= maxProducts}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))}
-            <p className="mt-2 text-red-600">{`Du har valgt ${totalSelected} af ${maxProducts} produkter.`}</p>
+            <p>Du har valgt følgende produkter:</p>
+            <ul>
+              {selectedProducts.map((product, index) => (
+                <li key={index} className="mt-2">
+                  {product}
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Add to basket button */}
           <button
             onClick={addMixedToBasket}
             className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full md:w-auto"
-            disabled={totalSelected !== maxProducts}
+            disabled={selectedProducts.length !== maxProducts}
           >
             Tilføj blandet til kurv
           </button>

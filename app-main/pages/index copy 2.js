@@ -36,7 +36,7 @@ export default function Home() {
               </div>
               <div className="p-4 flex-grow">
                 <h2 className="text-xl font-bold">Mixed Bland Selv</h2>
-                <p className="text-gray-700">Bland Red Bull, Monster og Booster i en kasse</p>
+                <p className="text-gray-700">Bland alle varianter i en kasse</p>
               </div>
             </div>
           </a>
@@ -96,85 +96,65 @@ export default function Home() {
           </a>
         </Link>
 
-        {/* Insert the headline "Vi Blander For Dig" here */}
+        {/* Insert the headline "Populære bokse" here */}
         <div className="w-full text-center py-6">
-          <h1 className="text-2xl font-bold">Vi Blander For Dig</h1>
+          <h1 className="text-2xl font-bold">Populære bokse</h1>
         </div>
 
-{/* New 4 cards with updated links */}
-<Link href="/products/mixed-monsters">
-  <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-    <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-      <div className="w-full h-60">
-        <img
-          src="/images/iceblast-energy.jpg"
-          alt="Mixed Monsters"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-4 flex-grow">
-        <h2 className="text-xl font-bold">Monster Mix</h2>
-        <p className="text-gray-700">Vi Blander Forskellige Monster Varianter i en kasse for dig</p>
-      </div>
-    </div>
-  </a>
-</Link>
+        {/* New 3 cards */}
+        <Link href="/products/Monster 8 Bland selv">
+          <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
+            <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
+              <div className="w-full h-60">
+                <img
+                  src="/images/iceblast-energy.jpg"
+                  alt="Mix 8 Monster"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-4 flex-grow">
+                <h2 className="text-xl font-bold">Mix 8 Monster</h2>
+                <p className="text-gray-700">Bland 8 Monster forskellige varianter i en kasse</p>
+              </div>
+            </div>
+          </a>
+        </Link>
 
-<Link href="/products/mixed-any">
-  <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-    <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-      <div className="w-full h-60">
-        <img
-          src="/images/thunder-punch-energy.jpg"
-          alt="Mixed Bland Selv"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-4 flex-grow">
-        <h2 className="text-xl font-bold">Blandet Mix</h2>
-        <p className="text-gray-700">Vi Blander Forskellige Red Bull, Monster og Booster Varianter i en kasse for dig</p>
-      </div>
-    </div>
-  </a>
-</Link>
+        <Link href="/products/Bland selv 8">
+          <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
+            <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
+              <div className="w-full h-60">
+                <img
+                  src="/images/thunder-punch-energy.jpg"
+                  alt="Bland Selv Mix 8"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-4 flex-grow">
+                <h2 className="text-xl font-bold">Bland Selv Mix 8</h2>
+                <p className="text-gray-700">Bland 8 forskellige varianter i en kasse</p>
+              </div>
+            </div>
+          </a>
+        </Link>
 
-<Link href="/products/mixed-red-bulls">
-  <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-    <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-      <div className="w-full h-60">
-        <img
-          src="/images/volt-burst-energy.jpg"
-          alt="Mixed Red Bulls"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-4 flex-grow">
-        <h2 className="text-xl font-bold">Red Bull Mix</h2>
-        <p className="text-gray-700">Vi Blander Forskellige Red Bull Varianter i en kasse for dig</p>
-      </div>
-    </div>
-  </a>
-</Link>
-
-<Link href="/products/mixed-booster">
-  <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-    <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-      <div className="w-full h-60">
-        <img
-          src="/images/booster-attack-energy.jpg"
-          alt="Mixed Booster"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-4 flex-grow">
-        <h2 className="text-xl font-bold">Booster Mix</h2>
-        <p className="text-gray-700">Vi Blander Forskellige Booster Varianter i en kasse for dig</p>
-      </div>
-    </div>
-  </a>
-</Link>
-
-
+        <Link href="/products/Red Bull Bland selv 8">
+          <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
+            <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
+              <div className="w-full h-60">
+                <img
+                  src="/images/volt-burst-energy.jpg"
+                  alt="Mix 8 Red Bull"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-4 flex-grow">
+                <h2 className="text-xl font-bold">Mix 8 Red Bull</h2>
+                <p className="text-gray-700">Bland 8 Forskellige Red Bull varianter i en kasse</p>
+              </div>
+            </div>
+          </a>
+        </Link>
       </div>
     </div>
   );
