@@ -1,4 +1,28 @@
+import React from 'react';
+
+
+
 export default function CookiePolitik() { 
+
+
+
+
+  function deleteAllCookies() {
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+  }
+
+  const handleDeleteCookies = () => {
+    const confirmAction = window.confirm("Advarsel: Dit indhold i kurven vil gå tabt hvis du forsætter.");
+    if (confirmAction) {
+      deleteAllCookies();
+      // refresh the page and redirect to the home page
+      window.location.href = '/';
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -30,6 +54,10 @@ export default function CookiePolitik() {
           <p>
             Hvis du har spørgsmål om vores brug af cookies, kan du kontakte os på <a href="mailto:mixedenergy.dk@gmail.com" className="text-blue-500">mixedenergy.dk@gmail.com</a> eller ringe til os på 42172145.
           </p>
+
+          <button onClick={handleDeleteCookies} className="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+          Slet alle cookies
+        </button>
         </div>
     </div>
   );
