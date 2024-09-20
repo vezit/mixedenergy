@@ -34,6 +34,7 @@ WORKDIR /usr/src/project/app-main
 # add npm install next
 RUN npm install next
 # npm install -g firebase-tools
+# npm install styled-components
 
 # Copy the project files into the container
 COPY --chown=$DOCKERUSER_NAME:$DOCKERUSER_NAME . .

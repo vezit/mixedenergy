@@ -7,5 +7,10 @@ module.exports = {
       extend: {},
     },
     plugins: [],
+    extend: {
+      animation: {
+        'spin-slow': 'circle 6s linear infinite', // Adjust timing as needed
+      }
+    }
   }
   

@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList'; // Adjust path if necessary
 import MapComponent from "../components/MapComponent";
-import LoadingSpinner from '../components/LoadingSpinner'; // Adjust the path if necessary
-
 
 export default function Basket() {
   const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
@@ -202,33 +200,27 @@ export default function Basket() {
             </button>
 
             {showPickupPoints && (
-  <div className="mt-8" style={{ height: '545px' }}>
-    {loading ? (
-      // Centered Loading Spinner and Message
-      <div className="flex items-center justify-center h-full">
-        <div className="flex flex-col items-center">
-          <LoadingSpinner />
-          <p className="mt-4 font-bold">Gemmer Oplysninger</p>
-        </div>
-      </div>
-    ) : (
-      // Content After Loading is Complete
-      <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4 h-full">
-        <div
-          className="w-full lg:w-1/2 overflow-y-scroll"
-          style={{ maxHeight: '545px' }}
-        >
-          <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
-          <PickupPointsList pickupPoints={pickupPoints} />
-        </div>
-        <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
-          <MapComponent pickupPoints={pickupPoints} />
-        </div>
-      </div>
-    )}
-  </div>
-)}
-
+              <div className="mt-8 flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+                <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
+                  <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
+                  {loading ? (
+                    <div className="relative flex items-center justify-center h-full">
+                      <img src="/path/to/logo.png" alt="Loading" className="absolute animate-spin-slow h-10 w-10" />
+                        <span class="z-10 text-lg font-bold">Gemmer Oplysninger</span>
+                    </div>
+                  ) : (
+                    <PickupPointsList pickupPoints={pickupPoints} />
+                  )}
+                </div>
+                <div className="w-full lg:w-1/2">
+                  <div style={{ height: '545px' }}>
+                    {!loading && (
+                      <MapComponent pickupPoints={pickupPoints} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
 
 
