@@ -17,7 +17,6 @@ export default function Basket() {
     country: 'Danmark',
     streetNumber: '',
   });
-  const [errors, setErrors] = useState({});
   const [pickupPoints, setPickupPoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPickupPoints, setShowPickupPoints] = useState(false);
@@ -89,25 +88,11 @@ export default function Basket() {
   
 
   const handleShowPickupPoints = () => {
-    const newErrors = {};
-    if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet';
-    if (!customerDetails.mobileNumber) newErrors.mobileNumber = 'Mobilnummer er påkrævet';
-    if (!customerDetails.email) newErrors.email = 'E-mail er påkrævet';
-    if (!customerDetails.address) newErrors.address = 'Adresse er påkrævet';
-    if (!customerDetails.postalCode) newErrors.postalCode = 'Postnummer er påkrævet';
-    if (!customerDetails.city) newErrors.city = 'By er påkrævet';
-  
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    } else {
-      setErrors({});
-    }
-  
     setLoading(true);
     validateAddressWithDAWA();
     setShowPickupPoints(true);
   };
+  
 
   const renderCustomerDetails = () => (
     <div>
@@ -115,86 +100,80 @@ export default function Basket() {
 
       {/* Fulde Navn */}
       <div className="mb-4">
-        <label className="block mb-2">Fulde Navn *</label>
+        <label className="block mb-2">Fulde Navn</label>
         <input
           type="text"
           name="fullName"
           value={customerDetails.fullName}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.fullName ? 'border-red-500' : ''}`}
+          className="w-full p-2 border rounded"
           required
         />
-        {errors.fullName && <p className="text-red-500 mt-1">{errors.fullName}</p>}
       </div>
 
       {/* Mobilnummer */}
       <div className="mb-4">
-        <label className="block mb-2">Mobilnummer *</label>
+        <label className="block mb-2">Mobilnummer</label>
         <input
           type="text"
           name="mobileNumber"
           value={customerDetails.mobileNumber}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.mobileNumber ? 'border-red-500' : ''}`}
+          className="w-full p-2 border rounded"
           required
         />
-        {errors.mobileNumber && <p className="text-red-500 mt-1">{errors.mobileNumber}</p>}
       </div>
 
       {/* E-mail Adresse */}
       <div className="mb-4">
-        <label className="block mb-2">E-mail Adresse *</label>
+        <label className="block mb-2">E-mail Adresse</label>
         <input
           type="email"
           name="email"
           value={customerDetails.email}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''}`}
+          className="w-full p-2 border rounded"
           required
         />
-        {errors.email && <p className="text-red-500 mt-1">{errors.email}</p>}
       </div>
 
       {/* Vejnavn og Husnummer */}
       <div className="mb-4">
-        <label className="block mb-2">Vejnavn og Husnummer *</label>
+        <label className="block mb-2">Vejnavn og Husnummer</label>
         <input
           type="text"
           name="address"
           value={customerDetails.address}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.address ? 'border-red-500' : ''}`}
+          className="w-full p-2 border rounded"
           required
         />
-        {errors.address && <p className="text-red-500 mt-1">{errors.address}</p>}
       </div>
 
       {/* Postnummer */}
       <div className="mb-4">
-        <label className="block mb-2">Postnummer *</label>
+        <label className="block mb-2">Postnummer</label>
         <input
           type="text"
           name="postalCode"
           value={customerDetails.postalCode}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.postalCode ? 'border-red-500' : ''}`}
+          className="w-full p-2 border rounded"
           required
         />
-        {errors.postalCode && <p className="text-red-500 mt-1">{errors.postalCode}</p>}
       </div>
 
       {/* By */}
       <div className="mb-4">
-        <label className="block mb-2">By *</label>
+        <label className="block mb-2">By</label>
         <input
           type="text"
           name="city"
           value={customerDetails.city}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''}`}
+          className="w-full p-2 border rounded"
           required
         />
-        {errors.city && <p className="text-red-500 mt-1">{errors.city}</p>}
       </div>
 
       {/* Fortsæt Button */}
