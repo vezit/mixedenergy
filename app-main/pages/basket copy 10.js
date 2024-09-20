@@ -21,7 +21,6 @@ export default function Basket() {
   const [pickupPoints, setPickupPoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPickupPoints, setShowPickupPoints] = useState(false);
-  const [isCityDisabled, setIsCityDisabled] = useState(false);
 
   const updateQuantity = (index, newQuantity) => {
     if (newQuantity <= 0) {
@@ -41,52 +40,7 @@ export default function Basket() {
       ...prevState,
       [name]: value,
     }));
-
-    if (name === "postalCode") {
-      if (value.length === 4 && /^\d{4}$/.test(value)) {
-        // Perform the API call
-        fetch(`https://api.dataforsyningen.dk/postnumre/${value}`)
-          .then((res) => {
-            if (!res.ok) {
-              throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-          })
-          .then((data) => {
-            const cityName = data.navn;
-            if (cityName) {
-              setCustomerDetails((prevState) => ({
-                ...prevState,
-                city: cityName,
-              }));
-              setIsCityDisabled(true);
-            } else {
-              setCustomerDetails((prevState) => ({
-                ...prevState,
-                city: "",
-              }));
-              setIsCityDisabled(false);
-            }
-          })
-          .catch((error) => {
-            console.error("Error fetching city name:", error);
-            setCustomerDetails((prevState) => ({
-              ...prevState,
-              city: "",
-            }));
-            setIsCityDisabled(false);
-          });
-      } else {
-        // If postal code is not 4 digits, enable city input
-        setCustomerDetails((prevState) => ({
-          ...prevState,
-          city: "",
-        }));
-        setIsCityDisabled(false);
-      }
-    }
   };
-
 
   const fetchPickupPoints = (updatedDetails) => {
     // Use the updated details directly instead of relying on the state
@@ -105,7 +59,7 @@ export default function Basket() {
       setLoading(false);  // Stop loading if customer details are incomplete
     }
   };
-
+  
   const validateAddressWithDAWA = async () => {
     try {
       const response = await fetch('/api/dawa/datavask', {
@@ -115,24 +69,24 @@ export default function Basket() {
         },
         body: JSON.stringify(customerDetails),
       });
-
+  
       const data = await response.json();
-
+  
       const updatedDetails = {
         ...customerDetails,
         streetNumber: data.dawaResponse.resultater[0].adresse.husnr,  // Update streetNumber
       };
-
+  
       setCustomerDetails(updatedDetails);  // Update state with new details
-
+  
       fetchPickupPoints(updatedDetails);  // Call fetch with the updated details
-
+  
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
       setLoading(false);  // Stop loading in case of error
     }
   };
-
+  
 
   const handleShowPickupPoints = () => {
     const newErrors = {};
@@ -142,14 +96,14 @@ export default function Basket() {
     if (!customerDetails.address) newErrors.address = 'Adresse er påkrævet';
     if (!customerDetails.postalCode) newErrors.postalCode = 'Postnummer er påkrævet';
     if (!customerDetails.city) newErrors.city = 'By er påkrævet';
-
+  
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     } else {
       setErrors({});
     }
-
+  
     setLoading(true);
     validateAddressWithDAWA();
     setShowPickupPoints(true);
@@ -239,7 +193,6 @@ export default function Basket() {
           onChange={handleInputChange}
           className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''}`}
           required
-          disabled={true}
         />
         {errors.city && <p className="text-red-500 mt-1">{errors.city}</p>}
       </div>
