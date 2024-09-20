@@ -1,0 +1,1195 @@
+{
+    "servicePointInformationResponse": {
+        "customerSupports": [
+            {
+                "country": "DK",
+                "customerSupportPhoneNo": "+4570111230"
+            }
+        ],
+        "servicePoints": [
+            {
+                "name": "Posthus Vin Og Tobak Bagsværd",
+                "servicePointId": "2884",
+                "pudoId": "DK59860",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": null,
+                "routeDistance": 79,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": []
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Bagsværd Hovedgade",
+                    "streetNumber": "133",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Bagsværd Hovedgade",
+                    "streetNumber": "133",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "notificationArea": {
+                    "postalCodes": [
+                        "2880"
+                    ]
+                },
+                "coordinates": [
+                    {
+                        "countryCode": "DK",
+                        "northing": 55.7611039,
+                        "easting": 12.4510468,
+                        "srId": "EPSG:4326"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "18:00",
+                            "openDay": "Monday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "18:00",
+                            "openDay": "Tuesday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "18:00",
+                            "openDay": "Wednesday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "18:00",
+                            "openDay": "Thursday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "18:00",
+                            "openDay": "Friday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "15:00",
+                            "openDay": "Saturday",
+                            "openTime": "09:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 1,
+                    "groupTypeName": "Service agent",
+                    "typeId": 6,
+                    "typeName": "Posthus",
+                    "boxType": null
+                }
+            },
+            {
+                "name": "Nærboks Lidl Bagsværd Kræver Postnord App",
+                "servicePointId": "105930",
+                "pudoId": "DK05930",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": "Den grå Nærboks står til venstre for indgangen til Lidl ud mod Vadstrupvej",
+                "routeDistance": 251,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Vadstrupvej",
+                    "streetNumber": "21",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Vadstrupvej",
+                    "streetNumber": "21",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "coordinates": [
+                    {
+                        "srId": "EPSG:4326",
+                        "northing": 55.759857,
+                        "easting": 12.4511852,
+                        "countryCode": "DK"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "23:59",
+                            "openDay": "Monday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "23:59",
+                            "openDay": "Tuesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "23:59",
+                            "openDay": "Wednesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "23:59",
+                            "openDay": "Thursday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "23:59",
+                            "openDay": "Friday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "23:59",
+                            "openDay": "Saturday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "23:59",
+                            "openDay": "Sunday",
+                            "openTime": "00:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 2,
+                    "groupTypeName": "Service box",
+                    "typeId": 2,
+                    "typeName": "Parcel Box Location",
+                    "boxType": {
+                        "id": 2,
+                        "label": "Nærboks",
+                        "located": "Outdoor",
+                        "pickupRequirements": [
+                            {
+                                "id": 1,
+                                "label": "PostNord App"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "Posthus Meny",
+                "servicePointId": "2882",
+                "pudoId": "DK02882",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": null,
+                "routeDistance": 409,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Letters Big",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        },
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        },
+                        {
+                            "name": "Recommended letter",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        },
+                        {
+                            "name": "Value shipment",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Bagsværd Hovedgade",
+                    "streetNumber": "128",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Bagsværd Hovedgade",
+                    "streetNumber": "128",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "notificationArea": {
+                    "postalCodes": [
+                        "2880"
+                    ]
+                },
+                "coordinates": [
+                    {
+                        "countryCode": "DK",
+                        "northing": 55.760783,
+                        "easting": 12.4553,
+                        "srId": "EPSG:4326"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "20:00",
+                            "openDay": "Monday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "20:00",
+                            "openDay": "Tuesday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "20:00",
+                            "openDay": "Wednesday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "20:00",
+                            "openDay": "Thursday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "20:00",
+                            "openDay": "Friday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "18:00",
+                            "openDay": "Saturday",
+                            "openTime": "08:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "18:00",
+                            "openDay": "Sunday",
+                            "openTime": "08:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 1,
+                    "groupTypeName": "Service agent",
+                    "typeId": 6,
+                    "typeName": "Posthus",
+                    "boxType": null
+                }
+            },
+            {
+                "name": "Posthus Søndergården Tips & Lotto",
+                "servicePointId": "2883",
+                "pudoId": "DK02883",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": null,
+                "routeDistance": 854,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Bagsværd Hovedgade",
+                    "streetNumber": "43D",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Bagsværd Hovedgade",
+                    "streetNumber": "43D",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "notificationArea": {
+                    "postalCodes": [
+                        "2880"
+                    ]
+                },
+                "coordinates": [
+                    {
+                        "countryCode": "DK",
+                        "northing": 55.7571565,
+                        "easting": 12.4599716,
+                        "srId": "EPSG:4326"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "21:00",
+                            "openDay": "Monday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "21:00",
+                            "openDay": "Tuesday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "21:00",
+                            "openDay": "Wednesday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "21:00",
+                            "openDay": "Thursday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "21:00",
+                            "openDay": "Friday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "21:00",
+                            "openDay": "Saturday",
+                            "openTime": "09:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "21:00",
+                            "openDay": "Sunday",
+                            "openTime": "10:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 1,
+                    "groupTypeName": "Service agent",
+                    "typeId": 6,
+                    "typeName": "Posthus",
+                    "boxType": null
+                }
+            },
+            {
+                "name": "Posthus Centerkiosk",
+                "servicePointId": "2881",
+                "pudoId": "DK02881",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": null,
+                "routeDistance": 1193,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Letters Big",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        },
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Værebrovej",
+                    "streetNumber": "72",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Værebrovej",
+                    "streetNumber": "72",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "notificationArea": {
+                    "postalCodes": [
+                        "2880"
+                    ]
+                },
+                "coordinates": [
+                    {
+                        "countryCode": "DK",
+                        "northing": 55.758458,
+                        "easting": 12.439345,
+                        "srId": "EPSG:4326"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "22:00",
+                            "openDay": "Monday",
+                            "openTime": "08:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "22:00",
+                            "openDay": "Tuesday",
+                            "openTime": "08:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "22:00",
+                            "openDay": "Wednesday",
+                            "openTime": "08:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "22:00",
+                            "openDay": "Thursday",
+                            "openTime": "08:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "22:00",
+                            "openDay": "Friday",
+                            "openTime": "08:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "22:00",
+                            "openDay": "Saturday",
+                            "openTime": "08:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "22:00",
+                            "openDay": "Sunday",
+                            "openTime": "08:00"
+                        }
+                    ],
+                    "specialDates": [
+                        {
+                            "closeTime": " ",
+                            "endDate": "2024-12-25",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Christmas Day",
+                            "startDate": "2024-12-25"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2024-12-26",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Boxing Day",
+                            "startDate": "2024-12-26"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-04-21",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Easter Monday",
+                            "startDate": "2025-04-21"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-06-09",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Whit Monday",
+                            "startDate": "2025-06-09"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-05-29",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Ascension Day",
+                            "startDate": "2025-05-29"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-04-18",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Good Friday",
+                            "startDate": "2025-04-18"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-01-01",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "New Year's Day",
+                            "startDate": "2025-01-01"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-06-08",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Pinsedag",
+                            "startDate": "2025-06-08"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-04-20",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Easter Sunday",
+                            "startDate": "2025-04-20"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-04-17",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Maundy Thursday",
+                            "startDate": "2025-04-17"
+                        },
+                        {
+                            "closeTime": " ",
+                            "endDate": "2025-06-05",
+                            "isClosed": false,
+                            "openTime": "Tjek for åbningstid på det enkelte posthus",
+                            "reason": "Grundlovsdag",
+                            "startDate": "2025-06-05"
+                        }
+                    ]
+                },
+                "type": {
+                    "groupTypeId": 1,
+                    "groupTypeName": "Service agent",
+                    "typeId": 44,
+                    "typeName": "Postbutik med begrænset sortiment",
+                    "boxType": null
+                }
+            },
+            {
+                "name": "Nærboks Værebro Park Kræver Postnord App",
+                "servicePointId": "106691",
+                "pudoId": "DK35743",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": "Den grå Nærboks står placeret under halvtaget ved den nordlige indgang til Værebro Center ved Værebrovej nr. 72.",
+                "routeDistance": 1201,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Værebrovej",
+                    "streetNumber": "72",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Værebrovej",
+                    "streetNumber": "72",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "coordinates": [
+                    {
+                        "srId": "EPSG:4326",
+                        "northing": 55.75852843,
+                        "easting": 12.43919189,
+                        "countryCode": "DK"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "23:59",
+                            "openDay": "Monday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "23:59",
+                            "openDay": "Tuesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "23:59",
+                            "openDay": "Wednesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "23:59",
+                            "openDay": "Thursday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "23:59",
+                            "openDay": "Friday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "23:59",
+                            "openDay": "Saturday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "23:59",
+                            "openDay": "Sunday",
+                            "openTime": "00:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 2,
+                    "groupTypeName": "Service box",
+                    "typeId": 2,
+                    "typeName": "Parcel Box Location",
+                    "boxType": {
+                        "id": 2,
+                        "label": "Nærboks",
+                        "located": "Outdoor",
+                        "pickupRequirements": [
+                            {
+                                "id": 1,
+                                "label": "PostNord App"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "Nærboks Skovbrynet Kræver Postnord App",
+                "servicePointId": "106702",
+                "pudoId": "DK36290",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": "Den grå Nærboks er opstillet ved indkørslen fra Skovdiget  til P-parkeringspladsen ved stationen under motorvejen.",
+                "routeDistance": 1238,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Skovdiget",
+                    "streetNumber": "8",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Skovdiget",
+                    "streetNumber": "8",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "coordinates": [
+                    {
+                        "srId": "EPSG:4326",
+                        "northing": 55.76500785,
+                        "easting": 12.43351856,
+                        "countryCode": "DK"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "23:59",
+                            "openDay": "Monday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "23:59",
+                            "openDay": "Tuesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "23:59",
+                            "openDay": "Wednesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "23:59",
+                            "openDay": "Thursday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "23:59",
+                            "openDay": "Friday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "23:59",
+                            "openDay": "Saturday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "23:59",
+                            "openDay": "Sunday",
+                            "openTime": "00:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 2,
+                    "groupTypeName": "Service box",
+                    "typeId": 2,
+                    "typeName": "Parcel Box Location",
+                    "boxType": {
+                        "id": 2,
+                        "label": "Nærboks",
+                        "located": "Outdoor",
+                        "pickupRequirements": [
+                            {
+                                "id": 1,
+                                "label": "PostNord App"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "Nærboks Skoleparken V. Selskabslokalerne Kræver Postnord App",
+                "servicePointId": "106885",
+                "pudoId": "DK55284",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": "De 4 nærbokse skal opsætte langs den hvide væg under halvtaget",
+                "routeDistance": 1628,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Halbjørnsvej",
+                    "streetNumber": "2",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Halbjørnsvej",
+                    "streetNumber": "2",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "coordinates": [
+                    {
+                        "srId": "EPSG:4326",
+                        "northing": 55.76020631,
+                        "easting": 12.47294345,
+                        "countryCode": "DK"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "23:59",
+                            "openDay": "Monday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "23:59",
+                            "openDay": "Tuesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "23:59",
+                            "openDay": "Wednesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "23:59",
+                            "openDay": "Thursday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "23:59",
+                            "openDay": "Friday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "23:59",
+                            "openDay": "Saturday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "23:59",
+                            "openDay": "Sunday",
+                            "openTime": "00:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 2,
+                    "groupTypeName": "Service box",
+                    "typeId": 2,
+                    "typeName": "Parcel Box Location",
+                    "boxType": {
+                        "id": 2,
+                        "label": "Nærboks",
+                        "located": "Outdoor",
+                        "pickupRequirements": [
+                            {
+                                "id": 1,
+                                "label": "PostNord App"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "Nærboks Q8 Bagsværdvej Kræver Postnord App",
+                "servicePointId": "105554",
+                "pudoId": "DK13500",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": "Den grå Nærboks er placeret til venstre for indgangen til Q8-butikken",
+                "routeDistance": 1847,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "KONGENS LYNGBY",
+                    "streetName": "Bagsværdvej",
+                    "streetNumber": "134",
+                    "postalCode": "2800",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "KONGENS LYNGBY",
+                    "streetName": "Bagsværdvej",
+                    "streetNumber": "134",
+                    "postalCode": "2800",
+                    "additionalDescription": null
+                },
+                "coordinates": [
+                    {
+                        "srId": "EPSG:4326",
+                        "northing": 55.7649976,
+                        "easting": 12.4758955,
+                        "countryCode": "DK"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "23:59",
+                            "openDay": "Monday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "23:59",
+                            "openDay": "Tuesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "23:59",
+                            "openDay": "Wednesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "23:59",
+                            "openDay": "Thursday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "23:59",
+                            "openDay": "Friday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "23:59",
+                            "openDay": "Saturday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "23:59",
+                            "openDay": "Sunday",
+                            "openTime": "00:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 2,
+                    "groupTypeName": "Service box",
+                    "typeId": 2,
+                    "typeName": "Parcel Box Location",
+                    "boxType": {
+                        "id": 2,
+                        "label": "Nærboks",
+                        "located": "Outdoor",
+                        "pickupRequirements": [
+                            {
+                                "id": 1,
+                                "label": "PostNord App"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "Nærboks Konditorbager Bagsværd Kræver Postnord App",
+                "servicePointId": "106488",
+                "pudoId": "DK16084",
+                "routingCode": null,
+                "handlingOffice": null,
+                "locationDetail": "Den grå Nærboks er placeret til venstre for bageriet ved plankeværket.",
+                "routeDistance": 1967,
+                "pickup": {
+                    "cashOnDelivery": null,
+                    "heavyGoodsProducts": [],
+                    "products": [
+                        {
+                            "name": "Parcel",
+                            "timeSlots": {
+                                "availableForPickupEarlyCollect": [],
+                                "availableForPickupStandard": []
+                            }
+                        }
+                    ]
+                },
+                "visitingAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Klausdalsbrovej",
+                    "streetNumber": "274",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "deliveryAddress": {
+                    "countryCode": "DK",
+                    "city": "BAGSVÆRD",
+                    "streetName": "Klausdalsbrovej",
+                    "streetNumber": "274",
+                    "postalCode": "2880",
+                    "additionalDescription": null
+                },
+                "coordinates": [
+                    {
+                        "srId": "EPSG:4326",
+                        "northing": 55.74621668,
+                        "easting": 12.45642187,
+                        "countryCode": "DK"
+                    }
+                ],
+                "openingHours": {
+                    "postalServices": [
+                        {
+                            "closeDay": "Monday",
+                            "closeTime": "23:59",
+                            "openDay": "Monday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Tuesday",
+                            "closeTime": "23:59",
+                            "openDay": "Tuesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Wednesday",
+                            "closeTime": "23:59",
+                            "openDay": "Wednesday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Thursday",
+                            "closeTime": "23:59",
+                            "openDay": "Thursday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Friday",
+                            "closeTime": "23:59",
+                            "openDay": "Friday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Saturday",
+                            "closeTime": "23:59",
+                            "openDay": "Saturday",
+                            "openTime": "00:00"
+                        },
+                        {
+                            "closeDay": "Sunday",
+                            "closeTime": "23:59",
+                            "openDay": "Sunday",
+                            "openTime": "00:00"
+                        }
+                    ],
+                    "specialDates": []
+                },
+                "type": {
+                    "groupTypeId": 2,
+                    "groupTypeName": "Service box",
+                    "typeId": 2,
+                    "typeName": "Parcel Box Location",
+                    "boxType": {
+                        "id": 2,
+                        "label": "Nærboks",
+                        "located": "Outdoor",
+                        "pickupRequirements": [
+                            {
+                                "id": 1,
+                                "label": "PostNord App"
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+}
