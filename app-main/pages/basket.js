@@ -200,23 +200,25 @@ export default function Basket() {
             </button>
 
             {showPickupPoints && (
-  <div className="mt-8 flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
-    <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
-      <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
-      {loading ? (
-        <p>Indlæser afhentningssteder...</p>
-      ) : (
-        <PickupPointsList pickupPoints={pickupPoints} />
-      )}
-    </div>
-    <div className="w-full lg:w-1/2">
-      <div style={{ height: '545px' }}>
-        {/* <MapComponent pickupPoints={pickupPoints} /> */}
-        <MapComponent />
-      </div>
-    </div>
-  </div>
-)}
+              <div className="mt-8 flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+                <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
+                  <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
+                  {loading ? (
+                    <p>Indlæser afhentningssteder...</p>
+                  ) : (
+                    <PickupPointsList pickupPoints={pickupPoints} />
+                  )}
+                </div>
+                <div className="w-full lg:w-1/2">
+                  <div style={{ height: '545px' }}>
+                    {/* Conditionally render MapComponent only when not loading */}
+                    {!loading && (
+                      <MapComponent pickupPoints={pickupPoints} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
 
 
