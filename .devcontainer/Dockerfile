@@ -32,8 +32,8 @@ ENV LANGUAGE=en_US.UTF-8
 WORKDIR /usr/src/project/app-main
 
 # add npm install next
-RUN npm install next
-# npm install -g firebase-tools
+RUN npm install next firebase
+# npm install -g firebase-tools firebase-admin
 # npm install styled-components
 
 # Copy the project files into the container

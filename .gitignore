@@ -19,3 +19,4 @@ app-main/.next/
 .onCreateCommandMarker
 requirements.txt
 .env.local
+*copy*.local
