@@ -4,6 +4,7 @@ const MapComponent = ({ pickupPoints }) => {
   const mapRef = useRef(null); // Reference to the map DOM element
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
+  const [activeInfoWindow, setActiveInfoWindow] = useState(null);
 
   // Initialize the map only once
   useEffect(() => {
@@ -12,12 +13,13 @@ const MapComponent = ({ pickupPoints }) => {
       return;
     }
     if (mapRef.current && !map) {
-      const defaultCenter = pickupPoints && pickupPoints.length > 0
-        ? {
-            lat: parseFloat(pickupPoints[0].coordinates[0].northing),
-            lng: parseFloat(pickupPoints[0].coordinates[0].easting),
-          }
-        : { lat: 55.6761, lng: 12.5683 }; // Default to Copenhagen if no pickupPoints
+      const defaultCenter =
+        pickupPoints && pickupPoints.length > 0
+          ? {
+              lat: parseFloat(pickupPoints[0].coordinates[0].northing),
+              lng: parseFloat(pickupPoints[0].coordinates[0].easting),
+            }
+          : { lat: 55.6761, lng: 12.5683 }; // Default to Copenhagen if no pickupPoints
 
       const mapInstance = new window.google.maps.Map(mapRef.current, {
         center: defaultCenter,
@@ -45,13 +47,31 @@ const MapComponent = ({ pickupPoints }) => {
         title: point.name,
       });
 
-      // Optional: Add info windows or event listeners to markers
+      // Create content for the info window
+      const contentString = `
+        <div>
+          <h1>${point.name}</h1>
+          <p>${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()} ${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}</p>
+          <b>Åbningstider</b>
+          ${formatOpeningHours(point.openingHours.postalServices)}
+        </div>
+      `;
+
+      // Create an info window
       const infoWindow = new window.google.maps.InfoWindow({
-        content: `<div><strong>${point.name}</strong><br>${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}<br>${point.visitingAddress.postalCode} ${point.visitingAddress.city}</div>`,
+        content: contentString,
       });
 
+      // Add click listener to the marker
       marker.addListener('click', () => {
+        // Close the active info window, if any
+        if (activeInfoWindow) {
+          activeInfoWindow.close();
+        }
+        // Open the clicked info window
         infoWindow.open(map, marker);
+        // Set the active info window
+        setActiveInfoWindow(infoWindow);
       });
 
       return marker;
@@ -59,7 +79,7 @@ const MapComponent = ({ pickupPoints }) => {
 
     setMarkers(newMarkers);
 
-    // Optional: Adjust map bounds to fit all markers
+    // Adjust map bounds to fit all markers
     if (newMarkers.length > 0) {
       const bounds = new window.google.maps.LatLngBounds();
       newMarkers.forEach(marker => bounds.extend(marker.getPosition()));
@@ -71,6 +91,33 @@ const MapComponent = ({ pickupPoints }) => {
       newMarkers.forEach(marker => marker.setMap(null));
     };
   }, [map, pickupPoints]);
+
+  // Function to format opening hours
+  const formatOpeningHours = (openingHours) => {
+    if (!openingHours || openingHours.length === 0) return '<p>Ingen åbningstider tilgængelige</p>';
+
+    let hoursHtml = '<ul>';
+    openingHours.forEach((day) => {
+      hoursHtml += `<li>${translateDay(day.openDay)}: ${day.openTime} - ${day.closeTime}</li>`;
+    });
+    hoursHtml += '</ul>';
+
+    return hoursHtml;
+  };
+
+  // Function to translate day names to Danish (if needed)
+  const translateDay = (day) => {
+    const days = {
+      Monday: 'Mandag',
+      Tuesday: 'Tirsdag',
+      Wednesday: 'Onsdag',
+      Thursday: 'Torsdag',
+      Friday: 'Fredag',
+      Saturday: 'Lørdag',
+      Sunday: 'Søndag',
+    };
+    return days[day] || day;
+  };
 
   return (
     <div>
