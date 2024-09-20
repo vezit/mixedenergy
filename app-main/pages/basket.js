@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useBasket } from '../lib/BasketContext';
-import PickupPointsList from '../components/PickupPointsList'; // Adjust path if necessary
+import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from "../components/MapComponent";
-import LoadingSpinner from '../components/LoadingSpinner'; // Adjust the path if necessary
-
-
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Basket() {
   const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
@@ -19,7 +17,6 @@ export default function Basket() {
     country: 'Danmark',
     streetNumber: '',
   });
-
   const [pickupPoints, setPickupPoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPickupPoints, setShowPickupPoints] = useState(false);
@@ -44,51 +41,208 @@ export default function Basket() {
     }));
   };
 
-  // Function to fetch pickup points
   const fetchPickupPoints = () => {
-    if (customerDetails.city && customerDetails.postalCode && customerDetails.streetNumber) {
-      fetch(`/api/postnord/servicepoints?city=${customerDetails.city}&postalCode=${customerDetails.postalCode}&streetName=${customerDetails.address}&streetNumber=${customerDetails.streetNumber}`)
+    if (
+      customerDetails.city &&
+      customerDetails.postalCode &&
+      customerDetails.address &&
+      customerDetails.streetNumber
+    ) {
+      fetch(
+        `/api/postnord/servicepoints?city=${customerDetails.city}&postalCode=${customerDetails.postalCode}&streetName=${customerDetails.address}&streetNumber=${customerDetails.streetNumber}`
+      )
         .then((res) => res.json())
         .then((data) => {
-          setPickupPoints(data.servicePointInformationResponse?.servicePoints || []);
+          setPickupPoints(
+            data.servicePointInformationResponse?.servicePoints || []
+          );
           setLoading(false);
         })
         .catch((error) => {
           console.error('Error fetching PostNord service points:', error);
           setLoading(false);
         });
+    } else {
+      console.error('Missing address details for fetching pickup points');
+      setLoading(false);
     }
   };
 
-  // Function to call DAWA API
+
   const validateAddressWithDAWA = async () => {
     try {
       const response = await fetch('/api/dawa/datavask', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerDetails),
       });
 
       const data = await response.json();
 
-      // Update the customerDetails object with the street number from the DAWA response
-      customerDetails.streetNumber = data.dawaResponse.resultater[0].adresse.husnr;
+      if (data.dawaResponse.resultater.length > 0) {
+        const husnr =
+          data.dawaResponse.resultater[0].adresse.husnr || '';
+        setCustomerDetails((prevState) => ({
+          ...prevState,
+          streetNumber: husnr,
+        }));
 
-      // Now you can extract relevant details from the DAWA response and use them in fetchPickupPoints
-      fetchPickupPoints();
-
+        // After setting the street number, fetch pickup points
+        fetchPickupPoints();
+      } else {
+        console.error('No valid address found in DAWA response');
+        setLoading(false);
+      }
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
+      setLoading(false);
     }
   };
+
 
   const handleShowPickupPoints = () => {
     setLoading(true);
     validateAddressWithDAWA();
     setShowPickupPoints(true);
   };
+  
+
+  const renderCustomerDetails = () => (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
+
+      {/* Fulde Navn */}
+      <div className="mb-4">
+        <label className="block mb-2">Fulde Navn</label>
+        <input
+          type="text"
+          name="fullName"
+          value={customerDetails.fullName}
+          onChange={handleInputChange}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      {/* Mobilnummer */}
+      <div className="mb-4">
+        <label className="block mb-2">Mobilnummer</label>
+        <input
+          type="text"
+          name="mobileNumber"
+          value={customerDetails.mobileNumber}
+          onChange={handleInputChange}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      {/* E-mail Adresse */}
+      <div className="mb-4">
+        <label className="block mb-2">E-mail Adresse</label>
+        <input
+          type="email"
+          name="email"
+          value={customerDetails.email}
+          onChange={handleInputChange}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      {/* Vejnavn og Husnummer */}
+      <div className="mb-4">
+        <label className="block mb-2">Vejnavn og Husnummer</label>
+        <input
+          type="text"
+          name="address"
+          value={customerDetails.address}
+          onChange={handleInputChange}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      {/* Postnummer */}
+      <div className="mb-4">
+        <label className="block mb-2">Postnummer</label>
+        <input
+          type="text"
+          name="postalCode"
+          value={customerDetails.postalCode}
+          onChange={handleInputChange}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      {/* By */}
+      <div className="mb-4">
+        <label className="block mb-2">By</label>
+        <input
+          type="text"
+          name="city"
+          value={customerDetails.city}
+          onChange={handleInputChange}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      {/* Fortsæt Button */}
+      <button
+        onClick={handleShowPickupPoints}
+        className="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+      >
+        Fortsæt
+      </button>
+    </div>
+  );
+
+
+  const renderShippingAndPayment = () => (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Fragt og betaling</h2>
+      {/* Payment options, shipping methods, and pickup points go here */}
+      {showPickupPoints && (
+        <div className="mt-8">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="flex flex-col items-center">
+                <LoadingSpinner />
+                <p className="mt-4 font-bold">Henter afhentningssteder</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+              <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
+                <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
+                <PickupPointsList pickupPoints={pickupPoints} />
+              </div>
+              <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
+                <MapComponent pickupPoints={pickupPoints} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderOrderConfirmation = () => (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
+      <div className="text-right text-xl font-bold">
+        Total: {basketItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}kr
+      </div>
+      <button
+        onClick={() => alert('Checkout process')}
+        className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition"
+      >
+        BETAL
+      </button>
+    </div>
+  );
 
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
@@ -125,133 +279,14 @@ export default function Basket() {
             </div>
           ))}
 
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
-            <div className="mb-4">
-              <label className="block mb-2">Fulde Navn</label>
-              <input
-                type="text"
-                name="fullName"
-                value={customerDetails.fullName}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block mb-2">Mobilnummer</label>
-              <input
-                type="text"
-                name="mobileNumber"
-                value={customerDetails.mobileNumber}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block mb-2">E-mail Adresse</label>
-              <input
-                type="email"
-                name="email"
-                value={customerDetails.email}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block mb-2">Vejnavn og Husnummer</label>
-              <input
-                type="text"
-                name="address"
-                value={customerDetails.address}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block mb-2">Postnummer</label>
-              <input
-                type="text"
-                name="postalCode"
-                value={customerDetails.postalCode}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block mb-2">By</label>
-              <input
-                type="text"
-                name="city"
-                value={customerDetails.city}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
+          {/* Render Kundeoplysninger */}
+          {renderCustomerDetails()}
 
-            {/* "Fortsæt" button */}
-            <button
-              onClick={handleShowPickupPoints}
-              className="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
-            >
-              Fortsæt
-            </button>
+          {/* Render Fragt og betaling */}
+          {renderShippingAndPayment()}
 
-            {showPickupPoints && (
-              <div className="mt-8" style={{ height: '545px' }}>
-                {loading ? (
-                  // Centered Loading Spinner and Message
-                  <div className="flex items-center justify-center h-full">
-                    <div className="flex flex-col items-center">
-                      <LoadingSpinner />
-                      <p className="mt-4 font-bold">Gemmer Oplysninger</p>
-                    </div>
-                  </div>
-                ) : (
-                  // Content After Loading is Complete
-                  <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4 h-full">
-                    {/* Left Column */}
-                    <div
-                      className="w-full lg:w-1/2 overflow-y-scroll"
-                      style={{ maxHeight: '545px' }}
-                    >
-                      <h2 className="text-xl font-bold mb-4">
-                        Vælg et afhentningssted
-                      </h2>
-                      <PickupPointsList pickupPoints={pickupPoints} />
-                    </div>
-                    {/* Right Column */}
-                    <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
-                      <MapComponent pickupPoints={pickupPoints} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-
-
-
-
-          </div>
-
-          <div className="text-right text-xl font-bold mt-6">
-            Total: {basketItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}kr
-          </div>
-
-          <div className="flex items-center mt-6">
-            <input type="checkbox" id="terms" className="mr-2" />
-            <label htmlFor="terms">Accepter vilkår og betingelser</label>
-          </div>
-
-          <button onClick={() => alert('Checkout process')} className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition">
-            BETAL
-          </button>
+          {/* Render Godkend din ordre */}
+          {renderOrderConfirmation()}
         </>
       )}
     </div>
