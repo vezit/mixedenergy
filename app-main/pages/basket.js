@@ -41,64 +41,51 @@ export default function Basket() {
     }));
   };
 
-  const fetchPickupPoints = () => {
-    if (
-      customerDetails.city &&
-      customerDetails.postalCode &&
-      customerDetails.address &&
-      customerDetails.streetNumber
-    ) {
-      fetch(
-        `/api/postnord/servicepoints?city=${customerDetails.city}&postalCode=${customerDetails.postalCode}&streetName=${customerDetails.address}&streetNumber=${customerDetails.streetNumber}`
-      )
+  const fetchPickupPoints = (updatedDetails) => {
+    // Use the updated details directly instead of relying on the state
+    if (updatedDetails.city && updatedDetails.postalCode && updatedDetails.streetNumber) {
+      fetch(`/api/postnord/servicepoints?city=${updatedDetails.city}&postalCode=${updatedDetails.postalCode}&streetName=${updatedDetails.address}&streetNumber=${updatedDetails.streetNumber}`)
         .then((res) => res.json())
         .then((data) => {
-          setPickupPoints(
-            data.servicePointInformationResponse?.servicePoints || []
-          );
-          setLoading(false);
+          setPickupPoints(data.servicePointInformationResponse?.servicePoints || []);
+          setLoading(false);  // Stop loading after success
         })
         .catch((error) => {
           console.error('Error fetching PostNord service points:', error);
-          setLoading(false);
+          setLoading(false);  // Stop loading in case of error
         });
     } else {
-      console.error('Missing address details for fetching pickup points');
-      setLoading(false);
+      setLoading(false);  // Stop loading if customer details are incomplete
     }
   };
-
-
+  
   const validateAddressWithDAWA = async () => {
     try {
       const response = await fetch('/api/dawa/datavask', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(customerDetails),
       });
-
+  
       const data = await response.json();
-
-      if (data.dawaResponse.resultater.length > 0) {
-        const husnr =
-          data.dawaResponse.resultater[0].adresse.husnr || '';
-        setCustomerDetails((prevState) => ({
-          ...prevState,
-          streetNumber: husnr,
-        }));
-
-        // After setting the street number, fetch pickup points
-        fetchPickupPoints();
-      } else {
-        console.error('No valid address found in DAWA response');
-        setLoading(false);
-      }
+  
+      const updatedDetails = {
+        ...customerDetails,
+        streetNumber: data.dawaResponse.resultater[0].adresse.husnr,  // Update streetNumber
+      };
+  
+      setCustomerDetails(updatedDetails);  // Update state with new details
+  
+      fetchPickupPoints(updatedDetails);  // Call fetch with the updated details
+  
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
-      setLoading(false);
+      setLoading(false);  // Stop loading in case of error
     }
   };
-
+  
 
   const handleShowPickupPoints = () => {
     setLoading(true);
