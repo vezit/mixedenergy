@@ -47,6 +47,7 @@ export default function Basket() {
   // Function to fetch pickup points
   const fetchPickupPoints = () => {
     if (customerDetails.city && customerDetails.postalCode && customerDetails.streetNumber) {
+      setLoading(true);
       fetch(`/api/postnord/servicepoints?city=${customerDetails.city}&postalCode=${customerDetails.postalCode}&streetName=${customerDetails.address}&streetNumber=${customerDetails.streetNumber}`)
         .then((res) => res.json())
         .then((data) => {
@@ -84,10 +85,16 @@ export default function Basket() {
     }
   };
 
-  const handleShowPickupPoints = () => {
+  const handleShowPickupPoints = async () => {
+    // Set loading to true immediately
     setLoading(true);
-    validateAddressWithDAWA();
-    setShowPickupPoints(true);
+
+    // Validate address and fetch pickup points
+    await validateAddressWithDAWA();
+
+    // Move to the next step after data is fetched
+    setCurrentStep('shipping');
+    setLoading(false);
   };
 
   return (
