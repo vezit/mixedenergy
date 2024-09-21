@@ -14,32 +14,31 @@ export default function ProductDetail() {
   const [price, setPrice] = useState(175); // State for price
   const { addItemToBasket } = useBasket();
 
-  // List of products for old and new mix links
-  const mixedAnyMixProducts = [
-    'Red Bull Original - 0.25 l',
-    'Monster Energy - 0.5 l',
-    'Booster Energy - 0.5 l',
-    'Red Bull Red Edition - 0.25 l',
+  // List of all products (for links other than /products/mixed-booster)
+  const allProducts = [
+    { name: 'Red Bull Original - 0.25 l', weight: 5 },
+    { name: 'Red Bull Sukkerfri - 0.25 l', weight: 5 },
+    { name: 'Red Bull Zero - 0.25 l', weight: 3 },
+    { name: 'Red Bull Original Stor - 0.355 l', weight: 3 },
+    { name: 'Red Bull Sukkerfri Stor - 0.473 l', weight: 3 },
+    { name: 'Red Bull Red Edition Vandmelon - 0.25 l', weight: 2 },
+    { name: 'Red Bull Blue Edition - 0.25 l', weight: 2 },
+    { name: 'Red Bull Abrikos Edition - 0.25 l', weight: 1 },
+    { name: 'Red Bull Lilla Edition - 0.25 l', weight: 1 },
+    { name: 'Red Bull Summer Edition - 0.25 l', weight: 1 },
   ];
 
-  const mixedRedBullMixProducts = [
-    'Red Bull Original - 0.25 l',
-    'Red Bull Sukkerfri - 0.25 l',
-    'Red Bull Zero - 0.25 l',
-    'Red Bull Red Edition - 0.25 l',
-  ];
-
-  const mixedMonsterMixProducts = [
-    'Monster Energy - 0.5 l',
-    'Monster Zero - 0.5 l',
-    'Monster Mango Loco - 0.5 l',
-    'Monster Red - 0.5 l',
-  ];
-
-  const mixedBoosterMixProducts = [
+  // List of Faxe Kondi Booster products (for /products/mixed-booster)
+  const boosterProducts = [
     'Faxe Kondi Booster Original - 0.5 l',
     'Faxe Kondi Booster Free - 0.5 l',
     'Faxe Kondi Booster Black Edition - 0.5 l',
+    'Faxe Kondi Booster Frosty Blue - 0.5 l',
+    'Faxe Kondi Booster Pink Dragon - 0.5 l',
+    'Faxe Kondi Booster Energy - 0.5 l',
+    'Faxe Kondi Booster Sort Passion - 0.5 l',
+    'Faxe Kondi Booster Sort Zero - 0.5 l',
+    'Faxe Kondi Booster Twisted Ice Zero - 0.5 l',
   ];
 
   // Products for sukkerfri (only Red Bull Sukkerfri and Zero variants)
@@ -76,6 +75,71 @@ export default function ProductDetail() {
   if (!product) {
     return <p>Indlæser...</p>;
   }
+
+  // Function to randomly pick products from the weighted "allProducts" array (for other links)
+  const getRandomProducts = () => {
+    const weightedProducts = allProducts.flatMap(product =>
+      Array(product.weight).fill(product.name)
+    );
+
+    const randomSelection = [];
+    for (let i = 0; i < maxProducts; i++) {
+      const randomProduct = weightedProducts[Math.floor(Math.random() * weightedProducts.length)];
+      randomSelection.push(randomProduct);
+    }
+    return randomSelection;
+  };
+
+  // Function to randomly pick only sukkerfri products
+  const getSukkerfriProducts = () => {
+    const randomSelection = [];
+    for (let i = 0; i < maxProducts; i++) {
+      const randomProduct = sukkerfriProducts[Math.floor(Math.random() * sukkerfriProducts.length)];
+      randomSelection.push(randomProduct);
+    }
+    return randomSelection;
+  };
+
+  // Function to randomly pick only "Med Sukker" products
+  const getMedSukkerProducts = () => {
+    const randomSelection = [];
+    for (let i = 0; i < maxProducts; i++) {
+      const randomProduct = medSukkerProducts[Math.floor(Math.random() * medSukkerProducts.length)];
+      randomSelection.push(randomProduct);
+    }
+    return randomSelection;
+  };
+
+  // Function to randomly pick products from the Faxe Kondi Booster product list
+  const getBoosterProducts = () => {
+    const randomSelection = [];
+    for (let i = 0; i < maxProducts; i++) {
+      const randomProduct = boosterProducts[Math.floor(Math.random() * boosterProducts.length)];
+      randomSelection.push(randomProduct);
+    }
+    return randomSelection;
+  };
+
+  // Handling for product selections
+  const handleRandomSelection = () => {
+    const randomProducts = getRandomProducts();
+    setSelectedProducts(randomProducts);
+  };
+
+  const handleSukkerfriSelection = () => {
+    const sukkerfriProducts = getSukkerfriProducts();
+    setSelectedProducts(sukkerfriProducts);
+  };
+
+  const handleMedSukkerSelection = () => {
+    const medSukkerProducts = getMedSukkerProducts();
+    setSelectedProducts(medSukkerProducts);
+  };
+
+  const handleBoosterSelection = () => {
+    const boosterProducts = getBoosterProducts();
+    setSelectedProducts(boosterProducts);
+  };
 
   const addMixedToBasket = () => {
     if (selectedProducts.length !== maxProducts) {
@@ -159,7 +223,41 @@ export default function ProductDetail() {
             </label>
           </div>
 
-          {/* Displaying the selected products */}
+          {/* Random product selection button: "Alle Varianter" */}
+          <button
+            onClick={handleRandomSelection}
+            className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition w-full md:w-auto"
+          >
+            Alle Varianter
+          </button>
+
+          {/* Random sukkerfri product selection button: "Kun Sukkerfri Varianter" */}
+          <button
+            onClick={handleSukkerfriSelection}
+            className="mt-4 bg-green-500 text-white px-6 py-2 rounded-full shadow hover:bg-green-600 transition w-full md:w-auto"
+          >
+            Kun Sukkerfri Varianter
+          </button>
+
+          {/* Random med sukker product selection button: "Med Sukker" */}
+          <button
+            onClick={handleMedSukkerSelection}
+            className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-full shadow hover:bg-orange-600 transition w-full md:w-auto"
+          >
+            Med Sukker
+          </button>
+
+          {/* Random Faxe Kondi Booster product selection button for /products/mixed-booster */}
+          {slug === 'mixed-booster' && (
+            <button
+              onClick={handleBoosterSelection}
+              className="mt-4 bg-yellow-500 text-white px-6 py-2 rounded-full shadow hover:bg-yellow-600 transition w-full md:w-auto"
+            >
+              Vælg tilfældige Booster produkter
+            </button>
+          )}
+
+          {/* Selected products display */}
           <div className="mt-4">
             <p>Du har valgt følgende produkter:</p>
             <ul>

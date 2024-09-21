@@ -45,29 +45,23 @@ export default function ProductDetail() {
     }
   }, [selectedSize]);
 
+  // Function to generate random products
+  const generateRandomProducts = () => {
+    const shuffledProducts = allProducts.sort(() => 0.5 - Math.random());
+    const selectedRandomProducts = shuffledProducts.slice(0, maxProducts);
+    const randomSelection = selectedRandomProducts.reduce((acc, product) => {
+      acc[product] = 1; // Set each product's quantity to 1
+      return acc;
+    }, {});
+    setSelectedProducts(randomSelection);
+  };
+
+  // Check if the current page is one of the specified pages
+  const isSpecialPage = ['/products/mixed-any', '/products/mixed-red-bulls', '/products/mixed-monsters', '/products/mixed-booster'].includes(router.asPath);
+
   if (!product) {
     return <p>Indlæser...</p>;
   }
-
-  const handleProductQuantityChange = (product, action) => {
-    setSelectedProducts((prevSelected) => {
-      const currentQty = prevSelected[product] || 0;
-
-      // Increase the product quantity
-      if (action === 'increment' && totalSelected < maxProducts) {
-        return { ...prevSelected, [product]: currentQty + 1 };
-      }
-
-      // Decrease the product quantity
-      if (action === 'decrement' && currentQty > 0) {
-        const updated = { ...prevSelected, [product]: currentQty - 1 };
-        if (updated[product] === 0) delete updated[product]; // Remove product from object if quantity is 0
-        return updated;
-      }
-
-      return prevSelected; // Return the same state if no changes
-    });
-  };
 
   const addMixedToBasket = () => {
     if (totalSelected !== maxProducts) {
@@ -161,29 +155,41 @@ export default function ProductDetail() {
               {allProducts.map((product, index) => (
                 <div key={index} className="flex items-center justify-between mt-2">
                   <span>{product}</span>
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => handleProductQuantityChange(product, 'decrement')}
-                      className="px-2 py-1 bg-gray-200 rounded-l"
-                      disabled={selectedProducts[product] <= 0 || !selectedProducts[product]}
-                    >
-                      -
-                    </button>
-                    <span className="px-4 py-2 bg-gray-100">
-                      {selectedProducts[product] || 0}
-                    </span>
-                    <button
-                      onClick={() => handleProductQuantityChange(product, 'increment')}
-                      className="px-2 py-1 bg-gray-200 rounded-r"
-                      disabled={totalSelected >= maxProducts}
-                    >
-                      +
-                    </button>
-                  </div>
+                  {!isSpecialPage && (
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => handleProductQuantityChange(product, 'decrement')}
+                        className="px-2 py-1 bg-gray-200 rounded-l"
+                        disabled={selectedProducts[product] <= 0 || !selectedProducts[product]}
+                      >
+                        -
+                      </button>
+                      <span className="px-4 py-2 bg-gray-100">
+                        {selectedProducts[product] || 0}
+                      </span>
+                      <button
+                        onClick={() => handleProductQuantityChange(product, 'increment')}
+                        className="px-2 py-1 bg-gray-200 rounded-r"
+                        disabled={totalSelected >= maxProducts}
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
               <p className="mt-2 text-red-600">{`Du har valgt ${totalSelected} af ${maxProducts} produkter.`}</p>
             </div>
+          )}
+
+          {/* Button to generate random products */}
+          {isSpecialPage && (
+            <button
+              onClick={generateRandomProducts}
+              className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+            >
+              Generer tilfældig liste af produkter
+            </button>
           )}
 
           {/* Add to basket button */}

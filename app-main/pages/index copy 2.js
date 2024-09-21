@@ -102,7 +102,7 @@ export default function Home() {
         </div>
 
 {/* New 4 cards with updated links */}
-<Link href="/products2/mixed-monster-mix">
+<Link href="/products/mixed-monster">
   <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
     <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
       <div className="w-full h-60">
@@ -120,7 +120,7 @@ export default function Home() {
   </a>
 </Link>
 
-<Link href="/products2/mixed-any-mix">
+<Link href="/products/mixed-any">
   <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
     <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
       <div className="w-full h-60">
@@ -138,7 +138,7 @@ export default function Home() {
   </a>
 </Link>
 
-<Link href="/products2/mixed-red-bull-mix">
+<Link href="/products/mixed-red-bulls">
   <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
     <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
       <div className="w-full h-60">
@@ -156,7 +156,7 @@ export default function Home() {
   </a>
 </Link>
 
-<Link href="/products2/mixed-booster-mix">
+<Link href="/products/mixed-booster">
   <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
     <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
       <div className="w-full h-60">
