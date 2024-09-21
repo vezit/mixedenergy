@@ -7,8 +7,8 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
   const markersMapRef = useRef({});
 
   // Define marker icons
-  const defaultMarkerIcon = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
-  const selectedMarkerIcon = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+  const defaultMarkerIcon = null; // Use default Google Maps marker icon
+  const selectedMarkerIcon = null; // Use default Google Maps marker icon
 
   // Initialize the map only once
   useEffect(() => {
@@ -58,16 +58,16 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
 
       // Create content for the info window
       const contentString = `
-        <div style="font-family: Arial, sans-serif; width: 200px;">
-          <div style="background-color: #fff; padding: 10px; border-radius: 8px;">
-            <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 10px;">${point.name}</h2>
-            <p style="font-size: 14px; margin: 0;">${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()}</p>
-            <p style="font-size: 14px; margin: 0;">${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}</p>
-            <hr style="margin: 10px 0;">
-            <b style="font-size: 14px;">Åbningstider</b>
-            ${formatOpeningHours(point.openingHours.postalServices)}
-          </div>
-        </div>
+  <div style="font-family: Arial, sans-serif; width: 100%; max-width: 200px;">
+    <div style="background-color: #fff; padding: 10px; border-radius: 8px;">
+      <h2 style="font-size: 16px; font-weight: bold; margin: 0 0 10px;">${point.name}</h2>
+      <p style="font-size: 14px; margin: 0;">${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()}</p>
+      <p style="font-size: 14px; margin: 0;">${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}</p>
+      <hr style="margin: 10px 0;">
+      <b style="font-size: 14px;">Åbningstider</b>
+      ${formatOpeningHours(point.openingHours.postalServices)}
+    </div>
+  </div>
       `;
 
       // Create an info window
