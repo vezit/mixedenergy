@@ -6,8 +6,6 @@ let serviceAccount;
 
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
-  console.log(serviceAccount);
-  
 } catch (error) {
   console.error('Error parsing FIREBASE_ADMIN_KEY:', error);
 }
