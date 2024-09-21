@@ -33,4 +33,4 @@ pages/ is for route components and API endpoints.
 styles/ is for global or shared CSS files.
 
 
- tree -I 'node_modules|public'
+ tree -Is 'node_modules|public'

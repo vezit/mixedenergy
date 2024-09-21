@@ -1,36 +1,74 @@
-import { useEffect, useState } from "react";
-import { collection, doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase"; // assuming your firebase.js is in the lib folder
+import { useEffect, useState } from 'react';
 
-export default function Firebasetest() {
-  const [message, setMessage] = useState("");
+export default function Hello() {
+  const [data, setData] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch the message from Firestore
-    const fetchMessage = async () => {
-      try {
-        const docRef = doc(db, "messages", "J3c82HeokmNyo4pwUDc9"); // replace with your actual document path
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          // If the document exists, set the message
-          const messageData = docSnap.data();
-          setMessage(messageData.Message); // Assuming 'Message' is the field name
-        } else {
-          console.log("No such document!");
-        }
-      } catch (error) {
-        console.error("Error fetching document:", error);
-      }
-    };
-
-    fetchMessage();
+    fetch('/api/firebase/getData')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Fetched data:", data);
+        setData(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => console.error('Error fetching data:', error));
   }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/firebase/writeData', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ test: inputValue }),
+      });
+      const result = await response.json();
+      console.log('Write result:', result);
+      setInputValue(''); // Clear the input field
+
+      // Fetch updated data after writing
+      fetch('/api/firebase/getData')
+        .then((response) => response.json())
+        .then((data) => {
+          setData(Array.isArray(data) ? data : []);
+          setLoading(false);
+        });
+    } catch (error) {
+      console.error('Error writing data:', error);
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
-      <h1>Message from Firestore:</h1>
-      <p>{message ? message : "Loading..."}</p>
+      <h1>Hello World Data</h1>
+
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Enter data"
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Writing...' : 'Submit'}
+        </button>
+      </form>
+
+      <ul>
+        {data.length > 0 ? (
+          data.map((item) => (
+            <li key={item.id}>{item.test}</li>
+          ))
+        ) : (
+          <li>No data found</li>
+        )}
+      </ul>
     </div>
   );
 }
