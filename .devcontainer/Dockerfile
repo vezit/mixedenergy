@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as a parent image
-FROM node:18-bullseye
+FROM node:20-bookworm
 
 # Set up arguments for user creation
 ARG DOCKERUSER_UID=65000

@@ -4,6 +4,9 @@
     "version": "1.0.0",
     "description": "A webshop built with Next.js, Firebase, and Tailwind CSS",
     "main": "index.js",
+    "engines": {
+        "node": ">=20.0.0"
+    },
     "scripts": {
         "dev": "NODE_OPTIONS='--inspect' next dev",
         "build": "next build",
