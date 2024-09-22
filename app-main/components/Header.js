@@ -28,7 +28,7 @@ const Header = () => {
             style={{ backgroundColor: '#fab93d' }}
         >
             <a href="/" className="flex items-center">
-                <Image src="/images/iPhone-logo.png" alt="Logo" width={50} height={50} />
+                <Image src="/images/mixedenergy-logo.png" alt="Logo" width={50} height={50} />
                 <h1 className="text-3xl font-bold ml-2">Mixed Energy</h1>
             </a>
             <nav className="flex space-x-4">
