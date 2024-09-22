@@ -9,6 +9,8 @@ const products = {
     description: 'Bland Red Bull, Monster og Booster i en kasse',
     image: '/images/mixed-any-mix.jpg',
     price: '1.99',
+    // array of drinks in the mix [id]
+    drinks: [1,2,3],
   },
   'mixed-red-bull-mix': {
     slug: 'mixed-red-bull-mix',

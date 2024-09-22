@@ -1,11 +1,10 @@
 [
   {
-    "id": 1,
+    "id": "31",
     "name": "Faxe Kondi Booster Original",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -20,12 +19,11 @@
     }
   },
   {
-    "id": 2,
+    "id": "32",
     "name": "Faxe Kondi Booster Free",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -40,12 +38,11 @@
     }
   },
   {
-    "id": 3,
+    "id": "33",
     "name": "Faxe Kondi Booster Black Edition",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -60,12 +57,11 @@
     }
   },
   {
-    "id": 4,
+    "id": "34",
     "name": "Faxe Kondi Booster Frosty Blue",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -80,12 +76,11 @@
     }
   },
   {
-    "id": 5,
+    "id": "35",
     "name": "Faxe Kondi Booster Pink Dragon",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -100,12 +95,11 @@
     }
   },
   {
-    "id": 6,
+    "id": "36",
     "name": "Faxe Kondi Booster Energy",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -120,12 +114,11 @@
     }
   },
   {
-    "id": 7,
+    "id": "37",
     "name": "Faxe Kondi Booster Sort Passion",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -140,12 +133,11 @@
     }
   },
   {
-    "id": 8,
+    "id": "38",
     "name": "Faxe Kondi Booster Sort Zero",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -161,12 +153,11 @@
     }
   },
   {
-    "id": 9,
+    "id": "39",
     "name": "Faxe Kondi Booster Twisted Ice Zero",
     "size": "0.5 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Booster",
     "nutrition": {
       "per100ml": {
@@ -186,12 +177,11 @@
     }
   },
   {
-    "id": 10,
+    "id": "20",
     "name": "Red Bull Original",
     "size": "0.25 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Red Bull",
     "nutrition": {
       "per100ml": {
@@ -211,12 +201,11 @@
     }
   },
   {
-    "id": 11,
+    "id": "21",
     "name": "Red Bull Sugarfree",
     "size": "0.25 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Red Bull",
     "nutrition": {
       "per100ml": {
@@ -236,12 +225,11 @@
     }
   },
   {
-    "id": 12,
+    "id": "22",
     "name": "Red Bull Zero",
     "size": "0.25 l",
     "price": 2000,
     "currency": "dkk",
-    "packageQuantity": 24,
     "brand": "Red Bull",
     "nutrition": {
       "per100ml": {
@@ -257,84 +245,6 @@
         "niacin": "8 mg (50% NRV)",
         "vitaminB6": "2 mg (143% NRV)",
         "vitaminB12": "2 µg (80% NRV)"
-      }
-    }
-  },
-  {
-    "id": 13,
-    "name": "Monster Energy",
-    "size": "0.5 l",
-    "price": 2500,
-    "currency": "dkk",
-    "packageQuantity": 24,
-    "brand": "Monster",
-    "nutrition": {
-      "per100ml": {
-        "energy": "42 kcal",
-        "fat": "0 g",
-        "saturatedFat": "0 g",
-        "carbohydrates": "11 g",
-        "sugar": "11 g",
-        "fiber": "0 g",
-        "protein": "0 g",
-        "salt": "0.18 g",
-        "caffeine": "32 mg",
-        "vitaminB6": "0.8 mg (57% NRV)",
-        "vitaminB12": "2.5 µg (100% NRV)",
-        "niacin": "8.5 mg (53% NRV)",
-        "riboflavin": "0.7 mg (50% NRV)"
-      }
-    }
-  },
-  {
-    "id": 14,
-    "name": "Monster Energy Zero",
-    "size": "0.5 l",
-    "price": 2500,
-    "currency": "dkk",
-    "packageQuantity": 24,
-    "brand": "Monster",
-    "nutrition": {
-      "per100ml": {
-        "energy": "3 kcal",
-        "fat": "0 g",
-        "saturatedFat": "0 g",
-        "carbohydrates": "0.9 g",
-        "sugar": "0 g",
-        "fiber": "0 g",
-        "protein": "0 g",
-        "salt": "0.2 g",
-        "caffeine": "32 mg",
-        "vitaminB6": "0.8 mg (57% NRV)",
-        "vitaminB12": "2.5 µg (100% NRV)",
-        "niacin": "8.5 mg (53% NRV)",
-        "riboflavin": "0.7 mg (50% NRV)"
-      }
-    }
-  },
-  {
-    "id": 15,
-    "name": "Monster Energy Ultra Zero",
-    "size": "0.5 l",
-    "price": 2500,
-    "currency": "dkk",
-    "packageQuantity": 24,
-    "brand": "Monster",
-    "nutrition": {
-      "per100ml": {
-        "energy": "3 kcal",
-        "fat": "0 g",
-        "saturatedFat": "0 g",
-        "carbohydrates": "0.9 g",
-        "sugar": "0 g",
-        "fiber": "0 g",
-        "protein": "0 g",
-        "salt": "0.2 g",
-        "caffeine": "32 mg",
-        "vitaminB6": "0.8 mg (57% NRV)",
-        "vitaminB12": "2.5 µg (100% NRV)",
-        "niacin": "8.5 mg (53% NRV)",
-        "riboflavin": "0.7 mg (50% NRV)"
       }
     }
   }
