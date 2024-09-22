@@ -30,7 +30,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src="/images/thunder-punch-energy.jpg"
+                  src="/images/mixed-any-mix.jpg"
                   alt="Mixed Any Mix"
                   className="w-full h-full object-cover"
                 />
@@ -48,7 +48,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src="/images/volt-burst-energy.jpg"
+                  src="/images/mixed-red-bull-mix.jpg"
                   alt="Mixed Red Bull Mix"
                   className="w-full h-full object-cover"
                 />
@@ -66,7 +66,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src="/images/iceblast-energy.jpg"
+                  src="/images/mixed-monster-mix.jpg"
                   alt="Mixed Monster Mix"
                   className="w-full h-full object-cover"
                 />
@@ -84,7 +84,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src="/images/booster-attack-energy.jpg"
+                  src="/images/mixed-booster-mix.jpg"
                   alt="Mixed Booster Mix"
                   className="w-full h-full object-cover"
                 />
@@ -108,7 +108,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src="/images/thunder-punch-energy.jpg"
+                  src="/images/mixed-any.jpg"
                   alt="Mixed Any"
                   className="w-full h-full object-cover"
                 />
@@ -126,7 +126,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src="/images/volt-burst-energy.jpg"
+                  src="/images/mixed-red-bulls.jpg"
                   alt="Mixed Red Bulls"
                   className="w-full h-full object-cover"
                 />
@@ -144,7 +144,7 @@ export default function Home() {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src="/images/iceblast-energy.jpg"
+                  src="/images/mixed-monsters.jpg"
                   alt="Mixed Monsters"
                   className="w-full h-full object-cover"
                 />
@@ -157,12 +157,12 @@ export default function Home() {
           </a>
         </Link>
 
-        <Link href="/products/vi-blander-for-dig/mixed-booster">
+        <Link href="/products/vi-blander-for-dig/mixed-boosters">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src="/images/booster-attack-energy.jpg"
+                  src="/images/mixed-boosters.jpg"
                   alt="Mixed Booster"
                   className="w-full h-full object-cover"
                 />
