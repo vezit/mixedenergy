@@ -1,3 +1,4 @@
+// pages/index.js
 import Link from 'next/link';
 
 export default function Home() {
@@ -24,7 +25,7 @@ export default function Home() {
 
       <div className="flex flex-wrap justify-center p-4 max-w-screen-xl mx-auto">
         {/* First set of 4 cards - now using the 'mix' links */}
-        <Link href="/products/mixed-any-mix">
+        <Link href="/products/bland-selv-mix/mixed-any-mix">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
@@ -42,7 +43,7 @@ export default function Home() {
           </a>
         </Link>
 
-        <Link href="/products/mixed-red-bull-mix">
+        <Link href="/products/bland-selv-mix/mixed-red-bull-mix">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
@@ -60,7 +61,7 @@ export default function Home() {
           </a>
         </Link>
 
-        <Link href="/products/mixed-monster-mix">
+        <Link href="/products/bland-selv-mix/mixed-monster-mix">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
@@ -78,7 +79,7 @@ export default function Home() {
           </a>
         </Link>
 
-        <Link href="/products/mixed-booster-mix">
+        <Link href="/products/bland-selv-mix/mixed-booster-mix">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
@@ -102,7 +103,7 @@ export default function Home() {
         </div>
 
         {/* Second set of 4 cards - now using the old links */}
-        <Link href="/products/mixed-any">
+        <Link href="/products/vi-blander-for-dig/mixed-any">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
@@ -120,7 +121,7 @@ export default function Home() {
           </a>
         </Link>
 
-        <Link href="/products/mixed-red-bulls">
+        <Link href="/products/vi-blander-for-dig/mixed-red-bulls">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
@@ -138,7 +139,7 @@ export default function Home() {
           </a>
         </Link>
 
-        <Link href="/products/mixed-monsters">
+        <Link href="/products/vi-blander-for-dig/mixed-monsters">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
@@ -156,7 +157,7 @@ export default function Home() {
           </a>
         </Link>
 
-        <Link href="/products/mixed-booster">
+        <Link href="/products/vi-blander-for-dig/mixed-booster">
           <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
