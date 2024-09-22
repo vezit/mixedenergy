@@ -1,53 +1,72 @@
+// lib/products.js
+
 const products = {
-    'mixed-any': {
-      title: 'Mixed Any',
-      description: 'Bland Selv',
-      image: '/images/thunder-punch-energy.jpg',
-      price: '1.99',
-    },
-    'mixed-red-bulls': {
-      title: 'Mixed Red Bulls',
-      description: '',
-      image: '/images/volt-burst-energy.jpg',
-      price: '1.99',
-    },
-    'mixed-monsters': {
-      title: 'Mixed Monsters',
-      description: '',
-      image: '/images/iceblast-energy.jpg',
-      price: '1.99',
-    },
-    'mixed-booster': {
-      title: 'Mixed Booster',
-      description: '',
-      image: '/images/booster-attack-energy.jpg',
-      price: '1.99',
-    },
-'mixed-any-mix': {
-    title: 'Mixed Any mix',
+  // Bland Selv Mix Products
+  'mixed-any-mix': {
+    slug: 'mixed-any-mix',
+    category: 'bland-selv-mix',
+    title: 'Mixed Any Mix',
     description: 'Bland Selv',
-    image: '/images/thunder-punch-energy.jpg',
+    image: '/images/mixed-any-mix.jpg',
     price: '1.99',
   },
   'mixed-red-bull-mix': {
-    title: 'Mixed Red Bull mix',
+    slug: 'mixed-red-bull-mix',
+    category: 'bland-selv-mix',
+    title: 'Mixed Red Bull Mix',
     description: '',
-    image: '/images/volt-burst-energy.jpg',
+    image: '/images/mixed-red-bull-mix.jpg',
     price: '1.99',
   },
   'mixed-monster-mix': {
-    title: 'Mixed Monster mix',
+    slug: 'mixed-monster-mix',
+    category: 'bland-selv-mix',
+    title: 'Mixed Monster Mix',
     description: '',
-    image: '/images/iceblast-energy.jpg',
+    image: '/images/mixed-monster-mix.jpg',
     price: '1.99',
   },
   'mixed-booster-mix': {
-    title: 'Mixed Booster mix',
+    slug: 'mixed-booster-mix',
+    category: 'bland-selv-mix',
+    title: 'Mixed Booster Mix',
     description: '',
-    image: '/images/booster-attack-energy.jpg',
+    image: '/images/mixed-booster-mix.jpg',
     price: '1.99',
   },
-  };
-  
-  export default products;
-  
+  // Vi Blander For Dig Products
+  'mixed-any': {
+    slug: 'mixed-any',
+    category: 'vi-blander-for-dig',
+    title: 'Mixed Any',
+    description: 'Bland Selv',
+    image: '/images/mixed-any.jpg',
+    price: '1.99',
+  },
+  'mixed-red-bulls': {
+    slug: 'mixed-red-bulls',
+    category: 'vi-blander-for-dig',
+    title: 'Mixed Red Bulls',
+    description: '',
+    image: '/images/mixed-red-bulls.jpg',
+    price: '1.99',
+  },
+  'mixed-monsters': {
+    slug: 'mixed-monsters',
+    category: 'vi-blander-for-dig',
+    title: 'Mixed Monsters',
+    description: '',
+    image: '/images/mixed-monsters.jpg',
+    price: '1.99',
+  },
+  'mixed-booster': {
+    slug: 'mixed-booster',
+    category: 'vi-blander-for-dig',
+    title: 'Mixed Booster',
+    description: '',
+    image: '/images/mixed-booster.jpg',
+    price: '1.99',
+  },
+};
+
+export default products;
