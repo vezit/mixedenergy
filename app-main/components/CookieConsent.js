@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase'; // Import db directly
+import { getCookie, setCookie } from '../lib/cookies'; // Importing from cookies.js
 
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
@@ -22,16 +23,7 @@ export default function CookieConsent() {
     }
   };
 
-  const getCookie = (name) => {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-  };
+
 
   const generateConsentId = () => {
     return 'xxxx-xxxx-xxxx-xxxx'.replace(/[x]/g, () => {

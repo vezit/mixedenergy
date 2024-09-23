@@ -1,11 +1,12 @@
+// /pages/basket.js
 import { useState, useEffect } from 'react';
+import Script from 'next/script';  // Use next/script for loading scripts
 import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { db } from '../lib/firebase'; // Import Firestore instance
-import { doc, setDoc, getDoc } from 'firebase/firestore'; // Firestore methods
-import { getCookie, setCookie } from '../lib/cookies'; // Importing from cookies.js
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function Basket() {
   const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
@@ -26,6 +27,17 @@ export default function Basket() {
   const [showPickupPoints, setShowPickupPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
 
+  const getCookie = (name) => {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0)
+        return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  };
 
   useEffect(() => {
     const consentId = getCookie('cookie_consent_id');
@@ -71,6 +83,7 @@ export default function Basket() {
         i === index ? { ...item, quantity: newQuantity } : item
       );
       setBasketItems(updatedBasket);
+      localStorage.setItem('basket', JSON.stringify(updatedBasket));
     }
   };
 
@@ -171,11 +184,14 @@ export default function Basket() {
 
   const handleShowPickupPoints = () => {
     const newErrors = {};
-    if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet';
-    if (!customerDetails.mobileNumber) newErrors.mobileNumber = 'Mobilnummer er påkrævet';
+    if (!customerDetails.fullName)
+      newErrors.fullName = 'Fulde navn er påkrævet';
+    if (!customerDetails.mobileNumber)
+      newErrors.mobileNumber = 'Mobilnummer er påkrævet';
     if (!customerDetails.email) newErrors.email = 'E-mail er påkrævet';
     if (!customerDetails.address) newErrors.address = 'Adresse er påkrævet';
-    if (!customerDetails.postalCode) newErrors.postalCode = 'Postnummer er påkrævet';
+    if (!customerDetails.postalCode)
+      newErrors.postalCode = 'Postnummer er påkrævet';
     if (!customerDetails.city) newErrors.city = 'By er påkrævet';
 
     if (Object.keys(newErrors).length > 0) {
@@ -202,7 +218,8 @@ export default function Basket() {
           name="fullName"
           value={customerDetails.fullName}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.fullName ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${errors.fullName ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.fullName && (
@@ -218,7 +235,8 @@ export default function Basket() {
           name="mobileNumber"
           value={customerDetails.mobileNumber}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.mobileNumber ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${errors.mobileNumber ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.mobileNumber && (
@@ -234,7 +252,8 @@ export default function Basket() {
           name="email"
           value={customerDetails.email}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.email && (
@@ -250,7 +269,8 @@ export default function Basket() {
           name="address"
           value={customerDetails.address}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.address ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${errors.address ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.address && (
@@ -266,7 +286,8 @@ export default function Basket() {
           name="postalCode"
           value={customerDetails.postalCode}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.postalCode ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${errors.postalCode ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.postalCode && (
@@ -282,7 +303,8 @@ export default function Basket() {
           name="city"
           value={customerDetails.city}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''
+            }`}
           required
           disabled={true}
         />
@@ -319,7 +341,9 @@ export default function Basket() {
                 className="w-full lg:w-1/2 overflow-y-scroll"
                 style={{ maxHeight: '545px' }}
               >
-                <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
+                <h2 className="text-xl font-bold mb-4">
+                  Vælg et afhentningssted
+                </h2>
                 <PickupPointsList
                   pickupPoints={pickupPoints}
                   selectedPoint={selectedPoint}
@@ -366,6 +390,7 @@ export default function Basket() {
   );
 
   return (
+    
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
 
@@ -387,7 +412,9 @@ export default function Basket() {
                 <h2 className="text-xl font-bold">{item.title}</h2>
                 <div className="flex items-center mt-2">
                   <button
-                    onClick={() => updateQuantity(index, item.quantity - 1)}
+                    onClick={() =>
+                      updateQuantity(index, item.quantity - 1)
+                    }
                     className="px-2 py-1 bg-gray-200 rounded-l"
                   >
                     -
@@ -396,7 +423,9 @@ export default function Basket() {
                     {item.quantity}
                   </span>
                   <button
-                    onClick={() => updateQuantity(index, item.quantity + 1)}
+                    onClick={() =>
+                      updateQuantity(index, item.quantity + 1)
+                    }
                     className="px-2 py-1 bg-gray-200 rounded-r"
                   >
                     +

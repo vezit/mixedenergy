@@ -1,21 +1,10 @@
 import React from 'react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase'; // Import the Firestore instance
+import { getCookie, setCookie } from '../lib/cookies'; // Importing from cookies.js
 
 export default function CookiePolitik() {
-  const getCookie = (name) => {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) === ' ')
-        c = c.substring(1, c.length);
-      if (c.indexOf(nameEQ) === 0)
-        return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-  };
-
+  
   function deleteAllCookies() {
     document.cookie.split(';').forEach((c) => {
       document.cookie = c

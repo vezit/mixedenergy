@@ -1,24 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { doc, setDoc, getDoc } from 'firebase/firestore'; // Firestore methods
 import { db } from '../lib/firebase'; // Import your Firestore instance
+import { getCookie, setCookie } from '.cookies'; // Importing from cookies.js
 
 const BasketContext = createContext();
 
 export const BasketProvider = ({ children }) => {
     const [basketItems, setBasketItems] = useState([]);
     const [consentId, setConsentId] = useState(null);
-
-    // Helper to get the cookie (assuming consentId is stored in a cookie)
-    const getCookie = (name) => {
-        const nameEQ = name + '=';
-        const ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    };
 
     useEffect(() => {
         const consentIdFromCookie = getCookie('cookie_consent_id');
