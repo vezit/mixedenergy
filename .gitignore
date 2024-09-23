@@ -22,4 +22,3 @@ requirements.txt
 *copy*.local
 app-main/lib/firebaseAdminKey.json
 .vscode/settings.json
-app-main/data/*
