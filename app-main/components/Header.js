@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../lib/BasketContext';
 
 const Header = () => {
     const { basketItems } = useBasket();
     const [showEmptyMessage, setShowEmptyMessage] = useState(false);
+    const [isNewItemAdded, setIsNewItemAdded] = useState(false);
+
+    // Detect if a new item was added to the basket
+    useEffect(() => {
+        if (basketItems.length > 0) {
+            setIsNewItemAdded(true);
+            // Stop pulsing animation after a few seconds
+            const timer = setTimeout(() => setIsNewItemAdded(false), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [basketItems]);
 
     const handleMouseEnter = () => {
         if (basketItems.length === 0) {
@@ -48,8 +59,12 @@ const Header = () => {
                             height="46.782"
                         />
                         {basketItems.length > 0 && (
-                            <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                                {basketItems.length}
+                            <div
+                                className={`absolute -top-2 -right-2 bg-red-500 rounded-full w-4 h-4 flex items-center justify-center ${
+                                    isNewItemAdded ? 'animate-pulse' : ''
+                                }`}
+                            >
+                                {/* Render an empty red circle without a number */}
                             </div>
                         )}
                     </a>
