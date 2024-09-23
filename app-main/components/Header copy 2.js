@@ -9,7 +9,7 @@ const Header = () => {
     // Reset pulse effect after it plays
     useEffect(() => {
         if (isNewItemAdded) {
-            const timer = setTimeout(() => setIsNewItemAdded(false), 2400); // 0.8s per pulse * 3 pulses
+            const timer = setTimeout(() => setIsNewItemAdded(false), 2000);
             return () => clearTimeout(timer);
         }
     }, [isNewItemAdded, setIsNewItemAdded]);
@@ -57,8 +57,8 @@ const Header = () => {
                         />
                         {basketItems.length > 0 && (
                             <div
-                                className={`absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 flex items-center justify-center ${
-                                    isNewItemAdded ? 'animate-custom-pulse' : ''
+                                className={`absolute -top-2 -right-2 bg-red-500 rounded-full w-4 h-4 flex items-center justify-center ${
+                                    isNewItemAdded ? 'animate-pulse' : ''
                                 }`}
                             >
                                 {/* Render an empty red circle without a number */}

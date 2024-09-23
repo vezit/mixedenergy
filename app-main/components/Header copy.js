@@ -3,16 +3,19 @@ import Image from 'next/image';
 import { useBasket } from '../lib/BasketContext';
 
 const Header = () => {
-    const { basketItems, isNewItemAdded, setIsNewItemAdded } = useBasket();
+    const { basketItems } = useBasket();
     const [showEmptyMessage, setShowEmptyMessage] = useState(false);
+    const [isNewItemAdded, setIsNewItemAdded] = useState(false);
 
-    // Reset pulse effect after it plays
+    // Detect if a new item was added to the basket
     useEffect(() => {
-        if (isNewItemAdded) {
-            const timer = setTimeout(() => setIsNewItemAdded(false), 2400); // 0.8s per pulse * 3 pulses
+        if (basketItems.length > 0) {
+            setIsNewItemAdded(true);
+            // Stop pulsing animation after a few seconds
+            const timer = setTimeout(() => setIsNewItemAdded(false), 2000);
             return () => clearTimeout(timer);
         }
-    }, [isNewItemAdded, setIsNewItemAdded]);
+    }, [basketItems]);
 
     const handleMouseEnter = () => {
         if (basketItems.length === 0) {
@@ -57,8 +60,8 @@ const Header = () => {
                         />
                         {basketItems.length > 0 && (
                             <div
-                                className={`absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 flex items-center justify-center ${
-                                    isNewItemAdded ? 'animate-custom-pulse' : ''
+                                className={`absolute -top-2 -right-2 bg-red-500 rounded-full w-4 h-4 flex items-center justify-center ${
+                                    isNewItemAdded ? 'animate-pulse' : ''
                                 }`}
                             >
                                 {/* Render an empty red circle without a number */}

@@ -19,7 +19,6 @@ export const BasketProvider = ({ children }) => {
         streetNumber: '',
     });
     const [consentId, setConsentId] = useState(null);
-    const [isNewItemAdded, setIsNewItemAdded] = useState(false); // New state for tracking item addition
 
     useEffect(() => {
         const consentIdFromCookie = getCookie('cookie_consent_id');
@@ -51,6 +50,13 @@ export const BasketProvider = ({ children }) => {
         await setDoc(docRef, { basketItems: updatedBasket }, { merge: true }); // Update Firestore
     };
 
+    const updateCustomerDetailsInFirestore = async (updatedDetails) => {
+        if (!consentId) return; // Ensure consentId is available
+
+        const docRef = doc(db, 'sessions', consentId);
+        await setDoc(docRef, { customerDetails: updatedDetails, updatedAt: new Date() }, { merge: true }); // Update Firestore
+    };
+
     const addItemToBasket = (item) => {
         const existingItemIndex = basketItems.findIndex(basketItem => basketItem.title === item.title);
 
@@ -67,7 +73,6 @@ export const BasketProvider = ({ children }) => {
         }
 
         setBasketItems(updatedBasket);
-        setIsNewItemAdded(true); // Set to true when a new item is added
         updateBasketInFirestore(updatedBasket); // Update Firestore instead of localStorage
     };
 
@@ -83,7 +88,7 @@ export const BasketProvider = ({ children }) => {
     };
 
     return (
-        <BasketContext.Provider value={{ basketItems, addItemToBasket, removeItemFromBasket, setBasketItems, customerDetails, updateCustomerDetails, isNewItemAdded, setIsNewItemAdded }}>
+        <BasketContext.Provider value={{ basketItems, addItemToBasket, removeItemFromBasket, setBasketItems, customerDetails, updateCustomerDetails }}>
             {children}
         </BasketContext.Provider>
     );

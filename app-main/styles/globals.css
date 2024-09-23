@@ -16,3 +16,28 @@ body {
         transform: rotate(360deg) translateX(50px) rotate(-360deg);
     }
 }
+
+
+
+/* Inside styles/globals.css */
+
+@keyframes customPulse {
+    0% {
+      transform: scale(1);
+    }
+    33% {
+      transform: scale(1.5); /* Expand to 1.5x size */
+    }
+    66% {
+      transform: scale(0.75); /* Shrink to 0.75x size */
+    }
+    100% {
+      transform: scale(1); /* Back to original size */
+    }
+  }
+  
+  /* Custom class for the animation */
+  .animate-custom-pulse {
+    animation: customPulse 0.4s ease-in-out 1; /* 0.8 seconds per cycle, repeat 3 times */
+  }
+  
