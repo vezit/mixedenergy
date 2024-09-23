@@ -7,17 +7,6 @@ const BasketContext = createContext();
 
 export const BasketProvider = ({ children }) => {
     const [basketItems, setBasketItems] = useState([]);
-    const [customerDetails, setCustomerDetails] = useState({
-        customerType: 'Privat',
-        fullName: '',
-        mobileNumber: '',
-        email: '',
-        address: '',
-        postalCode: '',
-        city: '',
-        country: 'Danmark',
-        streetNumber: '',
-    });
     const [consentId, setConsentId] = useState(null);
 
     useEffect(() => {
@@ -32,12 +21,9 @@ export const BasketProvider = ({ children }) => {
                     if (sessionData.basketItems) {
                         setBasketItems(sessionData.basketItems); // Load basket from Firestore
                     }
-                    if (sessionData.customerDetails) {
-                        setCustomerDetails(sessionData.customerDetails); // Load customer details from Firestore
-                    }
                 } else {
-                    // Initialize an empty basket and customer details in Firestore
-                    setDoc(docRef, { basketItems: [], customerDetails: {} }, { merge: true });
+                    // If no document exists, initialize an empty basket
+                    setDoc(docRef, { basketItems: [] }, { merge: true });
                 }
             });
         }
@@ -48,13 +34,6 @@ export const BasketProvider = ({ children }) => {
 
         const docRef = doc(db, 'sessions', consentId);
         await setDoc(docRef, { basketItems: updatedBasket }, { merge: true }); // Update Firestore
-    };
-
-    const updateCustomerDetailsInFirestore = async (updatedDetails) => {
-        if (!consentId) return; // Ensure consentId is available
-
-        const docRef = doc(db, 'sessions', consentId);
-        await setDoc(docRef, { customerDetails: updatedDetails, updatedAt: new Date() }, { merge: true }); // Update Firestore
     };
 
     const addItemToBasket = (item) => {
@@ -82,13 +61,8 @@ export const BasketProvider = ({ children }) => {
         updateBasketInFirestore(updatedBasket); // Update Firestore instead of localStorage
     };
 
-    const updateCustomerDetails = (updatedDetails) => {
-        setCustomerDetails(updatedDetails);
-        updateCustomerDetailsInFirestore(updatedDetails); // Update Firestore with new customer details
-    };
-
     return (
-        <BasketContext.Provider value={{ basketItems, addItemToBasket, removeItemFromBasket, setBasketItems, customerDetails, updateCustomerDetails }}>
+        <BasketContext.Provider value={{ basketItems, addItemToBasket, removeItemFromBasket, setBasketItems }}>
             {children}
         </BasketContext.Provider>
     );

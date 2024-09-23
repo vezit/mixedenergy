@@ -3,142 +3,42 @@ import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { db } from '../lib/firebase'; // Import Firestore instance
-import { doc, setDoc, getDoc } from 'firebase/firestore'; // Firestore methods
-import { getCookie } from '../lib/cookies'; // Importing from cookies.js
 
 export default function Basket() {
-  const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
-  const [customerDetails, setCustomerDetails] = useState({
-    customerType: 'Privat',
-    fullName: '',
-    mobileNumber: '',
-    email: '',
-    address: '',
-    postalCode: '',
-    city: '',
-    country: 'Danmark',
-    streetNumber: '',
-  });
+  const { basketItems, setBasketItems, removeItemFromBasket, customerDetails, updateCustomerDetails } = useBasket();
   const [errors, setErrors] = useState({});
   const [pickupPoints, setPickupPoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPickupPoints, setShowPickupPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
 
-
-  useEffect(() => {
-    const consentId = getCookie('cookie_consent_id');
-    if (consentId) {
-      const docRef = doc(db, 'sessions', consentId);
-  
-      getDoc(docRef).then((docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          
-          // Check if cookies are allowed
-          if (data.allowCookies) {
-            if (data.basketItems) {
-              setBasketItems(data.basketItems); // Load basket items
-            }
-            if (data.customerDetails) {
-              setCustomerDetails(data.customerDetails); // Load customer details
-            }
-          }
-        }
-      });
-    }
-  }, []);
-  
-
-  useEffect(() => {
-    const consentId = getCookie('cookie_consent_id');
-    if (consentId) {
-      const docRef = doc(db, 'sessions', consentId);
-
-      setDoc(
-        docRef,
-        {
-          basketItems: basketItems,
-          customerDetails: customerDetails,
-          updatedAt: new Date(),
-        },
-        { merge: true }
-      );
-    }
-  }, [basketItems, customerDetails]);
-
-  const updateQuantity = (index, newQuantity) => {
-    if (newQuantity <= 0) {
-      removeItemFromBasket(index);
-    } else {
-      const updatedBasket = basketItems.map((item, i) =>
-        i === index ? { ...item, quantity: newQuantity } : item
-      );
-      setBasketItems(updatedBasket);
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setCustomerDetails((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
+    const updatedDetails = { ...customerDetails, [name]: value };
+    updateCustomerDetails(updatedDetails); // Update via context
 
-    if (name === 'postalCode') {
-      if (value.length === 4 && /^\d{4}$/.test(value)) {
-        fetch(`https://api.dataforsyningen.dk/postnumre/${value}`)
-          .then((res) => {
-            if (!res.ok) {
-              throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-          })
-          .then((data) => {
-            const cityName = data.navn;
-            if (cityName) {
-              setCustomerDetails((prevState) => ({
-                ...prevState,
-                city: cityName,
-              }));
-            } else {
-              setCustomerDetails((prevState) => ({
-                ...prevState,
-                city: '',
-              }));
-            }
-          })
-          .catch((error) => {
-            console.error('Error fetching city name:', error);
-            setCustomerDetails((prevState) => ({
-              ...prevState,
-              city: '',
-            }));
-          });
-      } else {
-        setCustomerDetails((prevState) => ({
-          ...prevState,
-          city: '',
-        }));
-      }
+    if (name === 'postalCode' && value.length === 4 && /^\d{4}$/.test(value)) {
+      fetch(`https://api.dataforsyningen.dk/postnumre/${value}`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          updateCustomerDetails({ ...updatedDetails, city: data.navn || '' });
+        })
+        .catch((error) => {
+          console.error('Error fetching city name:', error);
+          updateCustomerDetails({ ...updatedDetails, city: '' });
+        });
     }
   };
 
   const fetchPickupPoints = (updatedDetails) => {
-    if (
-      updatedDetails.city &&
-      updatedDetails.postalCode &&
-      updatedDetails.streetNumber
-    ) {
-      fetch(
-        `/api/postnord/servicepoints?city=${updatedDetails.city}&postalCode=${updatedDetails.postalCode}&streetName=${updatedDetails.address}&streetNumber=${updatedDetails.streetNumber}`
-      )
+    if (updatedDetails.city && updatedDetails.postalCode && updatedDetails.streetNumber) {
+      fetch(`/api/postnord/servicepoints?city=${updatedDetails.city}&postalCode=${updatedDetails.postalCode}&streetName=${updatedDetails.address}&streetNumber=${updatedDetails.streetNumber}`)
         .then((res) => res.json())
         .then((data) => {
-          setPickupPoints(
-            data.servicePointInformationResponse?.servicePoints || []
-          );
+          setPickupPoints(data.servicePointInformationResponse?.servicePoints || []);
           setLoading(false);
         })
         .catch((error) => {
@@ -146,30 +46,6 @@ export default function Basket() {
           setLoading(false);
         });
     } else {
-      setLoading(false);
-    }
-  };
-
-  const validateAddressWithDAWA = async () => {
-    try {
-      const response = await fetch('/api/dawa/datavask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(customerDetails),
-      });
-
-      const data = await response.json();
-
-      const updatedDetails = {
-        ...customerDetails,
-        streetNumber: data.dawaResponse.resultater[0].adresse.husnr,
-      };
-
-      setCustomerDetails(updatedDetails);
-
-      fetchPickupPoints(updatedDetails);
-    } catch (error) {
-      console.error('Error validating address with DAWA:', error);
       setLoading(false);
     }
   };
@@ -191,7 +67,7 @@ export default function Basket() {
     }
 
     setLoading(true);
-    validateAddressWithDAWA();
+    fetchPickupPoints(customerDetails);
     setShowPickupPoints(true);
   };
 
@@ -199,7 +75,6 @@ export default function Basket() {
     <div>
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
 
-      {/* Fulde Navn */}
       <div className="mb-4">
         <label className="block mb-2">Fulde Navn *</label>
         <input
@@ -210,12 +85,9 @@ export default function Basket() {
           className={`w-full p-2 border rounded ${errors.fullName ? 'border-red-500' : ''}`}
           required
         />
-        {errors.fullName && (
-          <p className="text-red-500 mt-1">{errors.fullName}</p>
-        )}
+        {errors.fullName && <p className="text-red-500 mt-1">{errors.fullName}</p>}
       </div>
 
-      {/* Mobilnummer */}
       <div className="mb-4">
         <label className="block mb-2">Mobilnummer *</label>
         <input
@@ -226,12 +98,9 @@ export default function Basket() {
           className={`w-full p-2 border rounded ${errors.mobileNumber ? 'border-red-500' : ''}`}
           required
         />
-        {errors.mobileNumber && (
-          <p className="text-red-500 mt-1">{errors.mobileNumber}</p>
-        )}
+        {errors.mobileNumber && <p className="text-red-500 mt-1">{errors.mobileNumber}</p>}
       </div>
 
-      {/* E-mail Adresse */}
       <div className="mb-4">
         <label className="block mb-2">E-mail Adresse *</label>
         <input
@@ -242,12 +111,9 @@ export default function Basket() {
           className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''}`}
           required
         />
-        {errors.email && (
-          <p className="text-red-500 mt-1">{errors.email}</p>
-        )}
+        {errors.email && <p className="text-red-500 mt-1">{errors.email}</p>}
       </div>
 
-      {/* Vejnavn og Husnummer */}
       <div className="mb-4">
         <label className="block mb-2">Vejnavn og Husnummer *</label>
         <input
@@ -258,12 +124,9 @@ export default function Basket() {
           className={`w-full p-2 border rounded ${errors.address ? 'border-red-500' : ''}`}
           required
         />
-        {errors.address && (
-          <p className="text-red-500 mt-1">{errors.address}</p>
-        )}
+        {errors.address && <p className="text-red-500 mt-1">{errors.address}</p>}
       </div>
 
-      {/* Postnummer */}
       <div className="mb-4">
         <label className="block mb-2">Postnummer *</label>
         <input
@@ -274,12 +137,9 @@ export default function Basket() {
           className={`w-full p-2 border rounded ${errors.postalCode ? 'border-red-500' : ''}`}
           required
         />
-        {errors.postalCode && (
-          <p className="text-red-500 mt-1">{errors.postalCode}</p>
-        )}
+        {errors.postalCode && <p className="text-red-500 mt-1">{errors.postalCode}</p>}
       </div>
 
-      {/* By */}
       <div className="mb-4">
         <label className="block mb-2">By *</label>
         <input
@@ -291,12 +151,9 @@ export default function Basket() {
           required
           disabled={true}
         />
-        {errors.city && (
-          <p className="text-red-500 mt-1">{errors.city}</p>
-        )}
+        {errors.city && <p className="text-red-500 mt-1">{errors.city}</p>}
       </div>
 
-      {/* Fortsæt Button */}
       <button
         onClick={handleShowPickupPoints}
         className="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
@@ -331,10 +188,7 @@ export default function Basket() {
                   setSelectedPoint={setSelectedPoint}
                 />
               </div>
-              <div
-                className="w-full lg:w-1/2"
-                style={{ height: '545px' }}
-              >
+              <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
                 <MapComponent
                   pickupPoints={pickupPoints}
                   selectedPoint={selectedPoint}
@@ -352,14 +206,7 @@ export default function Basket() {
     <div>
       <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
       <div className="text-right text-xl font-bold">
-        Total:{' '}
-        {basketItems
-          .reduce(
-            (total, item) => total + item.price * item.quantity,
-            0
-          )
-          .toFixed(2)}
-        kr
+        Total: {basketItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)} kr
       </div>
       <button
         onClick={() => alert('Checkout process')}
@@ -379,58 +226,30 @@ export default function Basket() {
       ) : (
         <>
           {basketItems.map((item, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between mb-4 p-4 border rounded"
-            >
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-24 h-24 object-cover rounded"
-              />
+            <div key={index} className="flex items-center justify-between mb-4 p-4 border rounded">
+              <img src={item.image} alt={item.title} className="w-24 h-24 object-cover rounded" />
               <div className="flex-1 ml-4">
                 <h2 className="text-xl font-bold">{item.title}</h2>
                 <div className="flex items-center mt-2">
-                  <button
-                    onClick={() => updateQuantity(index, item.quantity - 1)}
-                    className="px-2 py-1 bg-gray-200 rounded-l"
-                  >
+                  <button onClick={() => setBasketItems(item.quantity - 1)} className="px-2 py-1 bg-gray-200 rounded-l">
                     -
                   </button>
-                  <span className="px-4 py-2 bg-gray-100">
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => updateQuantity(index, item.quantity + 1)}
-                    className="px-2 py-1 bg-gray-200 rounded-r"
-                  >
+                  <span className="px-4 py-2 bg-gray-100">{item.quantity}</span>
+                  <button onClick={() => setBasketItems(item.quantity + 1)} className="px-2 py-1 bg-gray-200 rounded-r">
                     +
                   </button>
                 </div>
-                <p className="text-gray-700 mt-2">
-                  Pris pr ramme: {item.price}kr
-                </p>
-                <p className="text-gray-700 mt-2">
-                  Totalpris:{' '}
-                  {(item.price * item.quantity).toFixed(2)}kr
-                </p>
+                <p className="text-gray-700 mt-2">Pris pr ramme: {item.price}kr</p>
+                <p className="text-gray-700 mt-2">Totalpris: {(item.price * item.quantity).toFixed(2)}kr</p>
               </div>
-              <button
-                onClick={() => removeItemFromBasket(index)}
-                className="text-red-600"
-              >
+              <button onClick={() => removeItemFromBasket(index)} className="text-red-600">
                 Fjern
               </button>
             </div>
           ))}
 
-          {/* Render Kundeoplysninger */}
           {renderCustomerDetails()}
-
-          {/* Render Fragt og betaling */}
           {renderShippingAndPayment()}
-
-          {/* Render Godkend din ordre */}
           {renderOrderConfirmation()}
         </>
       )}
