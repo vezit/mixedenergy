@@ -1,5 +1,3 @@
-// scripts/populateDatabase.js
-
 import admin from 'firebase-admin';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -43,7 +41,8 @@ async function populateDrinks() {
 
     const drinkDoc = {
       ...drink,
-      price: drink.price, // No replace needed, since price is already a number
+      salePrice: drink.salePrice || 0, // Ensure salePrice is used instead of price
+      purchasePrice: drink.purchasePrice || 0, // Ensure purchasePrice is populated
       packageQuantity: parseInt(drink.packageQuantity, 10), // Ensure packageQuantity is a number
       brand: brand,
     };
@@ -54,8 +53,6 @@ async function populateDrinks() {
     console.log(`Added drink: ${drink.name}`);
   }
 }
-
-  
 
 // Function to populate packages
 async function populatePackages() {

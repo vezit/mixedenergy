@@ -1,20 +1,25 @@
+// pages/products/vi-blander-for-dig/[slug].js
+
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../lib/BasketContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import products from '../../../lib/products';
 import Link from 'next/link';
 
 export default function ViBlanderForDigProduct() {
   const router = useRouter();
   const { slug } = router.query;
 
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [randomSelection, setRandomSelection] = useState({});
-  const [price, setPrice] = useState(175); // Default price for size 8
-  const [selectedSize, setSelectedSize] = useState('8'); // Default package size
-  const [quantity, setQuantity] = useState(1);
+  // Ensure the router is ready
+  if (!router.isReady) {
+    return <p>Loading...</p>;
+  }
+
+  const product = products[slug];
+
+  if (!product || product.category !== 'vi-blander-for-dig') {
+    return <p>Product not found.</p>;
+  }
 
   const { addItemToBasket } = useBasket();
 
@@ -27,24 +32,13 @@ export default function ViBlanderForDigProduct() {
     'Monster Ultra - 0.5 l',
     'Booster Original - 0.5 l',
     'Booster Sugarfree - 0.5 l',
+    // Add more drinks as needed
   ];
 
-  useEffect(() => {
-    if (!slug) return;
-
-    const fetchProduct = async () => {
-      const docRef = doc(db, 'packages', slug);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setProduct({ id: docSnap.id, ...docSnap.data() });
-      } else {
-        setProduct(null);
-      }
-      setLoading(false);
-    };
-
-    fetchProduct();
-  }, [slug]);
+  const [selectedSize, setSelectedSize] = useState('8'); // Default package size
+  const [randomSelection, setRandomSelection] = useState({});
+  const [price, setPrice] = useState(175); // Default price for size 8
+  const [quantity, setQuantity] = useState(1);
 
   // Generate a random package on component mount
   useEffect(() => {
@@ -101,8 +95,8 @@ export default function ViBlanderForDigProduct() {
     }
 
     const mixedProduct = {
-      slug: product.id,
-      title: `${product.name} - ${selectedSize} pcs`,
+      slug: product.slug,
+      title: `${product.title} - ${selectedSize} pcs`,
       description: `A mix of: ${Object.entries(randomSelection)
         .map(([drink, qty]) => `${drink} (x${qty})`)
         .join(', ')}`,
@@ -114,25 +108,19 @@ export default function ViBlanderForDigProduct() {
     };
 
     addItemToBasket(mixedProduct);
+    // Optionally redirect to basket page
+    // router.push('/basket');
   };
-
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
-  if (!product) {
-    return <p>Product not found.</p>;
-  }
 
   return (
     <div className="container mx-auto p-8">
       {/* Product Title */}
-      <h1 className="text-4xl font-bold text-center mb-8">{product.name}</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">{product.title}</h1>
 
       <div className="flex flex-col md:flex-row">
         {/* Left Column: Image and Description */}
         <div className="md:w-1/2">
-          <img src={product.image} alt={product.name} className="w-full h-auto" />
+          <img src={product.image} alt={product.title} className="w-full h-auto" />
 
           {/* Description */}
           <div className="mt-6">

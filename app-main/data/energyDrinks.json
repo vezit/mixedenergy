@@ -3,8 +3,8 @@
         "id": "31",
         "name": "Faxe Kondi Booster Original",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -22,8 +22,8 @@
         "id": "32",
         "name": "Faxe Kondi Booster Free",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -41,8 +41,8 @@
         "id": "33",
         "name": "Faxe Kondi Booster Black Edition",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -60,8 +60,8 @@
         "id": "34",
         "name": "Faxe Kondi Booster Frosty Blue",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -79,8 +79,8 @@
         "id": "35",
         "name": "Faxe Kondi Booster Pink Dragon",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -98,8 +98,8 @@
         "id": "36",
         "name": "Faxe Kondi Booster Energy",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -117,8 +117,8 @@
         "id": "37",
         "name": "Faxe Kondi Booster Sort Passion",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -136,8 +136,8 @@
         "id": "38",
         "name": "Faxe Kondi Booster Sort Zero",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -156,8 +156,8 @@
         "id": "39",
         "name": "Faxe Kondi Booster Twisted Ice Zero",
         "size": "0.5 l",
-        "salgspris": 2000,
-        "indkøbspris": 1079,
+        "salePrice": 2000,
+        "purchasePrice": 1079,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -180,8 +180,8 @@
         "id": "20",
         "name": "Red Bull Original",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -204,8 +204,8 @@
         "id": "21",
         "name": "Red Bull Sugarfree",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -228,8 +228,8 @@
         "id": "22",
         "name": "Red Bull Zero",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -252,8 +252,8 @@
         "id": "23",
         "name": "Red Bull Coconut Edition",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -276,8 +276,8 @@
         "id": "24",
         "name": "Red Bull Winter Edition",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
           "per100ml": {
@@ -300,8 +300,8 @@
         "id": "25",
         "name": "Red Bull Red Edition Watermelon",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -324,8 +324,8 @@
         "id": "26",
         "name": "Red Bull Blue Edition",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -348,8 +348,8 @@
         "id": "27",
         "name": "Red Bull Apricot Edition",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -372,8 +372,8 @@
         "id": "29",
         "name": "Red Bull Purple Edition",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -396,8 +396,8 @@
         "id": "30",
         "name": "Red Bull Summer Edition",
         "size": "0.25 l",
-        "salgspris": 2000,
-        "indkøbspris": 1217,
+        "salePrice": 2000,
+        "purchasePrice": 1217,
         "packageQuantity": 24,
         "nutrition": {
             "per100ml": {
@@ -421,8 +421,8 @@
           "id": "31",
           "name": "Monster Energy",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -446,8 +446,8 @@
           "id": "32",
           "name": "Monster Energy Zero",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -471,8 +471,8 @@
           "id": "33",
           "name": "Monster Energy Ultra Zero",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -496,8 +496,8 @@
           "id": "34",
           "name": "Monster Energy Ultra Rosa",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -521,8 +521,8 @@
           "id": "35",
           "name": "Monster Energy Ultra Fiesta",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -546,8 +546,8 @@
           "id": "36",
           "name": "Monster Energy Pipeline Punch",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -571,8 +571,8 @@
           "id": "37",
           "name": "Monster Energy Loco Mango",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -596,8 +596,8 @@
           "id": "38",
           "name": "Monster Energy Nitro",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -621,8 +621,8 @@
           "id": "39",
           "name": "Monster Energy The Doctor",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -646,8 +646,8 @@
           "id": "40",
           "name": "Monster Energy Lewis Hamilton",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -671,8 +671,8 @@
           "id": "41",
           "name": "Monster Energy Khaotic",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -696,8 +696,8 @@
           "id": "42",
           "name": "Monster Energy Ultra Gold",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -721,8 +721,8 @@
           "id": "43",
           "name": "Monster Energy Monarch",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -746,8 +746,8 @@
           "id": "44",
           "name": "Monster Energy Zero Sugar",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
@@ -771,8 +771,8 @@
           "id": "45",
           "name": "Monster Energy Ultra Peachy Keen",
           "size": "0.5 l",
-          "salgspris": 2000,
-          "indkøbspris": 1150,
+          "salePrice": 2000,
+          "purchasePrice": 1150,
           "packagequantity": 24,
           "nutrition": {
             "per100ml": {
