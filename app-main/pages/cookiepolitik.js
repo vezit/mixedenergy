@@ -1,7 +1,6 @@
-// /pages/cookiepolitik.js
 import React from 'react';
-import { getFirestore, doc, deleteDoc } from 'firebase/firestore';
-import { getFirebaseApp } from '../lib/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase'; // Import the Firestore instance
 
 export default function CookiePolitik() {
   const getCookie = (name) => {
@@ -35,9 +34,7 @@ export default function CookiePolitik() {
     if (confirmAction) {
       const consentId = getCookie('cookie_consent_id');
       if (consentId) {
-        const app = getFirebaseApp();
-        const db = getFirestore(app);
-        const docRef = doc(db, 'sessions', consentId);
+        const docRef = doc(db, 'sessions', consentId); // Use the imported Firestore db instance directly
         await deleteDoc(docRef);
       }
       deleteAllCookies();
