@@ -1,3 +1,4 @@
+// /pages/handelsbetingelser.js
 export default function Handelsbetingelser() {
 
 

@@ -1,4 +1,4 @@
-// scripts/createCollections.js
+// /scripts/createCollections.js
 
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
@@ -21,56 +21,72 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// Function to create sample collections and indexes
+// Function to delete a collection
+async function deleteCollection(collectionName) {
+  const collectionRef = db.collection(collectionName);
+  const snapshot = await collectionRef.get();
+  const batchSize = snapshot.size;
+  if (batchSize === 0) {
+    return;
+  }
+  const batch = db.batch();
+  snapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+  console.log(`Deleted all documents in "${collectionName}" collection.`);
+}
+
+// Function to create sample collections and documents
 async function createCollections() {
   try {
-    // Create "drinks" collection with a sample document if it doesn't exist
-    const drinksRef = db.collection('drinks').doc('sample-drink');
-    const drinksDoc = await drinksRef.get();
-    
-    if (!drinksDoc.exists) {
-      await drinksRef.set({
-        id: 'sample-drink',
-        name: 'Sample Energy Drink',
-        price: 1000, // Example price in cents
-        currency: 'dkk',
-        brand: 'Sample Brand',
-        size: '0.5 l',
-        nutrition: {
-          per100ml: {
-            energy: '50 kcal',
-            fat: '0 g',
-            carbohydrates: '13 g',
-            sugar: '13 g',
-            protein: '0 g',
-            salt: '0.1 g',
-          },
+    // Delete existing collections
+    await deleteCollection('drinks');
+    await deleteCollection('packages');
+    await deleteCollection('sessions'); // Be cautious with this in production
+
+    // Create "drinks" collection with a sample document
+    await db.collection('drinks').doc('sample-drink').set({
+      id: 'sample-drink',
+      name: 'Sample Energy Drink',
+      price: 1000, // Example price in cents
+      currency: 'dkk',
+      brand: 'Sample Brand',
+      size: '0.5 l',
+      nutrition: {
+        per100ml: {
+          energy: '50 kcal',
+          fat: '0 g',
+          carbohydrates: '13 g',
+          sugar: '13 g',
+          protein: '0 g',
+          salt: '0.1 g',
         },
-      });
-      console.log('Created "drinks" collection with a sample document.');
-    } else {
-      console.log('"drinks" collection already exists.');
-    }
+      },
+    });
+    console.log('Created "drinks" collection with a sample document.');
 
-    // Create "packages" collection with a sample document if it doesn't exist
-    const packagesRef = db.collection('packages').doc('sample-package');
-    const packagesDoc = await packagesRef.get();
-    
-    if (!packagesDoc.exists) {
-      await packagesRef.set({
-        id: 'sample-package',
-        name: 'Sample Package',
-        price: 5000,
-        currency: 'dkk',
-        drinks: ['sample-drink'], // Reference to a drink
-        description: 'Sample package including a variety of drinks.',
-      });
-      console.log('Created "packages" collection with a sample document.');
-    } else {
-      console.log('"packages" collection already exists.');
-    }
+    // Create "packages" collection with a sample document
+    await db.collection('packages').doc('sample-package').set({
+      id: 'sample-package',
+      name: 'Sample Package',
+      price: 5000,
+      currency: 'dkk',
+      drinks: ['sample-drink'], // Reference to a drink
+      description: 'Sample package including a variety of drinks.',
+    });
+    console.log('Created "packages" collection with a sample document.');
 
-    console.log('Collections and documents are ready.');
+    // Create "sessions" collection with a sample document
+    await db.collection('sessions').doc('sample-session').set({
+      consentId: 'sample-session',
+      createdAt: new Date(),
+      basketItems: [],
+      customerDetails: {},
+    });
+    console.log('Created "sessions" collection with a sample document.');
+
+    console.log('All collections and documents are ready.');
   } catch (error) {
     console.error('Error creating collections:', error);
   }

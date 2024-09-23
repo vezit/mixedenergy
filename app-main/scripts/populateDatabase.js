@@ -24,35 +24,37 @@ const db = admin.firestore();
 
 // Function to populate drinks
 async function populateDrinks() {
-    const drinksFilePath = path.join(__dirname, '../data/energyDrinks.json');
-    const drinksData = JSON.parse(fs.readFileSync(drinksFilePath, 'utf8'));
-  
-    for (const drink of drinksData) {
-      // Skip if the item is not an object (e.g., an array or invalid entry)
-      if (typeof drink !== 'object' || Array.isArray(drink)) continue;
-  
-      // Add brand based on name
-      let brand = '';
-      if (drink.name.includes('Monster')) brand = 'Monster';
-      else if (drink.name.includes('Red Bull')) brand = 'Red Bull';
-      else if (
-        drink.name.includes('Booster') ||
-        drink.name.includes('Faxe Kondi')
-      )
-        brand = 'Booster';
-  
-      const drinkDoc = {
-        ...drink,
-        price: drink.price, // No replace needed, since price is already a number
-        packageQuantity: parseInt(drink.packageQuantity, 10), // Ensure packageQuantity is a number
-        brand: brand,
-      };
-  
-      // Convert id to string to avoid Firestore document path error
-      await db.collection('drinks').doc(drink.id.toString()).set(drinkDoc);
-      console.log(`Added drink: ${drink.name}`);
-    }
+  const drinksFilePath = path.join(__dirname, '../data/energyDrinks.json');
+  const drinksData = JSON.parse(fs.readFileSync(drinksFilePath, 'utf8'));
+
+  for (const drink of drinksData) {
+    // Skip if the item is not an object (e.g., an array or invalid entry)
+    if (typeof drink !== 'object' || Array.isArray(drink)) continue;
+
+    // Add brand based on name
+    let brand = '';
+    if (drink.name.includes('Monster')) brand = 'Monster';
+    else if (drink.name.includes('Red Bull')) brand = 'Red Bull';
+    else if (
+      drink.name.includes('Booster') ||
+      drink.name.includes('Faxe Kondi')
+    )
+      brand = 'Booster';
+
+    const drinkDoc = {
+      ...drink,
+      price: drink.price, // No replace needed, since price is already a number
+      packageQuantity: parseInt(drink.packageQuantity, 10), // Ensure packageQuantity is a number
+      brand: brand,
+    };
+
+    // Use the drink name as the document ID
+    const drinkNameSanitized = drink.name.replace(/[^a-zA-Z0-9]/g, '-'); // Sanitize the name for Firestore document ID
+    await db.collection('drinks').doc(drinkNameSanitized).set(drinkDoc);
+    console.log(`Added drink: ${drink.name}`);
   }
+}
+
   
 
 // Function to populate packages

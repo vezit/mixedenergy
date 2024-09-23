@@ -1,25 +1,46 @@
+// /pages/cookiepolitik.js
 import React from 'react';
+import { getFirestore, doc, deleteDoc } from 'firebase/firestore';
+import { getFirebaseApp } from '../lib/firebase';
 
-
-
-export default function CookiePolitik() { 
-
-
-
+export default function CookiePolitik() {
+  const getCookie = (name) => {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ')
+        c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0)
+        return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  };
 
   function deleteAllCookies() {
-    document.cookie.split(";").forEach((c) => {
+    document.cookie.split(';').forEach((c) => {
       document.cookie = c
-        .replace(/^ +/, "")
-        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        .replace(/^ +/, '')
+        .replace(
+          /=.*/,
+          '=;expires=' + new Date().toUTCString() + ';path=/'
+        );
     });
   }
 
-  const handleDeleteCookies = () => {
-    const confirmAction = window.confirm("Advarsel: Dit indhold i kurven vil gå tabt hvis du forsætter.");
+  const handleDeleteCookies = async () => {
+    const confirmAction = window.confirm(
+      'Advarsel: Dit indhold i kurven vil gå tabt hvis du forsætter.'
+    );
     if (confirmAction) {
+      const consentId = getCookie('cookie_consent_id');
+      if (consentId) {
+        const app = getFirebaseApp();
+        const db = getFirestore(app);
+        const docRef = doc(db, 'sessions', consentId);
+        await deleteDoc(docRef);
+      }
       deleteAllCookies();
-      // refresh the page and redirect to the home page
       window.location.href = '/';
     }
   };

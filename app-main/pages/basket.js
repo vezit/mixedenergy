@@ -1,8 +1,11 @@
-import { useState } from 'react';
+// /pages/basket.js
+import { useState, useEffect } from 'react';
 import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
-import MapComponent from "../components/MapComponent";
+import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirebaseApp } from '../lib/firebase';
 
 export default function Basket() {
   const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
@@ -23,6 +26,57 @@ export default function Basket() {
   const [showPickupPoints, setShowPickupPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
 
+  const getCookie = (name) => {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0)
+        return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const consentId = getCookie('cookie_consent_id');
+    if (consentId) {
+      const app = getFirebaseApp();
+      const db = getFirestore(app);
+      const docRef = doc(db, 'sessions', consentId);
+
+      getDoc(docRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.basketItems) {
+            setBasketItems(data.basketItems);
+          }
+          if (data.customerDetails) {
+            setCustomerDetails(data.customerDetails);
+          }
+        }
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const consentId = getCookie('cookie_consent_id');
+    if (consentId) {
+      const app = getFirebaseApp();
+      const db = getFirestore(app);
+      const docRef = doc(db, 'sessions', consentId);
+
+      setDoc(
+        docRef,
+        {
+          basketItems: basketItems,
+          customerDetails: customerDetails,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    }
+  }, [basketItems, customerDetails]);
 
   const updateQuantity = (index, newQuantity) => {
     if (newQuantity <= 0) {
@@ -43,9 +97,8 @@ export default function Basket() {
       [name]: value,
     }));
 
-    if (name === "postalCode") {
+    if (name === 'postalCode') {
       if (value.length === 4 && /^\d{4}$/.test(value)) {
-        // Perform the API call
         fetch(`https://api.dataforsyningen.dk/postnumre/${value}`)
           .then((res) => {
             if (!res.ok) {
@@ -63,43 +116,48 @@ export default function Basket() {
             } else {
               setCustomerDetails((prevState) => ({
                 ...prevState,
-                city: "",
+                city: '',
               }));
             }
           })
           .catch((error) => {
-            console.error("Error fetching city name:", error);
+            console.error('Error fetching city name:', error);
             setCustomerDetails((prevState) => ({
               ...prevState,
-              city: "",
+              city: '',
             }));
           });
       } else {
-        // If postal code is not 4 digits, enable city input
         setCustomerDetails((prevState) => ({
           ...prevState,
-          city: "",
+          city: '',
         }));
       }
     }
   };
 
-
   const fetchPickupPoints = (updatedDetails) => {
-    // Use the updated details directly instead of relying on the state
-    if (updatedDetails.city && updatedDetails.postalCode && updatedDetails.streetNumber) {
-      fetch(`/api/postnord/servicepoints?city=${updatedDetails.city}&postalCode=${updatedDetails.postalCode}&streetName=${updatedDetails.address}&streetNumber=${updatedDetails.streetNumber}`)
+    if (
+      updatedDetails.city &&
+      updatedDetails.postalCode &&
+      updatedDetails.streetNumber
+    ) {
+      fetch(
+        `/api/postnord/servicepoints?city=${updatedDetails.city}&postalCode=${updatedDetails.postalCode}&streetName=${updatedDetails.address}&streetNumber=${updatedDetails.streetNumber}`
+      )
         .then((res) => res.json())
         .then((data) => {
-          setPickupPoints(data.servicePointInformationResponse?.servicePoints || []);
-          setLoading(false);  // Stop loading after success
+          setPickupPoints(
+            data.servicePointInformationResponse?.servicePoints || []
+          );
+          setLoading(false);
         })
         .catch((error) => {
           console.error('Error fetching PostNord service points:', error);
-          setLoading(false);  // Stop loading in case of error
+          setLoading(false);
         });
     } else {
-      setLoading(false);  // Stop loading if customer details are incomplete
+      setLoading(false);
     }
   };
 
@@ -107,9 +165,7 @@ export default function Basket() {
     try {
       const response = await fetch('/api/dawa/datavask', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerDetails),
       });
 
@@ -117,27 +173,28 @@ export default function Basket() {
 
       const updatedDetails = {
         ...customerDetails,
-        streetNumber: data.dawaResponse.resultater[0].adresse.husnr,  // Update streetNumber
+        streetNumber: data.dawaResponse.resultater[0].adresse.husnr,
       };
 
-      setCustomerDetails(updatedDetails);  // Update state with new details
+      setCustomerDetails(updatedDetails);
 
-      fetchPickupPoints(updatedDetails);  // Call fetch with the updated details
-
+      fetchPickupPoints(updatedDetails);
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
-      setLoading(false);  // Stop loading in case of error
+      setLoading(false);
     }
   };
 
-
   const handleShowPickupPoints = () => {
     const newErrors = {};
-    if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet';
-    if (!customerDetails.mobileNumber) newErrors.mobileNumber = 'Mobilnummer er påkrævet';
+    if (!customerDetails.fullName)
+      newErrors.fullName = 'Fulde navn er påkrævet';
+    if (!customerDetails.mobileNumber)
+      newErrors.mobileNumber = 'Mobilnummer er påkrævet';
     if (!customerDetails.email) newErrors.email = 'E-mail er påkrævet';
     if (!customerDetails.address) newErrors.address = 'Adresse er påkrævet';
-    if (!customerDetails.postalCode) newErrors.postalCode = 'Postnummer er påkrævet';
+    if (!customerDetails.postalCode)
+      newErrors.postalCode = 'Postnummer er påkrævet';
     if (!customerDetails.city) newErrors.city = 'By er påkrævet';
 
     if (Object.keys(newErrors).length > 0) {
@@ -164,10 +221,14 @@ export default function Basket() {
           name="fullName"
           value={customerDetails.fullName}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.fullName ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${
+            errors.fullName ? 'border-red-500' : ''
+          }`}
           required
         />
-        {errors.fullName && <p className="text-red-500 mt-1">{errors.fullName}</p>}
+        {errors.fullName && (
+          <p className="text-red-500 mt-1">{errors.fullName}</p>
+        )}
       </div>
 
       {/* Mobilnummer */}
@@ -178,10 +239,14 @@ export default function Basket() {
           name="mobileNumber"
           value={customerDetails.mobileNumber}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.mobileNumber ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${
+            errors.mobileNumber ? 'border-red-500' : ''
+          }`}
           required
         />
-        {errors.mobileNumber && <p className="text-red-500 mt-1">{errors.mobileNumber}</p>}
+        {errors.mobileNumber && (
+          <p className="text-red-500 mt-1">{errors.mobileNumber}</p>
+        )}
       </div>
 
       {/* E-mail Adresse */}
@@ -192,10 +257,14 @@ export default function Basket() {
           name="email"
           value={customerDetails.email}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${
+            errors.email ? 'border-red-500' : ''
+          }`}
           required
         />
-        {errors.email && <p className="text-red-500 mt-1">{errors.email}</p>}
+        {errors.email && (
+          <p className="text-red-500 mt-1">{errors.email}</p>
+        )}
       </div>
 
       {/* Vejnavn og Husnummer */}
@@ -206,10 +275,14 @@ export default function Basket() {
           name="address"
           value={customerDetails.address}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.address ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${
+            errors.address ? 'border-red-500' : ''
+          }`}
           required
         />
-        {errors.address && <p className="text-red-500 mt-1">{errors.address}</p>}
+        {errors.address && (
+          <p className="text-red-500 mt-1">{errors.address}</p>
+        )}
       </div>
 
       {/* Postnummer */}
@@ -220,10 +293,14 @@ export default function Basket() {
           name="postalCode"
           value={customerDetails.postalCode}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.postalCode ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${
+            errors.postalCode ? 'border-red-500' : ''
+          }`}
           required
         />
-        {errors.postalCode && <p className="text-red-500 mt-1">{errors.postalCode}</p>}
+        {errors.postalCode && (
+          <p className="text-red-500 mt-1">{errors.postalCode}</p>
+        )}
       </div>
 
       {/* By */}
@@ -234,11 +311,15 @@ export default function Basket() {
           name="city"
           value={customerDetails.city}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''}`}
+          className={`w-full p-2 border rounded ${
+            errors.city ? 'border-red-500' : ''
+          }`}
           required
           disabled={true}
         />
-        {errors.city && <p className="text-red-500 mt-1">{errors.city}</p>}
+        {errors.city && (
+          <p className="text-red-500 mt-1">{errors.city}</p>
+        )}
       </div>
 
       {/* Fortsæt Button */}
@@ -250,7 +331,6 @@ export default function Basket() {
       </button>
     </div>
   );
-
 
   const renderShippingAndPayment = () => (
     <div>
@@ -279,7 +359,10 @@ export default function Basket() {
                   setSelectedPoint={setSelectedPoint}
                 />
               </div>
-              <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
+              <div
+                className="w-full lg:w-1/2"
+                style={{ height: '545px' }}
+              >
                 <MapComponent
                   pickupPoints={pickupPoints}
                   selectedPoint={selectedPoint}
@@ -292,13 +375,19 @@ export default function Basket() {
       )}
     </div>
   );
-  
 
   const renderOrderConfirmation = () => (
     <div>
       <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
       <div className="text-right text-xl font-bold">
-        Total: {basketItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}kr
+        Total:{' '}
+        {basketItems
+          .reduce(
+            (total, item) => total + item.price * item.quantity,
+            0
+          )
+          .toFixed(2)}
+        kr
       </div>
       <button
         onClick={() => alert('Checkout process')}
@@ -318,29 +407,52 @@ export default function Basket() {
       ) : (
         <>
           {basketItems.map((item, index) => (
-            <div key={index} className="flex items-center justify-between mb-4 p-4 border rounded">
-              <img src={item.image} alt={item.title} className="w-24 h-24 object-cover rounded" />
+            <div
+              key={index}
+              className="flex items-center justify-between mb-4 p-4 border rounded"
+            >
+              <img
+                src={item.image}
+                alt={item.title}
+                className="w-24 h-24 object-cover rounded"
+              />
               <div className="flex-1 ml-4">
                 <h2 className="text-xl font-bold">{item.title}</h2>
                 <div className="flex items-center mt-2">
                   <button
-                    onClick={() => updateQuantity(index, item.quantity - 1)}
+                    onClick={() =>
+                      updateQuantity(index, item.quantity - 1)
+                    }
                     className="px-2 py-1 bg-gray-200 rounded-l"
                   >
                     -
                   </button>
-                  <span className="px-4 py-2 bg-gray-100">{item.quantity}</span>
+                  <span className="px-4 py-2 bg-gray-100">
+                    {item.quantity}
+                  </span>
                   <button
-                    onClick={() => updateQuantity(index, item.quantity + 1)}
+                    onClick={() =>
+                      updateQuantity(index, item.quantity + 1)
+                    }
                     className="px-2 py-1 bg-gray-200 rounded-r"
                   >
                     +
                   </button>
                 </div>
-                <p className="text-gray-700 mt-2">Pris pr ramme: {item.price}kr</p>
-                <p className="text-gray-700 mt-2">Totalpris: {(item.price * item.quantity).toFixed(2)}kr</p>
+                <p className="text-gray-700 mt-2">
+                  Pris pr ramme: {item.price}kr
+                </p>
+                <p className="text-gray-700 mt-2">
+                  Totalpris:{' '}
+                  {(item.price * item.quantity).toFixed(2)}kr
+                </p>
               </div>
-              <button onClick={() => removeItemFromBasket(index)} className="text-red-600">Fjern</button>
+              <button
+                onClick={() => removeItemFromBasket(index)}
+                className="text-red-600"
+              >
+                Fjern
+              </button>
             </div>
           ))}
 
