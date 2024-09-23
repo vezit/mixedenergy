@@ -1,6 +1,5 @@
-// /components/CookieConsent.js
 import { useState, useEffect } from 'react';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase'; // Import db directly
 
 export default function CookieConsent() {
@@ -41,7 +40,6 @@ export default function CookieConsent() {
   };
 
   useEffect(() => {
-    // Try setting the cookie immediately upon page load
     const consentId = getCookie('cookie_consent_id') || generateConsentId();
     const cookieSet = setCookie('cookie_consent_id', consentId, 365);
 
@@ -63,7 +61,8 @@ export default function CookieConsent() {
         setDoc(docRef, {
           consentId: consentId,
           allowCookies: false, // Initially set to false
-          createdAt: new Date(),
+          createdAt: new Date(), // Set createdAt only when document is created
+          updatedAt: new Date(), // Set updatedAt on document creation
           basketItems: [],
           customerDetails: {},
         });
@@ -76,12 +75,11 @@ export default function CookieConsent() {
     setShow(false);
     const consentId = getCookie('cookie_consent_id') || generateConsentId();
     const docRef = doc(db, 'sessions', consentId);
+    
+    // Update document with allowCookies: true and updatedAt
     await setDoc(docRef, {
-      consentId: consentId,
       allowCookies: true, // Update to true when user accepts cookies
-      createdAt: new Date(),
-      basketItems: [], // Retain existing session data or fetch it
-      customerDetails: {},
+      updatedAt: new Date(), // Track the update time
     }, { merge: true }); // Use merge to avoid overwriting existing fields
   };
 

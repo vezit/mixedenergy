@@ -1,17 +1,51 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { doc, setDoc, getDoc } from 'firebase/firestore'; // Firestore methods
+import { db } from '../lib/firebase'; // Import your Firestore instance
 
 const BasketContext = createContext();
 
 export const BasketProvider = ({ children }) => {
     const [basketItems, setBasketItems] = useState([]);
+    const [consentId, setConsentId] = useState(null);
+
+    // Helper to get the cookie (assuming consentId is stored in a cookie)
+    const getCookie = (name) => {
+        const nameEQ = name + '=';
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    };
 
     useEffect(() => {
-        // Fetch basket items from local storage on initial load
-        const storedBasket = localStorage.getItem('basket');
-        if (storedBasket) {
-            setBasketItems(JSON.parse(storedBasket));
+        const consentIdFromCookie = getCookie('cookie_consent_id');
+        setConsentId(consentIdFromCookie);
+
+        if (consentIdFromCookie) {
+            const docRef = doc(db, 'sessions', consentIdFromCookie);
+            getDoc(docRef).then((docSnap) => {
+                if (docSnap.exists()) {
+                    const sessionData = docSnap.data();
+                    if (sessionData.basketItems) {
+                        setBasketItems(sessionData.basketItems); // Load basket from Firestore
+                    }
+                } else {
+                    // If no document exists, initialize an empty basket
+                    setDoc(docRef, { basketItems: [] }, { merge: true });
+                }
+            });
         }
     }, []);
+
+    const updateBasketInFirestore = async (updatedBasket) => {
+        if (!consentId) return; // Ensure consentId is available
+
+        const docRef = doc(db, 'sessions', consentId);
+        await setDoc(docRef, { basketItems: updatedBasket }, { merge: true }); // Update Firestore
+    };
 
     const addItemToBasket = (item) => {
         const existingItemIndex = basketItems.findIndex(basketItem => basketItem.title === item.title);
@@ -29,13 +63,13 @@ export const BasketProvider = ({ children }) => {
         }
 
         setBasketItems(updatedBasket);
-        localStorage.setItem('basket', JSON.stringify(updatedBasket));
+        updateBasketInFirestore(updatedBasket); // Update Firestore instead of localStorage
     };
 
     const removeItemFromBasket = (index) => {
         const updatedBasket = basketItems.filter((_, i) => i !== index);
         setBasketItems(updatedBasket);
-        localStorage.setItem('basket', JSON.stringify(updatedBasket));
+        updateBasketInFirestore(updatedBasket); // Update Firestore instead of localStorage
     };
 
     return (
