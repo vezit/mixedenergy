@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { doc, setDoc, getDoc } from 'firebase/firestore'; // Firestore methods
 import { db } from '../lib/firebase'; // Import your Firestore instance
-import { getCookie, setCookie } from '.cookies'; // Importing from cookies.js
+import { getCookie } from './cookies';
 
 const BasketContext = createContext();
 

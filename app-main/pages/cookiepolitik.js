@@ -1,7 +1,7 @@
 import React from 'react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase'; // Import the Firestore instance
-import { getCookie, setCookie } from '../lib/cookies'; // Importing from cookies.js
+import { getCookie } from '../lib/cookies'; // Importing from cookies.js
 
 export default function CookiePolitik() {
   

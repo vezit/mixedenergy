@@ -5,7 +5,7 @@ import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { db } from '../lib/firebase'; // Import Firestore instance
 import { doc, setDoc, getDoc } from 'firebase/firestore'; // Firestore methods
-import { getCookie, setCookie } from '../lib/cookies'; // Importing from cookies.js
+import { getCookie } from '../lib/cookies'; // Importing from cookies.js
 
 export default function Basket() {
   const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
