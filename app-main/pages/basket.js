@@ -1,11 +1,12 @@
 // /pages/basket.js
 import { useState, useEffect } from 'react';
+import Script from 'next/script';  // Use next/script for loading scripts
 import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
-import { getFirebaseApp } from '../lib/firebase';
+import { db } from '../lib/firebase'; // Import Firestore instance
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function Basket() {
   const { basketItems, setBasketItems, removeItemFromBasket } = useBasket();
@@ -41,8 +42,6 @@ export default function Basket() {
   useEffect(() => {
     const consentId = getCookie('cookie_consent_id');
     if (consentId) {
-      const app = getFirebaseApp();
-      const db = getFirestore(app);
       const docRef = doc(db, 'sessions', consentId);
 
       getDoc(docRef).then((docSnap) => {
@@ -62,8 +61,6 @@ export default function Basket() {
   useEffect(() => {
     const consentId = getCookie('cookie_consent_id');
     if (consentId) {
-      const app = getFirebaseApp();
-      const db = getFirestore(app);
       const docRef = doc(db, 'sessions', consentId);
 
       setDoc(
@@ -221,9 +218,8 @@ export default function Basket() {
           name="fullName"
           value={customerDetails.fullName}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${
-            errors.fullName ? 'border-red-500' : ''
-          }`}
+          className={`w-full p-2 border rounded ${errors.fullName ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.fullName && (
@@ -239,9 +235,8 @@ export default function Basket() {
           name="mobileNumber"
           value={customerDetails.mobileNumber}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${
-            errors.mobileNumber ? 'border-red-500' : ''
-          }`}
+          className={`w-full p-2 border rounded ${errors.mobileNumber ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.mobileNumber && (
@@ -257,9 +252,8 @@ export default function Basket() {
           name="email"
           value={customerDetails.email}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${
-            errors.email ? 'border-red-500' : ''
-          }`}
+          className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.email && (
@@ -275,9 +269,8 @@ export default function Basket() {
           name="address"
           value={customerDetails.address}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${
-            errors.address ? 'border-red-500' : ''
-          }`}
+          className={`w-full p-2 border rounded ${errors.address ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.address && (
@@ -293,9 +286,8 @@ export default function Basket() {
           name="postalCode"
           value={customerDetails.postalCode}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${
-            errors.postalCode ? 'border-red-500' : ''
-          }`}
+          className={`w-full p-2 border rounded ${errors.postalCode ? 'border-red-500' : ''
+            }`}
           required
         />
         {errors.postalCode && (
@@ -311,9 +303,8 @@ export default function Basket() {
           name="city"
           value={customerDetails.city}
           onChange={handleInputChange}
-          className={`w-full p-2 border rounded ${
-            errors.city ? 'border-red-500' : ''
-          }`}
+          className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''
+            }`}
           required
           disabled={true}
         />
@@ -399,6 +390,7 @@ export default function Basket() {
   );
 
   return (
+    
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
 
