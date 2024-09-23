@@ -31,20 +31,25 @@ export default function Basket() {
     const consentId = getCookie('cookie_consent_id');
     if (consentId) {
       const docRef = doc(db, 'sessions', consentId);
-
+  
       getDoc(docRef).then((docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data.basketItems) {
-            setBasketItems(data.basketItems);
-          }
-          if (data.customerDetails) {
-            setCustomerDetails(data.customerDetails);
+          
+          // Check if cookies are allowed
+          if (data.allowCookies) {
+            if (data.basketItems) {
+              setBasketItems(data.basketItems); // Load basket items
+            }
+            if (data.customerDetails) {
+              setCustomerDetails(data.customerDetails); // Load customer details
+            }
           }
         }
       });
     }
   }, []);
+  
 
   useEffect(() => {
     const consentId = getCookie('cookie_consent_id');

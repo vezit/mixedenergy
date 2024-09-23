@@ -2,18 +2,19 @@
 
 // Helper function to get the cookie value by name
 export const getCookie = (name) => {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-  };
-  
-  // Helper function to set a cookie
-  export const setCookie = (name, value, days) => {
+  const nameEQ = name + '=';
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+// Helper functions to get and set cookies
+export const setCookie = (name, value, days) => {
+  try {
     let expires = '';
     if (days) {
       const date = new Date();
@@ -21,5 +22,8 @@ export const getCookie = (name) => {
       expires = '; expires=' + date.toUTCString();
     }
     document.cookie = name + '=' + (value || '') + expires + '; path=/';
-  };
-  
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
