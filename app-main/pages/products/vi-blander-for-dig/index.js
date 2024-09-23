@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../../../lib/BasketContext';
-import productsData from '../../../lib/products'; // Adjust the path as necessary
 import Link from 'next/link';
 
 export default function ViBlanderForDig() {
