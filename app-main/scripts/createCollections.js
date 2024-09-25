@@ -40,6 +40,7 @@ async function createSession() {
   const sessionId = `session-${Date.now()}`;
   await db.collection('sessions').doc(sessionId).set({
     consentId: sessionId,
+    loggedIn: false,
     createdAt: new Date(),
     basketItems: [],
     customerDetails: {},

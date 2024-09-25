@@ -1,30 +1,30 @@
 // pages/api/sessionLogin.js
-import admin from '../../lib/firebaseAdmin';
+
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp } from 'firebase-admin/app';
+import { setCookie } from 'cookies-next';
+
+// Initialize Firebase Admin SDK
+initializeApp({
+  credential: getApplicationDefault(), // Make sure to load credentials here
+});
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'POST') {
+    return res.status(405).end();
+  }
 
   const { idToken } = req.body;
 
-  if (!idToken) {
-    return res.status(400).send({ error: 'ID token missing' });
-  }
-
-  // Set session expiration to 5 days
-  const expiresIn = 60 * 60 * 24 * 5 * 1000;
-
   try {
-    const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
-    const options = {
-      maxAge: expiresIn,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-    };
-    res.setHeader('Set-Cookie', `session=${sessionCookie}; Max-Age=${expiresIn}; HttpOnly; Secure; Path=/`);
-    res.status(200).send({ status: 'success' });
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+    const sessionCookie = await getAuth().createSessionCookie(idToken, { expiresIn });
+
+    // Set the session cookie
+    setCookie('session', sessionCookie, { req, res, maxAge: expiresIn });
+
+    res.status(200).json({ message: 'Session cookie set' });
   } catch (error) {
-    console.error('Error creating session cookie', error);
-    res.status(500).send({ error: 'Internal error' });
+    res.status(500).json({ error: 'Failed to set session cookie' });
   }
 }

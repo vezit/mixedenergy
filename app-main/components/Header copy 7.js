@@ -9,7 +9,6 @@ const Header = () => {
     const [showEmptyMessage, setShowEmptyMessage] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false); // state to track if user is logged in
     const [authLoading, setAuthLoading] = useState(true); // state to track if auth state is loading
-    const [username, setUsername] = useState(''); // state to store the user's username
     const router = useRouter();
 
     useEffect(() => {
@@ -18,17 +17,17 @@ const Header = () => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setIsLoggedIn(true); // User is logged in
-                // Set the user's displayName or email if available
-                setUsername(user.displayName || user.email); // fallback to email if displayName is not set
             } else {
                 setIsLoggedIn(false); // User is not logged in
-                setUsername(''); // Clear username if not logged in
             }
             setAuthLoading(false); // Stop loading after check
         });
-        return () => unsubscribe(); // Clean up the listener on unmount
+        return () => unsubscribe();x // Clean up the listener on unmount
     }, []);
 
+    console.log('isLoggedIn', isLoggedIn);
+
+    
     useEffect(() => {
         if (isNewItemAdded) {
             const timer = setTimeout(() => setIsNewItemAdded(false), 2400);
@@ -104,7 +103,7 @@ const Header = () => {
                         onClick={handleLogout}
                         className="bg-transparent border-2 border-black rounded px-4 py-1 hover:bg-black hover:text-white transition-all"
                     >
-                        Logout {username}
+                        Logout USERNAME
                     </button>
                 )}
             </div>

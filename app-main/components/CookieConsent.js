@@ -8,7 +8,7 @@ export default function CookieConsent() {
   const [cookieError, setCookieError] = useState(false);
 
   const generateConsentId = () => {
-    return 'xxxx-xxxx-xxxx-xxxx'.replace(/[x]/g, () => {
+    return 'xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx'.replace(/[x]/g, () => {
       return Math.floor(Math.random() * 16).toString(16);
     });
   };

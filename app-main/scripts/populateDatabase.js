@@ -22,7 +22,7 @@ const db = admin.firestore();
 
 // Function to populate drinks
 async function populateDrinks() {
-  const drinksFilePath = path.join(__dirname, '../data/energyDrinks.json');
+  const drinksFilePath = path.join(__dirname, '../data/drinks.json');
   const drinksData = JSON.parse(fs.readFileSync(drinksFilePath, 'utf8'));
 
   for (const drink of drinksData) {
@@ -56,7 +56,7 @@ async function populateDrinks() {
 
 // Function to populate packages
 async function populatePackages() {
-  const productsModule = await import('../lib/products.js');
+  const productsModule = await import('../data/packages.js');
   const products = productsModule.default;
 
   for (const [key, product] of Object.entries(products)) {

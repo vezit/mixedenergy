@@ -1,32 +1,30 @@
+// components/Header.js
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../lib/BasketContext';
 import { useRouter } from 'next/router';
-import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Firebase Auth methods
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 const Header = () => {
     const { basketItems, isNewItemAdded, setIsNewItemAdded } = useBasket();
     const [showEmptyMessage, setShowEmptyMessage] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false); // state to track if user is logged in
-    const [authLoading, setAuthLoading] = useState(true); // state to track if auth state is loading
-    const [username, setUsername] = useState(''); // state to store the user's username
+    const [authLoading, setAuthLoading] = useState(true); // state to track if authentication check is still loading
     const router = useRouter();
 
+    console.log('isLoggedIn:', isLoggedIn);
     useEffect(() => {
-        // Check if user is authenticated using Firebase's onAuthStateChanged
+        // Check if user is authenticated
         const auth = getAuth();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setIsLoggedIn(true); // User is logged in
-                // Set the user's displayName or email if available
-                setUsername(user.displayName || user.email); // fallback to email if displayName is not set
             } else {
                 setIsLoggedIn(false); // User is not logged in
-                setUsername(''); // Clear username if not logged in
             }
             setAuthLoading(false); // Stop loading after check
         });
-        return () => unsubscribe(); // Clean up the listener on unmount
+        return () => unsubscribe();
     }, []);
 
     useEffect(() => {
@@ -60,7 +58,7 @@ const Header = () => {
     };
 
     if (authLoading) {
-        return null; // Don't render the header until auth state is determined
+        return null; // Don't render the header until authentication check is complete
     }
 
     return (
@@ -104,7 +102,7 @@ const Header = () => {
                         onClick={handleLogout}
                         className="bg-transparent border-2 border-black rounded px-4 py-1 hover:bg-black hover:text-white transition-all"
                     >
-                        Logout {username}
+                        Logout
                     </button>
                 )}
             </div>
