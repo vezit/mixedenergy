@@ -2,24 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../lib/BasketContext';
 import { useRouter } from 'next/router';
-import { getAuth } from 'firebase/auth';
 
-const Header = () => {
+const Header = ({ isLoggedIn }) => {
     const { basketItems, isNewItemAdded, setIsNewItemAdded } = useBasket();
     const [showEmptyMessage, setShowEmptyMessage] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const router = useRouter();
-
-    useEffect(() => {
-        const auth = getAuth();
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                setIsLoggedIn(true);
-            } else {
-                setIsLoggedIn(false);
-            }
-        });
-    }, []);
 
     useEffect(() => {
         if (isNewItemAdded) {

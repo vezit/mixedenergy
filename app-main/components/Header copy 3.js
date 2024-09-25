@@ -1,29 +1,16 @@
+// /components/Header.js
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../lib/BasketContext';
-import { useRouter } from 'next/router';
-import { getAuth } from 'firebase/auth';
 
 const Header = () => {
     const { basketItems, isNewItemAdded, setIsNewItemAdded } = useBasket();
     const [showEmptyMessage, setShowEmptyMessage] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const router = useRouter();
 
-    useEffect(() => {
-        const auth = getAuth();
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                setIsLoggedIn(true);
-            } else {
-                setIsLoggedIn(false);
-            }
-        });
-    }, []);
-
+    // Reset pulse effect after it plays
     useEffect(() => {
         if (isNewItemAdded) {
-            const timer = setTimeout(() => setIsNewItemAdded(false), 2400);
+            const timer = setTimeout(() => setIsNewItemAdded(false), 2400); // 0.8s per pulse * 3 pulses
             return () => clearTimeout(timer);
         }
     }, [isNewItemAdded, setIsNewItemAdded]);
@@ -40,24 +27,22 @@ const Header = () => {
 
     const handleBasketClick = (e) => {
         if (basketItems.length === 0) {
-            e.preventDefault();
+            e.preventDefault(); // Prevent navigation if the basket is empty
         }
     };
 
-    const handleLogout = async () => {
-        await fetch('/api/sessionLogout', {
-            method: 'POST',
-        });
-        router.push('/admin/login'); // Redirect to admin login on logout
-    };
-
     return (
-        <header className="flex justify-between items-center p-4 shadow" style={{ backgroundColor: '#fab93d' }}>
+        <header
+            className="flex justify-between items-center p-4 shadow"
+            style={{ backgroundColor: '#fab93d' }}
+        >
             <a href="/" className="flex items-center">
                 <Image src="/images/mixedenergy-logo.png" alt="Logo" width={50} height={50} />
                 <h1 className="text-3xl font-bold ml-2">Mixed Energy</h1>
             </a>
-            <nav className="flex space-x-4"></nav>
+            <nav className="flex space-x-4">
+                {/* Add navigation links here if needed */}
+            </nav>
             <div className="relative flex items-center space-x-4">
                 <div
                     className="relative"
@@ -76,7 +61,9 @@ const Header = () => {
                                 className={`absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 flex items-center justify-center ${
                                     isNewItemAdded ? 'animate-custom-pulse' : ''
                                 }`}
-                            />
+                            >
+                                {/* Render an empty red circle without a number */}
+                            </div>
                         )}
                     </a>
                     {showEmptyMessage && (
@@ -85,15 +72,6 @@ const Header = () => {
                         </div>
                     )}
                 </div>
-
-                {isLoggedIn && (
-                    <button
-                        onClick={handleLogout}
-                        className="bg-transparent border-2 border-black rounded px-4 py-1 hover:bg-black hover:text-white transition-all"
-                    >
-                        Logout
-                    </button>
-                )}
             </div>
         </header>
     );
