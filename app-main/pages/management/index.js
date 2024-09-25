@@ -9,8 +9,8 @@ export default function AdminPage() {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.push('/admin/login'); // Redirect to login if not authenticated
-      } else if (user.email !== 'admin@mixedenergy.dk') {
+        router.push('/management/login'); // Redirect to login if not authenticated
+      } else if (user.email !== 'management@mixedenergy.dk') {
         router.push('/'); // Redirect if not admin
       }
     });
@@ -20,7 +20,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <h1>Welcome to the Admin Page</h1>
+      <h1>Welcome to the Management Page</h1>
     </div>
   );
 }

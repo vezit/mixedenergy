@@ -1,7 +1,24 @@
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import LoginForm from '../../components/LoginForm';
 
-const ManagementLogin = () => {
-  return <LoginForm redirectPath="/management" />;
-};
+export default function LoginPage() {
+  const router = useRouter();
 
-export default ManagementLogin;
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push('/admin'); // Redirect to admin page if already logged in
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  return (
+    <LoginForm redirectPath="/admin" />
+
+  );
+}
