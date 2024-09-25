@@ -1,17 +1,15 @@
-// pages/admin/index.js
-
 import { useEffect } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/router';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
-export default function AdminPage() {
+export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push('/admin/login'); // Redirect to login if not authenticated
+      if (user) {
+        router.push('/admin'); // Redirect to admin page if already logged in
       }
     });
 
@@ -20,7 +18,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <h1>Welcome to the Admin Page</h1>
+      {/* Your login form here */}
     </div>
   );
 }

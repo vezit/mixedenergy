@@ -53,11 +53,12 @@ const Header = () => {
     };
 
     const handleLogout = async () => {
-        await fetch('/api/sessionLogout', {
-            method: 'POST',
-        });
+        const auth = getAuth();
+        await fetch('/api/sessionLogout', { method: 'POST' });
+        await auth.signOut(); // Sign out of Firebase Auth
         router.push('/admin/login'); // Redirect to login after logout
-    };
+      };
+      
 
     if (authLoading) {
         return null; // Don't render the header until auth state is determined
