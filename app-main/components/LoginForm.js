@@ -22,13 +22,16 @@ const LoginForm = ({ redirectPath }) => {
       });
 
       if (response.ok) {
-        router.push(redirectPath);
+        // Delay navigation slightly to ensure session cookie is set properly
+        setTimeout(() => {
+          router.push(redirectPath);
+        }, 1000); // Wait 100ms before navigating
       } else {
         throw new Error('Session login failed');
       }
     } catch (error) {
       console.error('Error logging in', error);
-      alert('Login failed. Please check your credentials.');
+      // alert('Login failed. Please check your credentials.');
     }
   };
 
