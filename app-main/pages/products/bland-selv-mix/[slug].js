@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../lib/BasketContext';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import Link from 'next/link';
 
@@ -20,6 +20,37 @@ export default function BlandSelvMixProduct() {
   const [quantity, setQuantity] = useState(1);
   const maxProducts = parseInt(selectedSize);
 
+  // Function to check if Firestore persistence is working
+  const checkPersistence = async () => {
+    try {
+      const testDocRef = doc(db, 'test', 'persistence-check');
+      await setDoc(testDocRef, { test: 'Firestore persistence' });
+      console.log('Firestore persistence is working');
+    } catch (err) {
+      if (err.code === 'unavailable') {
+        console.error('Persistence is not working, offline data unavailable');
+      } else {
+        console.error('Error:', err);
+      }
+    }
+  };
+
+  // Add event listeners for online and offline status
+  useEffect(() => {
+    window.addEventListener('offline', () => {
+      console.log('You are offline');
+    });
+
+    window.addEventListener('online', () => {
+      console.log('You are back online');
+    });
+
+    return () => {
+      window.removeEventListener('offline', () => {});
+      window.removeEventListener('online', () => {});
+    };
+  }, []);
+
   useEffect(() => {
     if (!slug) return;
 
@@ -37,6 +68,7 @@ export default function BlandSelvMixProduct() {
     };
 
     fetchProduct();
+    checkPersistence(); // Call the persistence check after product is fetched
   }, [slug]);
 
   // Generate a random selection on component mount

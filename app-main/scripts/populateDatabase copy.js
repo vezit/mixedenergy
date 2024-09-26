@@ -1,4 +1,3 @@
-// /scripts/populatePackagesAndDrinks.js
 import admin from 'firebase-admin';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -22,9 +21,14 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // Function to populate drinks
-async function populateDrinks(drinksData) {
-  // Iterate through object entries since the data is an object, not an array
-  for (const [drinkId, drink] of Object.entries(drinksData)) {
+async function populateDrinks() {
+  const drinksFilePath = path.join(__dirname, '../data/drinks.json');
+  const drinksData = JSON.parse(fs.readFileSync(drinksFilePath, 'utf8'));
+
+  for (const drink of drinksData) {
+    // Skip if the item is not an object (e.g., an array or invalid entry)
+    if (typeof drink !== 'object' || Array.isArray(drink)) continue;
+
     // Add brand based on name
     let brand = '';
     if (drink.name.includes('Monster')) brand = 'Monster';
@@ -43,8 +47,8 @@ async function populateDrinks(drinksData) {
       brand: brand,
     };
 
-    // Use the drinkId (key from the JSON) as the document ID
-    const drinkNameSanitized = drinkId.replace(/[^a-zA-Z0-9]/g, '-'); // Sanitize the ID for Firestore document ID
+    // Use the drink name as the document ID
+    const drinkNameSanitized = drink.name.replace(/[^a-zA-Z0-9]/g, '-'); // Sanitize the name for Firestore document ID
     await db.collection('drinks').doc(drinkNameSanitized).set(drinkDoc);
     console.log(`Added drink: ${drink.name}`);
   }
@@ -52,32 +56,32 @@ async function populateDrinks(drinksData) {
 
 // Function to populate packages
 async function populatePackages() {
-  const packagesFilePath = path.join(__dirname, '../data/packages.json');
-  const packagesData = JSON.parse(fs.readFileSync(packagesFilePath, 'utf8'));
+  const productsModule = await import('../data/packages.js');
+  const products = productsModule.default;
 
-  for (const [key, product] of Object.entries(packagesData)) {
+  for (const [key, product] of Object.entries(products)) {
     let drinks = [];
 
-    // Check for associated drinks
-    if (packageSlug === 'mixed-any' || packageSlug === 'mixed-any-mix') {
+    // Determine associated drinks
+    if (product.slug === 'mixed-any' || product.slug === 'mixed-any-mix') {
       // Include all drinks
       const drinksSnapshot = await db.collection('drinks').get();
       drinks = drinksSnapshot.docs.map((doc) => doc.id);
-    } else if (packageSlug.includes('monster')) {
+    } else if (product.slug.includes('monster')) {
       // Include Monster drinks
       const drinksSnapshot = await db
         .collection('drinks')
         .where('brand', '==', 'Monster')
         .get();
       drinks = drinksSnapshot.docs.map((doc) => doc.id);
-    } else if (packageSlug.includes('red-bull')) {
+    } else if (product.slug.includes('red-bull')) {
       // Include Red Bull drinks
       const drinksSnapshot = await db
         .collection('drinks')
         .where('brand', '==', 'Red Bull')
         .get();
       drinks = drinksSnapshot.docs.map((doc) => doc.id);
-    } else if (packageSlug.includes('booster')) {
+    } else if (product.slug.includes('booster')) {
       // Include Booster drinks
       const drinksSnapshot = await db
         .collection('drinks')
@@ -87,30 +91,21 @@ async function populatePackages() {
     }
 
     const packageDoc = {
-      ...packageData,
-      price: parseFloat(packageData.price), // Ensure price is a number
+      ...product,
+      price: parseFloat(product.price), // Ensure price is a number
       drinks: drinks,
     };
 
-    await db.collection('packages').doc(packageSlug).set(packageDoc);
-    console.log(`Added package: ${packageData.title}`);
+    await db.collection('packages').doc(product.slug).set(packageDoc);
+    console.log(`Added package: ${product.title}`);
   }
 }
 
-// Main function to run both population scripts
-async function populateDatabase() {
-  const filePath = path.join(__dirname, '../data/packages_and_drinks.json');
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-
-  // Populate drinks and packages using the merged data
-  await populateDrinks(data.drinks);
-  await populatePackages(data.packages);
-}
-
-// Run the script
+// Run the scripts
 (async () => {
   try {
-    await populateDatabase();
+    await populateDrinks();
+    await populatePackages();
     console.log('Database population complete.');
     process.exit(0);
   } catch (error) {

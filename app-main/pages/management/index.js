@@ -1,16 +1,12 @@
 // /pages/management/index.js
+import { useEffect } from 'react';
+// /pages/management/index.js
 
 import { useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useRouter } from 'next/router';
-import { firebaseApp } from '../../lib/firebase'; // Adjust the path as needed
 
-export default function ManagementPage() {
-  const [drinks, setDrinks] = useState([]);
-  const [packages, setPackages] = useState([]);
-  const [loading, setLoading] = useState(true);
-
+export default function AdminPage() {
   const router = useRouter();
   const auth = getAuth(firebaseApp);
   const db = getFirestore(firebaseApp);

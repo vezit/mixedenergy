@@ -1,3 +1,4 @@
+// /products/vi-blander-for-dig/:slug
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../lib/BasketContext';

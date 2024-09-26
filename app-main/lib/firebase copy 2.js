@@ -1,11 +1,12 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, initializeFirestore, persistentLocalCache } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';  // Import Firebase Authentication
 
 let firebaseApp;
 let db;
 let auth;
 
+// Firebase config
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -25,12 +26,20 @@ if (typeof window !== 'undefined') {
     firebaseApp = getApp();
   }
 
-  // Initialize Firestore with the new persistence method
-  db = initializeFirestore(firebaseApp, {
-    localCache: persistentLocalCache()  // This enables local caching
-  });
+  // Initialize Firestore and Auth
+  db = getFirestore(firebaseApp);
+  auth = getAuth(firebaseApp);
 
-  auth = getAuth(firebaseApp);  // Initialize Firebase Auth
+  // You can optionally add persistence for client-side only
+  import('firebase/firestore').then(({ enableIndexedDbPersistence }) => {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.error('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+      } else if (err.code === 'unimplemented') {
+        console.error('The current browser does not support offline persistence.');
+      }
+    });
+  });
 }
 
 export { firebaseApp, db, auth };
