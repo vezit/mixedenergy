@@ -1,4 +1,3 @@
-// /products/bland-selv-mix/:slug
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../lib/BasketContext';
@@ -15,9 +14,9 @@ export default function BlandSelvMixProduct() {
   const [drinks, setDrinks] = useState([]); // Drinks associated with the product
 
   const { addItemToBasket } = useBasket();
-  const [selectedSize, setSelectedSize] = useState('8'); // Default package size
+  const [selectedSize, setSelectedSize] = useState(8); // Default package size
   const [selectedProducts, setSelectedProducts] = useState({});
-  const [price, setPrice] = useState(175); // Default price for size 8
+  const [price, setPrice] = useState(19900); // Default price for size 8
   const [quantity, setQuantity] = useState(1);
   const maxProducts = parseInt(selectedSize);
 
@@ -43,26 +42,22 @@ export default function BlandSelvMixProduct() {
   // Generate a random selection on component mount
   useEffect(() => {
     generateRandomSelection(selectedSize);
-  }, [drinks]); // Only run when drinks data is loaded
+  }, [drinks]);
 
   // Update price and regenerate selection when package size changes
   useEffect(() => {
-    if (selectedSize === '8') {
-      setPrice(175);
-    } else if (selectedSize === '12') {
-      setPrice(220);
-    } else if (selectedSize === '18') {
-      setPrice(299);
+    const selectedPackage = product?.packages.find((pkg) => pkg.size === selectedSize);
+    if (selectedPackage) {
+      setPrice(selectedPackage.price);
+      generateRandomSelection(selectedSize);
     }
-
-    generateRandomSelection(selectedSize);
-  }, [selectedSize]);
+  }, [selectedSize, product]);
 
   // Function to generate a random selection of drinks
   const generateRandomSelection = (size) => {
     const randomSelection = {};
     let remaining = parseInt(size);
-    const drinksCopy = [...drinks]; // Use dynamic drinks list
+    const drinksCopy = [...drinks];
 
     while (remaining > 0 && drinksCopy.length > 0) {
       const randomIndex = Math.floor(Math.random() * drinksCopy.length);
@@ -159,40 +154,22 @@ export default function BlandSelvMixProduct() {
           {/* Package Size Selection */}
           <div className="mt-4">
             <p>Select Package Size:</p>
-            <label className="mr-4">
-              <input
-                type="radio"
-                name="size"
-                value="8"
-                checked={selectedSize === '8'}
-                onChange={() => setSelectedSize('8')}
-              />
-              8
-            </label>
-            <label className="mr-4">
-              <input
-                type="radio"
-                name="size"
-                value="12"
-                checked={selectedSize === '12'}
-                onChange={() => setSelectedSize('12')}
-              />
-              12
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="size"
-                value="18"
-                checked={selectedSize === '18'}
-                onChange={() => setSelectedSize('18')}
-              />
-              18
-            </label>
+            {product.packages.map((pkg) => (
+              <label key={pkg.size} className="mr-4">
+                <input
+                  type="radio"
+                  name="size"
+                  value={pkg.size}
+                  checked={selectedSize === pkg.size}
+                  onChange={() => setSelectedSize(pkg.size)}
+                />
+                {pkg.size}
+              </label>
+            ))}
           </div>
 
           {/* Scrollable Drinks Selection */}
-          <div className="mt-4 max-h-[500px] overflow-y-auto pr-4"> {/* Adjusted height */}
+          <div className="mt-4 max-h-[500px] overflow-y-auto pr-4">
             <p>Select drinks (exactly {maxProducts}):</p>
             {drinks.map((drink, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
@@ -232,7 +209,7 @@ export default function BlandSelvMixProduct() {
           </button>
 
           {/* Price */}
-          <p className="text-2xl font-bold mt-4">{price * quantity} kr</p>
+          <p className="text-2xl font-bold mt-4">{price * quantity / 100} kr</p>
         </div>
       </div>
     </div>

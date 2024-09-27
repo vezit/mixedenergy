@@ -113,7 +113,7 @@ export default function ViBlanderForDigProduct() {
 
       <div className="flex flex-col md:flex-row">
         {/* Left Column: Image and Description */}
-        <div className="md:w-1/2">
+        <div className="md:w-1/2 flex-1">
           <img src={product.image} alt={product.title} className="w-full h-auto" />
 
           {/* Description */}
@@ -124,7 +124,7 @@ export default function ViBlanderForDigProduct() {
         </div>
 
         {/* Right Column: Random Package and Actions */}
-        <div className="md:w-1/2 md:pl-8 flex flex-col justify-between h-full">
+        <div className="md:w-1/2 md:pl-8 flex flex-col justify-between h-full flex-1">
           <div>
             {/* Package Size Selection */}
             <div className="mt-4">
