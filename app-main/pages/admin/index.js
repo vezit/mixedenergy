@@ -26,7 +26,7 @@ export default function AdminPage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
         router.push('/admin/login');
-      } else if (user.email !== 'management@mixedenergy.dk') {
+      } else if (user.email !== 'admin@mixedenergy.dk') {
         router.push('/');
       } else {
         setLoading(false); // User is authenticated and is admin
@@ -171,7 +171,6 @@ export default function AdminPage() {
     return true;
   };
 
-  // Confirm overwrite of data
   const handleConfirmOverwrite = async () => {
     if (deleteInput !== 'delete') {
       alert('You must type "delete" to confirm.');
@@ -182,35 +181,37 @@ export default function AdminPage() {
     setDeleteInput('');
 
     try {
-      // Delete existing collections
-      await deleteCollection('packages');
-      await deleteCollection('drinks');
+      // Get the ID token of the current user
+      const idToken = await auth.currentUser.getIdToken(true);
 
-      // Upload new data
-      const { packages: newPackages, drinks: newDrinks } = uploadedData;
+      const response = await fetch('/api/admin/replaceData', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          idToken,
+          data: uploadedData,
+        }),
+      });
 
-      // Add new packages
-      for (const pkgKey in newPackages) {
-        const pkgData = newPackages[pkgKey];
-        const pkgRef = doc(db, 'packages', pkgKey);
-        await setDoc(pkgRef, pkgData);
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Data updated successfully.');
+        // Refresh data
+        fetchData();
+      } else {
+        console.error('Error:', result.error);
+        console.error('Error Message:', result.message);
+        alert(`Failed to update data: ${result.message}`);
       }
-
-      // Add new drinks
-      for (const drinkKey in newDrinks) {
-        const drinkData = newDrinks[drinkKey];
-        const drinkRef = doc(db, 'drinks', drinkKey);
-        await setDoc(drinkRef, drinkData);
-      }
-
-      alert('Data updated successfully.');
-      // Refresh data
-      fetchData();
     } catch (error) {
       console.error('Failed to update data:', error);
-      alert('Failed to update data.');
+      alert(`Failed to update data: ${error.message}`);
     }
   };
+
 
   // Function to delete a collection
   const deleteCollection = async (collectionName) => {

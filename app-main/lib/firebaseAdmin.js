@@ -1,4 +1,5 @@
 // lib/firebaseAdmin.js
+
 import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {
@@ -9,4 +10,8 @@ if (!admin.apps.length) {
   });
 }
 
-export default admin;
+// Initialize Firestore
+const db = admin.firestore();
+
+// Export both admin and db
+export { admin, db };
