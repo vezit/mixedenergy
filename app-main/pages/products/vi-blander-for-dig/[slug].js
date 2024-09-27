@@ -179,7 +179,7 @@ export default function ViBlanderForDigProduct() {
           </div>
 
           {/* Display Random Package */}
-          <div className="mt-4">
+          <div className="mt-4 max-h-[500px] overflow-y-auto pr-4"> {/* Scrollable container */}
             <h2 className="text-xl font-bold">Your Random Package</h2>
             <ul className="list-disc list-inside">
               {Object.entries(randomSelection).map(([drink, qty], index) => (

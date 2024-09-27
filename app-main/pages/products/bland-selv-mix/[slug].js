@@ -1,3 +1,4 @@
+// /products/bland-selv-mix/:slug
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../lib/BasketContext';
@@ -11,20 +12,9 @@ export default function BlandSelvMixProduct() {
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [drinks, setDrinks] = useState([]); // Drinks associated with the product
 
   const { addItemToBasket } = useBasket();
-
-  // List of available drinks
-  const allDrinks = [
-    'Red Bull Original - 0.25 l',
-    'Red Bull Sugarfree - 0.25 l',
-    'Red Bull Zero - 0.25 l',
-    'Monster Energy - 0.5 l',
-    'Monster Ultra - 0.5 l',
-    'Booster Original - 0.5 l',
-    'Booster Sugarfree - 0.5 l',
-  ];
-
   const [selectedSize, setSelectedSize] = useState('8'); // Default package size
   const [selectedProducts, setSelectedProducts] = useState({});
   const [price, setPrice] = useState(175); // Default price for size 8
@@ -38,7 +28,9 @@ export default function BlandSelvMixProduct() {
       const docRef = doc(db, 'packages', slug);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setProduct({ id: docSnap.id, ...docSnap.data() });
+        const productData = docSnap.data();
+        setProduct({ id: docSnap.id, ...productData });
+        setDrinks(productData.drinks || []); // Set the associated drinks list
       } else {
         setProduct(null);
       }
@@ -51,7 +43,7 @@ export default function BlandSelvMixProduct() {
   // Generate a random selection on component mount
   useEffect(() => {
     generateRandomSelection(selectedSize);
-  }, []);
+  }, [drinks]); // Only run when drinks data is loaded
 
   // Update price and regenerate selection when package size changes
   useEffect(() => {
@@ -70,9 +62,9 @@ export default function BlandSelvMixProduct() {
   const generateRandomSelection = (size) => {
     const randomSelection = {};
     let remaining = parseInt(size);
-    const drinksCopy = [...allDrinks];
+    const drinksCopy = [...drinks]; // Use dynamic drinks list
 
-    while (remaining > 0) {
+    while (remaining > 0 && drinksCopy.length > 0) {
       const randomIndex = Math.floor(Math.random() * drinksCopy.length);
       const drink = drinksCopy[randomIndex];
       const maxQty = remaining;
@@ -82,8 +74,6 @@ export default function BlandSelvMixProduct() {
       remaining -= qty;
 
       // Remove the drink if no more can be added
-      if (remaining <= 0) break;
-
       drinksCopy.splice(randomIndex, 1);
     }
 
@@ -125,7 +115,7 @@ export default function BlandSelvMixProduct() {
 
     const mixedProduct = {
       slug: product.id,
-      title: `${product.name} - ${selectedSize} pcs`,
+      title: `${product.title} - ${selectedSize} pcs`,
       description: `A mix of: ${Object.entries(selectedProducts)
         .map(([drink, qty]) => `${drink} (x${qty})`)
         .join(', ')}`,
@@ -150,12 +140,12 @@ export default function BlandSelvMixProduct() {
   return (
     <div className="container mx-auto p-8">
       {/* Product Title */}
-      <h1 className="text-4xl font-bold text-center mb-8">{product.name}</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">{product.title}</h1>
 
       <div className="flex flex-col md:flex-row">
         {/* Left Column: Image and Description */}
         <div className="md:w-1/2">
-          <img src={product.image} alt={product.name} className="w-full h-auto" />
+          <img src={product.image} alt={product.title} className="w-full h-auto" />
 
           {/* Description */}
           <div className="mt-6">
@@ -201,10 +191,10 @@ export default function BlandSelvMixProduct() {
             </label>
           </div>
 
-          {/* Drinks Selection */}
-          <div className="mt-4">
+          {/* Scrollable Drinks Selection */}
+          <div className="mt-4 max-h-[500px] overflow-y-auto pr-4"> {/* Adjusted height */}
             <p>Select drinks (exactly {maxProducts}):</p>
-            {allDrinks.map((drink, index) => (
+            {drinks.map((drink, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
                 <span>{drink}</span>
                 <div className="flex items-center">
