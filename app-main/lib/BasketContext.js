@@ -51,8 +51,21 @@ export const BasketProvider = ({ children }) => {
         await setDoc(docRef, { basketItems: updatedBasket }, { merge: true }); // Update Firestore
     };
 
+    const updateCustomerDetailsInFirestore = async (updatedDetails) => {
+        if (!consentId) return; // Ensure consentId is available
+
+        const docRef = doc(db, 'sessions', consentId);
+        await setDoc(
+            docRef,
+            { customerDetails: updatedDetails },
+            { merge: true }
+        ); // Update Firestore with customer details
+    };
+
     const addItemToBasket = (item) => {
-        const existingItemIndex = basketItems.findIndex(basketItem => basketItem.title === item.title);
+        const existingItemIndex = basketItems.findIndex(
+            (basketItem) => basketItem.title === item.title
+        );
 
         let updatedBasket;
 
@@ -68,13 +81,13 @@ export const BasketProvider = ({ children }) => {
 
         setBasketItems(updatedBasket);
         setIsNewItemAdded(true); // Set to true when a new item is added
-        updateBasketInFirestore(updatedBasket); // Update Firestore instead of localStorage
+        updateBasketInFirestore(updatedBasket); // Update Firestore
     };
 
     const removeItemFromBasket = (index) => {
         const updatedBasket = basketItems.filter((_, i) => i !== index);
         setBasketItems(updatedBasket);
-        updateBasketInFirestore(updatedBasket); // Update Firestore instead of localStorage
+        updateBasketInFirestore(updatedBasket); // Update Firestore
     };
 
     const updateCustomerDetails = (updatedDetails) => {
@@ -83,7 +96,18 @@ export const BasketProvider = ({ children }) => {
     };
 
     return (
-        <BasketContext.Provider value={{ basketItems, addItemToBasket, removeItemFromBasket, setBasketItems, customerDetails, updateCustomerDetails, isNewItemAdded, setIsNewItemAdded }}>
+        <BasketContext.Provider
+            value={{
+                basketItems,
+                addItemToBasket,
+                removeItemFromBasket,
+                setBasketItems,
+                customerDetails,
+                updateCustomerDetails,
+                isNewItemAdded,
+                setIsNewItemAdded,
+            }}
+        >
             {children}
         </BasketContext.Provider>
     );

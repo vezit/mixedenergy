@@ -171,7 +171,7 @@ export default function Basket() {
           onChange={handleInputChange}
           className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''}`}
           required
-          disabled={true}
+          disabled={false}
         />
         {errors.city && <p className="text-red-500 mt-1">{errors.city}</p>}
       </div>
