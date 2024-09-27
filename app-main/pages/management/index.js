@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useRouter } from 'next/router';
-import firebaseApp from '../../lib/firebase'; // Adjust the path as needed
+import { firebaseApp } from '../../lib/firebase'; // Adjust the path as needed
 
 export default function ManagementPage() {
   const [drinks, setDrinks] = useState([]);
