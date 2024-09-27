@@ -1,3 +1,4 @@
+// /scripts/populatePackagesAndDrinks.js
 import admin from 'firebase-admin';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -21,10 +22,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // Function to populate drinks
-async function populateDrinks() {
-  const drinksFilePath = path.join(__dirname, '../data/drinks.json');
-  const drinksData = JSON.parse(fs.readFileSync(drinksFilePath, 'utf8'));
-
+async function populateDrinks(drinksData) {
   // Iterate through object entries since the data is an object, not an array
   for (const [drinkId, drink] of Object.entries(drinksData)) {
     // Add brand based on name
@@ -53,10 +51,7 @@ async function populateDrinks() {
 }
 
 // Function to populate packages
-async function populatePackages() {
-  const packagesFilePath = path.join(__dirname, '../data/packages.json');
-  const packagesData = JSON.parse(fs.readFileSync(packagesFilePath, 'utf8'));
-
+async function populatePackages(packagesData) {
   // Iterate through object entries for packages
   for (const [packageSlug, packageData] of Object.entries(packagesData)) {
     let drinks = [];
@@ -100,11 +95,20 @@ async function populatePackages() {
   }
 }
 
-// Run the scripts
+// Main function to run both population scripts
+async function populateDatabase() {
+  const filePath = path.join(__dirname, '../data/packages_and_drinks.json');
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+
+  // Populate drinks and packages using the merged data
+  await populateDrinks(data.drinks);
+  await populatePackages(data.packages);
+}
+
+// Run the script
 (async () => {
   try {
-    await populateDrinks();
-    await populatePackages();
+    await populateDatabase();
     console.log('Database population complete.');
     process.exit(0);
   } catch (error) {

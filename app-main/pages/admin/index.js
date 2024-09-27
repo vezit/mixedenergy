@@ -62,12 +62,10 @@ export default function AdminPage() {
     setPackages(updatedPackages);
   };
 
-  // Save drinks data to Firestore
-  const saveDrinks = async () => {
-    for (const drink of drinks) {
-      const drinkRef = doc(db, 'drinks', drink.id);
+  const saveDrink = async (drink) => {
+    const drinkRef = doc(db, 'drinks', drink.id);
+    try {
       await updateDoc(drinkRef, {
-        // Include fields you want to update
         name: drink.name,
         stock: Number(drink.stock),
         size: drink.size,
@@ -75,11 +73,14 @@ export default function AdminPage() {
         salePrice: Number(drink.salePrice),
         purchasePrice: Number(drink.purchasePrice),
         packageQuantity: Number(drink.packageQuantity),
-        // Add other fields as needed
       });
+      alert('Drink saved successfully');
+    } catch (error) {
+      console.error('Error saving drink:', error);
+      alert('Error saving drink.');
     }
-    alert('Drinks saved successfully');
   };
+
 
   const onSavePackage = async (pkg) => {
     const { id, ...packageData } = pkg;
@@ -92,6 +93,7 @@ export default function AdminPage() {
       alert('Error saving package.');
     }
   };
+  
 
   // Handle file upload
   const handleFileUpload = (e) => {
@@ -165,15 +167,15 @@ export default function AdminPage() {
         <p>Loading...</p>
       ) : (
         <>
-          <DrinksTable drinks={drinks} onDrinkChange={handleDrinkChange} />
-          <button onClick={saveDrinks}>Save Drinks</button>
+          <DrinksTable drinks={drinks} onDrinkChange={handleDrinkChange} onSaveDrink={saveDrink} />
 
           <PackagesTable
-            packages={packages}
-            drinks={drinks}
-            onPackageChange={handlePackageChange}
-            onSavePackage={onSavePackage} // Ensure this line is present
-          />
+  packages={packages}
+  drinks={drinks}
+  onPackageChange={handlePackageChange}
+  onSavePackage={onSavePackage} // Ensure this line is present
+/>
+
 
           <div>
             <h2>Upload Drinks or Packages JSON</h2>

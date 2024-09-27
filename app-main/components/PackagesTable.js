@@ -35,6 +35,7 @@ function PackagesTable({ packages, drinks, onPackageChange, onSavePackage }) {
                     </button>
                   )}
                 </td>
+
               </tr>
             );
           })}
