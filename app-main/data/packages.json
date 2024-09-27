@@ -5,7 +5,20 @@
     "title": "Mixed Bland Selv",
     "description": "Bland Red Bull, Monster og Booster i en kasse",
     "image": "/images/packages/mixed-any-mix.jpg",
-    "price": "1.99",
+    "packages": [
+      {
+        "size": 8,
+        "price": 19900
+      },
+      {
+        "size": 12,
+        "price": 29900
+      },
+      {
+        "size": 18,
+        "price": 49900
+      }
+    ],
     "drinks": [
       "red-bull-original",
       "red-bull-sugarfree",
@@ -25,7 +38,20 @@
     "title": "Mixed Red Bull Mix",
     "description": "Bland Red Bull varianter i en kasse",
     "image": "/images/packages/mixed-red-bull-mix.jpg",
-    "price": "1.99",
+    "packages": [
+      {
+        "size": 8,
+        "price": 19900
+      },
+      {
+        "size": 12,
+        "price": 29900
+      },
+      {
+        "size": 18,
+        "price": 49900
+      }
+    ],
     "drinks": [
       "red-bull-original",
       "red-bull-sugarfree",
@@ -69,7 +95,20 @@
     "title": "Mixed Monster Mix",
     "description": "Bland Monster varianter i en kasse",
     "image": "/images/packages/mixed-monster-mix.jpg",
-    "price": "1.99",
+    "packages": [
+      {
+        "size": 8,
+        "price": 19900
+      },
+      {
+        "size": 12,
+        "price": 29900
+      },
+      {
+        "size": 18,
+        "price": 49900
+      }
+    ],
     "drinks": [
       "monster-energy",
       "monster-energy-zero",
@@ -94,7 +133,20 @@
     "title": "Mixed Booster Mix",
     "description": "Bland Booster varianter i en kasse",
     "image": "/images/packages/mixed-booster-mix.jpg",
-    "price": "1.99",
+    "packages": [
+      {
+        "size": 8,
+        "price": 19900
+      },
+      {
+        "size": 12,
+        "price": 29900
+      },
+      {
+        "size": 18,
+        "price": 49900
+      }
+    ],
     "drinks": [
       "faxe-kondi-booster-original",
       "faxe-kondi-booster-free",
@@ -113,7 +165,20 @@
     "title": "Blandet Mix",
     "description": "Bland Red Bull, Monster og Booster i en kasse",
     "image": "/images/packages/mixed-any.jpg",
-    "price": "1.99",
+    "packages": [
+      {
+        "size": 8,
+        "price": 19900
+      },
+      {
+        "size": 12,
+        "price": 29900
+      },
+      {
+        "size": 18,
+        "price": 49900
+      }
+    ],
     "drinks": [
       "red-bull-original",
       "red-bull-sugarfree",
@@ -157,7 +222,20 @@
     "title": "Red Bull Mix",
     "description": "Bland Red Bull varianter i en kasse",
     "image": "/images/packages/mixed-red-bulls.jpg",
-    "price": "1.99",
+    "packages": [
+      {
+        "size": 8,
+        "price": 19900
+      },
+      {
+        "size": 12,
+        "price": 29900
+      },
+      {
+        "size": 18,
+        "price": 49900
+      }
+    ],
     "drinks": [
       "red-bull-original",
       "red-bull-sugarfree",
@@ -177,7 +255,20 @@
     "title": "Monster Mix",
     "description": "Bland Monster varianter i en kasse",
     "image": "/images/packages/mixed-monsters.jpg",
-    "price": "1.99",
+    "packages": [
+      {
+        "size": 8,
+        "price": 19900
+      },
+      {
+        "size": 12,
+        "price": 29900
+      },
+      {
+        "size": 18,
+        "price": 49900
+      }
+    ],
     "drinks": [
       "monster-energy",
       "monster-energy-zero",
@@ -202,7 +293,20 @@
     "title": "Booster Mix",
     "description": "Vi Blander Forskellige Booster Varianter i en kasse for dig",
     "image": "/images/packages/mixed-boosters.jpg",
-    "price": "1.99",
+    "packages": [
+      {
+        "size": 8,
+        "price": 19900
+      },
+      {
+        "size": 12,
+        "price": 29900
+      },
+      {
+        "size": 18,
+        "price": 49900
+      }
+    ],
     "drinks": [
       "faxe-kondi-booster-original",
       "faxe-kondi-booster-free",
