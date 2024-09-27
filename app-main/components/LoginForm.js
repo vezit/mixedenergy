@@ -1,12 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/router';
 
-const LoginForm = ({ redirectPath }) => {
+const LoginForm = ({ redirectPath, isAdmin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+
+  useEffect(() => {
+    // Check if it's admin or management and set the correct environment variables
+    if (isAdmin) {
+      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_ACCOUNT_NAME;
+      const adminPassword = process.env.NEXT_PUBLIC_ADMIN_ACCOUNT_PASSWORD;
+
+      if (adminEmail) setEmail(adminEmail);
+      if (adminPassword) setPassword(adminPassword);
+    } else {
+      const managementEmail = process.env.NEXT_PUBLIC_MANAGEMENT_ACCOUNT_NAME;
+      const managementPassword = process.env.NEXT_PUBLIC_MANAGEMENT_ACCOUNT_PASSWORD;
+
+      if (managementEmail) setEmail(managementEmail);
+      if (managementPassword) setPassword(managementPassword);
+    }
+  }, [isAdmin]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

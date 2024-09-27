@@ -1,8 +1,9 @@
+// /pages/management/index.js
 import { useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/router';
 
-export default function AdminPage() {
+export default function ManagementPage() {
   const router = useRouter();
 
   useEffect(() => {

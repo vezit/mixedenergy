@@ -56,7 +56,7 @@ const Header = () => {
         const auth = getAuth();
         await fetch('/api/sessionLogout', { method: 'POST' });
         await auth.signOut(); // Sign out of Firebase Auth
-        router.push('/admin/login'); // Redirect to login after logout
+        router.push('/'); // Redirect to login after logout
       };
       
 

@@ -10,7 +10,7 @@ export default function LoginPage() {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        router.push('/management'); // Redirect to admin page if already logged in
+        router.push('/management'); // Redirect to management page if already logged in
       }
     });
 
