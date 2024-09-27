@@ -1,85 +1,160 @@
+// app-main/pages/admin/index.js
+
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+} from 'firebase/firestore';
+import { useRouter } from 'next/router';
+import firebaseApp from '../../lib/firebase';
+import DrinksTable from '../../components/DrinksTable';
+import PackagesTable from '../../components/PackagesTable';
+import Modal from '../../components/Modal';
 
-export default function Home() {
-  const [blandSelvMixProducts, setBlandSelvMixProducts] = useState([]);
-  const [viBlanderForDigProducts, setViBlanderForDigProducts] = useState([]);
-  
-  // Fetch products from Firebase
+export default function AdminPage() {
+  const [drinks, setDrinks] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploadedData, setUploadedData] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const router = useRouter();
+  const auth = getAuth(firebaseApp);
+  const db = getFirestore(firebaseApp);
+
   useEffect(() => {
-    const fetchProducts = async () => {
-      const productsRef = collection(db, 'packages');
-      const snapshot = await getDocs(productsRef);
-      const productsData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.push('/admin/login');
+      } else if (user.email !== 'management@mixedenergy.dk') {
+        router.push('/');
+      } else {
+        setLoading(false);
+      }
+    });
 
-      // Separate products by category
-      const blandSelvMix = productsData.filter(product => product.category === 'bland-selv-mix');
-      const viBlanderForDig = productsData.filter(product => product.category === 'vi-blander-for-dig');
+    return () => unsubscribe();
+  }, [auth, router]);
 
-      setBlandSelvMixProducts(blandSelvMix);
-      setViBlanderForDigProducts(viBlanderForDig);
-    };
+  const fetchData = async () => {
+    const drinksSnapshot = await getDocs(collection(db, 'drinks'));
+    setDrinks(drinksSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
 
-    fetchProducts();
-  }, []);
+    const packagesSnapshot = await getDocs(collection(db, 'packages'));
+    setPackages(
+      packagesSnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }))
+    );
+  };
 
-  if (!blandSelvMixProducts.length && !viBlanderForDigProducts.length) {
-    return <p>Loading...</p>;
-  }
+  useEffect(() => {
+    if (!loading) {
+      fetchData();
+    }
+  }, [db, loading]);
+
+  // Handle changes in drinks data
+  const handleDrinkChange = (index, field, value) => {
+    const updatedDrinks = [...drinks];
+    updatedDrinks[index][field] = value;
+    setDrinks(updatedDrinks);
+  };
+
+  // Save individual drink
+  const onSaveDrink = async (drink) => {
+    const { id, ...drinkData } = drink;
+    const drinkRef = doc(db, 'drinks', id);
+    try {
+      await updateDoc(drinkRef, drinkData);
+      alert('Drink saved successfully');
+    } catch (error) {
+      console.error('Error saving drink:', error);
+      alert('Error saving drink.');
+    }
+  };
+
+  // Handle changes in packages data
+  const handlePackageChange = (index, field, value) => {
+    const updatedPackages = [...packages];
+    updatedPackages[index][field] = value;
+    setPackages(updatedPackages);
+  };
+
+  // Save individual package
+  const onSavePackage = async (pkg) => {
+    const { id, ...packageData } = pkg;
+    const packageRef = doc(db, 'packages', id);
+    try {
+      await updateDoc(packageRef, packageData);
+      alert('Package saved successfully');
+    } catch (error) {
+      console.error('Error saving package:', error);
+      alert('Error saving package.');
+    }
+  };
+
+  // ... [Rest of your code for file upload and modal]
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full">
-      <div className="w-full" style={{ backgroundColor: '#212121' }}>
-        <div className="w-full hidden lg:block" style={{ height: '50vh', backgroundImage: "url('/images/Color-logo-with-background.png')", backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}></div>
-      </div>
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">Welcome to the Admin Management Page</h1>
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <>
+          <DrinksTable
+            drinks={drinks}
+            onDrinkChange={handleDrinkChange}
+            onSaveDrink={onSaveDrink}
+          />
+          {/* Optional overall save button */}
+          <button
+            className="bg-green-500 text-white px-4 py-2 rounded mb-8"
+            onClick={async () => {
+              for (const drink of drinks) {
+                await onSaveDrink(drink);
+              }
+            }}
+          >
+            Save All Drinks
+          </button>
 
-      {/* Vi blander for dig Section */}
-      <div className="w-full text-center py-6">
-        <h1 className="text-3xl font-bold">Vi blander for dig</h1>
-      </div>
+          <PackagesTable
+            packages={packages}
+            drinks={drinks}
+            onPackageChange={handlePackageChange}
+            onSavePackage={onSavePackage}
+          />
+          {/* Optional overall save button */}
+          <button
+            className="bg-green-500 text-white px-4 py-2 rounded mb-8"
+            onClick={async () => {
+              for (const pkg of packages) {
+                await onSavePackage(pkg);
+              }
+            }}
+          >
+            Save All Packages
+          </button>
 
-      <div className="flex flex-wrap justify-center p-4 max-w-screen-xl mx-auto">
-        {viBlanderForDigProducts.map((product) => (
-          <Link href={`/products/vi-blander-for-dig/${product.id}`} key={product.id}>
-            <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-              <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-                <div className="w-full h-60">
-                  <img src={product.image || '/images/placeholder.jpg'} alt={product.name} className="w-full h-full object-cover" />
-                </div>
-                <div className="p-4 flex-grow">
-                  <h2 className="text-xl font-bold">{product.name}</h2>
-                  <p className="text-gray-700">{product.description}</p>
-                </div>
-              </div>
-            </a>
-          </Link>
-        ))}
-      </div>
+          {/* File Upload and Modal */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">Upload Drinks or Packages JSON</h2>
+            <input type="file" accept=".json" onChange={handleFileUpload} />
+          </div>
 
-      {/* Bland selv mix Section */}
-      <div className="w-full text-center py-6">
-        <h1 className="text-3xl font-bold">Bland selv mix</h1>
-      </div>
-
-      <div className="flex flex-wrap justify-center p-4 max-w-screen-xl mx-auto">
-        {blandSelvMixProducts.map((product) => (
-          <Link href={`/products/bland-selv-mix/${product.id}`} key={product.id}>
-            <a className="flex flex-col w-full md:w-1/2 lg:w-1/4 p-2">
-              <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-                <div className="w-full h-60">
-                  <img src={product.image || '/images/placeholder.jpg'} alt={product.name} className="w-full h-full object-cover" />
-                </div>
-                <div className="p-4 flex-grow">
-                  <h2 className="text-xl font-bold">{product.name}</h2>
-                  <p className="text-gray-700">{product.description}</p>
-                </div>
-              </div>
-            </a>
-          </Link>
-        ))}
-      </div>
+          {showModal && (
+            <Modal onClose={() => setShowModal(false)}>
+              <p>Warning: you're about to overwrite existing data. Proceed?</p>
+              <button onClick={handleConfirmOverwrite}>Yes</button>
+              <button onClick={() => setShowModal(false)}>No</button>
+            </Modal>
+          )}
+        </>
+      )}
     </div>
   );
 }
