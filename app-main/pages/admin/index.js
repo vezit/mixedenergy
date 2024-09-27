@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/router';
-import firebaseApp from '../../lib/firebase'; // Ensure this is correctly imported
+import { firebaseApp } from '../../lib/firebase'; // Ensure this is correctly imported
 import DrinksTable from '../../components/DrinksTable';
 import PackagesTable from '../../components/PackagesTable';
 import Modal from '../../components/Modal';
