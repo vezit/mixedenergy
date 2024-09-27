@@ -1,15 +1,60 @@
-// app-main/components/DrinksTable.js
+// components/DrinksTable.js
 
 import React, { useState } from 'react';
+import Modal from './Modal';
 
 function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
   const [editingRows, setEditingRows] = useState({});
+  const [modalStack, setModalStack] = useState([]);
+  const [currentData, setCurrentData] = useState(null);
 
   const toggleEditing = (id) => {
     setEditingRows((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
+  };
+
+  // Get all keys from drinks data
+  const allKeys = drinks.reduce((keys, drink) => {
+    Object.keys(drink).forEach((key) => {
+      if (!keys.includes(key)) keys.push(key);
+    });
+    return keys;
+  }, []);
+
+  const handleCellClick = (drink, key) => {
+    const value = drink[key];
+    if (typeof value === 'object' && value !== null) {
+      // Open modal
+      setModalStack([{ data: value, path: [drink.id, key] }]);
+      setCurrentData(value);
+    }
+  };
+
+  const handleModalCellClick = (value, path) => {
+    if (typeof value === 'object' && value !== null) {
+      // Drill down further
+      setModalStack([...modalStack, { data: value, path }]);
+      setCurrentData(value);
+    }
+  };
+
+  const handleBack = () => {
+    const newStack = [...modalStack];
+    newStack.pop();
+    setModalStack(newStack);
+    if (newStack.length > 0) {
+      setCurrentData(newStack[newStack.length - 1].data);
+    } else {
+      setCurrentData(null);
+    }
+  };
+
+  const handleModalChange = (path, key, newValue) => {
+    const drinkId = path[0];
+    const fieldPath = [...path.slice(1), key];
+    onDrinkChange(drinkId, fieldPath, newValue);
   };
 
   return (
@@ -19,13 +64,9 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
         <thead>
           <tr>
             <th className="border px-4 py-2">Edit</th>
-            <th className="border px-4 py-2">Name</th>
-            <th className="border px-4 py-2">Stock</th>
-            <th className="border px-4 py-2">Size</th>
-            <th className="border px-4 py-2">Is Sugar Free</th>
-            <th className="border px-4 py-2">Sale Price</th>
-            <th className="border px-4 py-2">Purchase Price</th>
-            <th className="border px-4 py-2">Package Quantity</th>
+            {allKeys.map((key) => (
+              <th key={key} className="border px-4 py-2">{key}</th>
+            ))}
             <th className="border px-4 py-2">Save</th>
           </tr>
         </thead>
@@ -42,68 +83,33 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
                     {isEditing ? 'Lock' : 'Edit'}
                   </button>
                 </td>
-                <td className="border px-4 py-2">
-                  <input
-                    type="text"
-                    value={drink.name}
-                    onChange={(e) => onDrinkChange(index, 'name', e.target.value)}
-                    disabled={!isEditing}
-                    className="border p-1 w-full"
-                  />
-                </td>
-                <td className="border px-4 py-2">
-                  <input
-                    type="number"
-                    value={drink.stock}
-                    onChange={(e) => onDrinkChange(index, 'stock', e.target.value)}
-                    disabled={!isEditing}
-                    className="border p-1 w-full"
-                  />
-                </td>
-                <td className="border px-4 py-2">
-                  <input
-                    type="text"
-                    value={drink.size}
-                    onChange={(e) => onDrinkChange(index, 'size', e.target.value)}
-                    disabled={!isEditing}
-                    className="border p-1 w-full"
-                  />
-                </td>
-                <td className="border px-4 py-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={drink.isSugarFree}
-                    onChange={(e) => onDrinkChange(index, 'isSugarFree', e.target.checked)}
-                    disabled={!isEditing}
-                  />
-                </td>
-                <td className="border px-4 py-2">
-                  <input
-                    type="number"
-                    value={drink.salePrice}
-                    onChange={(e) => onDrinkChange(index, 'salePrice', e.target.value)}
-                    disabled={!isEditing}
-                    className="border p-1 w-full"
-                  />
-                </td>
-                <td className="border px-4 py-2">
-                  <input
-                    type="number"
-                    value={drink.purchasePrice}
-                    onChange={(e) => onDrinkChange(index, 'purchasePrice', e.target.value)}
-                    disabled={!isEditing}
-                    className="border p-1 w-full"
-                  />
-                </td>
-                <td className="border px-4 py-2">
-                  <input
-                    type="number"
-                    value={drink.packageQuantity}
-                    onChange={(e) => onDrinkChange(index, 'packageQuantity', e.target.value)}
-                    disabled={!isEditing}
-                    className="border p-1 w-full"
-                  />
-                </td>
+                {allKeys.map((key) => {
+                  const value = drink[key];
+                  const isObject = typeof value === 'object' && value !== null;
+                  return (
+                    <td key={key} className="border px-4 py-2">
+                      {isObject ? (
+                        <button
+                          className="text-blue-500 underline"
+                          onClick={() => handleCellClick(drink, key)}
+                        >
+                          {key}
+                        </button>
+                      ) : (
+                        <input
+                          type={typeof value === 'number' ? 'number' : 'text'}
+                          value={value}
+                          onChange={(e) => {
+                            const newValue = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                            onDrinkChange(drink.id, [key], newValue);
+                          }}
+                          disabled={!isEditing}
+                          className="border p-1 w-full"
+                        />
+                      )}
+                    </td>
+                  );
+                })}
                 <td className="border px-4 py-2 text-center">
                   {isEditing && (
                     <button
@@ -119,6 +125,67 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
           })}
         </tbody>
       </table>
+
+      {/* Modal for nested data */}
+      {currentData && (
+        <Modal isOpen={true} onClose={() => setCurrentData(null)} title="Edit Data">
+          <div>
+            {modalStack.length > 1 && (
+              <button onClick={handleBack} className="mb-2 bg-gray-200 px-2 py-1 rounded">
+                Back
+              </button>
+            )}
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="border px-4 py-2">Field</th>
+                  <th className="border px-4 py-2">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(currentData).map(([key, value]) => {
+                  const isObject = typeof value === 'object' && value !== null;
+                  const path = [...modalStack[modalStack.length - 1].path, key];
+                  return (
+                    <tr key={key}>
+                      <td className="border px-4 py-2">{key}</td>
+                      <td className="border px-4 py-2">
+                        {isObject ? (
+                          <button
+                            className="text-blue-500 underline"
+                            onClick={() => handleModalCellClick(value, path)}
+                          >
+                            {key}
+                          </button>
+                        ) : (
+                          <input
+                            type={typeof value === 'number' ? 'number' : 'text'}
+                            value={value}
+                            onChange={(e) => {
+                              const newValue = e.target.value;
+                              // Update the currentData
+                              const updatedData = { ...currentData, [key]: newValue };
+                              setCurrentData(updatedData);
+                              handleModalChange(modalStack[modalStack.length - 1].path, key, newValue);
+                            }}
+                            className="border p-1 w-full"
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <button
+              onClick={() => setCurrentData(null)}
+              className="mt-4 bg-blue-500 text-white py-2 px-4 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
