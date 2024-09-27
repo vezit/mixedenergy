@@ -7,7 +7,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+      <div className="bg-white p-6 rounded-lg shadow-lg text-center overflow-y-auto max-h-[80vh] overflow-y-auto">
         {title && <h2 className="text-lg font-bold mb-4">{title}</h2>}
         <div className="mb-4">{children}</div>
         {/* Removed hardcoded button to make content fully dynamic */}

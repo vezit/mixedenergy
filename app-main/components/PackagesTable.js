@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import Select from 'react-select';
+// components/PackagesTable.js
 
-function PackagesTable({ packages, drinks, onPackageChange, onSavePackage }) {
+import React, { useState } from 'react';
+import Modal from './Modal';
+
+function PackagesTable({ packages, onPackageChange, onSavePackage }) {
   const [editingRows, setEditingRows] = useState({});
-  const drinkOptions = drinks.map((drink) => ({ value: drink.id, label: drink.name }));
+  const [modalStack, setModalStack] = useState([]);
+  const [currentData, setCurrentData] = useState(null);
 
   const toggleEditing = (id) => {
     setEditingRows((prev) => ({
@@ -12,19 +15,101 @@ function PackagesTable({ packages, drinks, onPackageChange, onSavePackage }) {
     }));
   };
 
+  // Get all keys from packages data
+  const allKeys = packages.reduce((keys, pkg) => {
+    Object.keys(pkg).forEach((key) => {
+      if (!keys.includes(key)) keys.push(key);
+    });
+    return keys;
+  }, []);
+
+  const handleCellClick = (pkg, key) => {
+    const value = pkg[key];
+    if (typeof value === 'object' && value !== null) {
+      // Open modal
+      setModalStack([{ data: value, path: [pkg.id, key] }]);
+      setCurrentData(value);
+    }
+  };
+
+  const handleModalCellClick = (value, path) => {
+    if (typeof value === 'object' && value !== null) {
+      // Drill down further
+      setModalStack([...modalStack, { data: value, path }]);
+      setCurrentData(value);
+    }
+  };
+
+  const handleBack = () => {
+    const newStack = [...modalStack];
+    newStack.pop();
+    setModalStack(newStack);
+    if (newStack.length > 0) {
+      setCurrentData(newStack[newStack.length - 1].data);
+    } else {
+      setCurrentData(null);
+    }
+  };
+
+  const handleModalChange = (path, key, newValue) => {
+    const pkgId = path[0];
+    const fieldPath = [...path.slice(1), key];
+    onPackageChange(pkgId, fieldPath, newValue);
+  };
+
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold mb-4">Packages</h2>
       <table className="min-w-full border-collapse">
         <thead>
-          {/* ... table headers */}
+          <tr>
+            <th className="border px-4 py-2">Edit</th>
+            {allKeys.map((key) => (
+              <th key={key} className="border px-4 py-2">{key}</th>
+            ))}
+            <th className="border px-4 py-2">Save</th>
+          </tr>
         </thead>
         <tbody>
-          {packages.map((pkg, index) => {
+          {packages.map((pkg) => {
             const isEditing = editingRows[pkg.id] || false;
             return (
               <tr key={pkg.id} className="border-b">
-                {/* ... other table cells */}
+                <td className="border px-4 py-2 text-center">
+                  <button
+                    className="bg-blue-500 text-white px-2 py-1 rounded"
+                    onClick={() => toggleEditing(pkg.id)}
+                  >
+                    {isEditing ? 'Lock' : 'Edit'}
+                  </button>
+                </td>
+                {allKeys.map((key) => {
+                  const value = pkg[key];
+                  const isObject = typeof value === 'object' && value !== null;
+                  return (
+                    <td key={key} className="border px-4 py-2">
+                      {isObject ? (
+                        <button
+                          className="text-blue-500 underline"
+                          onClick={() => handleCellClick(pkg, key)}
+                        >
+                          {key}
+                        </button>
+                      ) : (
+                        <input
+                          type={typeof value === 'number' ? 'number' : 'text'}
+                          value={value}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            onPackageChange(pkg.id, [key], newValue);
+                          }}
+                          disabled={!isEditing}
+                          className="border p-1 w-full"
+                        />
+                      )}
+                    </td>
+                  );
+                })}
                 <td className="border px-4 py-2 text-center">
                   {isEditing && (
                     <button
@@ -35,12 +120,72 @@ function PackagesTable({ packages, drinks, onPackageChange, onSavePackage }) {
                     </button>
                   )}
                 </td>
-
               </tr>
             );
           })}
         </tbody>
       </table>
+
+      {/* Modal for nested data */}
+      {currentData && (
+        <Modal isOpen={true} onClose={handleBack} title="Edit Data">
+          <div>
+            {modalStack.length > 1 && (
+              <button onClick={handleBack} className="mb-2 bg-gray-200 px-2 py-1 rounded">
+                Back
+              </button>
+            )}
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="border px-4 py-2">Field</th>
+                  <th className="border px-4 py-2">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(currentData).map(([key, value]) => {
+                  const isObject = typeof value === 'object' && value !== null;
+                  const path = [...modalStack[modalStack.length - 1].path, key];
+                  return (
+                    <tr key={key}>
+                      <td className="border px-4 py-2">{key}</td>
+                      <td className="border px-4 py-2">
+                        {isObject ? (
+                          <button
+                            className="text-blue-500 underline"
+                            onClick={() => handleModalCellClick(value, path)}
+                          >
+                            {key}
+                          </button>
+                        ) : (
+                          <input
+                            type={typeof value === 'number' ? 'number' : 'text'}
+                            value={value}
+                            onChange={(e) => {
+                              const newValue = e.target.value;
+                              // Update the currentData
+                              const updatedData = { ...currentData, [key]: newValue };
+                              setCurrentData(updatedData);
+                              handleModalChange(modalStack[modalStack.length - 1].path, key, newValue);
+                            }}
+                            className="border p-1 w-full"
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <button
+              onClick={() => setCurrentData(null)}
+              className="mt-4 bg-blue-500 text-white py-2 px-4 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

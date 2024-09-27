@@ -53,7 +53,7 @@ export default function AdminPage() {
     const updatedDrinks = drinks.map((drink) => {
       if (drink.id === drinkId) {
         const updatedDrink = { ...drink };
-        updateDrinkData(updatedDrink, path, value);
+        updateNestedData(updatedDrink, path, value);
         return updatedDrink;
       } else {
         return drink;
@@ -62,21 +62,29 @@ export default function AdminPage() {
     setDrinks(updatedDrinks);
   };
 
-  const updateDrinkData = (obj, pathArray, value) => {
+  // Handle changes in packages data
+  const handlePackageChange = (pkgId, path, value) => {
+    const updatedPackages = packages.map((pkg) => {
+      if (pkg.id === pkgId) {
+        const updatedPackage = { ...pkg };
+        updateNestedData(updatedPackage, path, value);
+        return updatedPackage;
+      } else {
+        return pkg;
+      }
+    });
+    setPackages(updatedPackages);
+  };
+
+  // Recursive function to update nested data
+  const updateNestedData = (obj, pathArray, value) => {
     if (pathArray.length === 1) {
       obj[pathArray[0]] = value;
     } else {
       const key = pathArray[0];
       if (!obj[key]) obj[key] = {};
-      updateDrinkData(obj[key], pathArray.slice(1), value);
+      updateNestedData(obj[key], pathArray.slice(1), value);
     }
-  };
-
-  // Handle changes in packages data
-  const handlePackageChange = (index, field, value) => {
-    const updatedPackages = [...packages];
-    updatedPackages[index][field] = value;
-    setPackages(updatedPackages);
   };
 
   const saveDrink = async (drink) => {
@@ -91,10 +99,9 @@ export default function AdminPage() {
   };
 
   const onSavePackage = async (pkg) => {
-    const { id, ...packageData } = pkg;
-    const packageRef = doc(db, 'packages', id);
+    const packageRef = doc(db, 'packages', pkg.id);
     try {
-      await updateDoc(packageRef, packageData);
+      await updateDoc(packageRef, pkg); // Save the entire package object
       alert('Package saved successfully');
     } catch (error) {
       console.error('Error saving package:', error);
@@ -112,9 +119,19 @@ export default function AdminPage() {
         <p>Loading...</p>
       ) : (
         <>
-          <DrinksTable drinks={drinks} onDrinkChange={handleDrinkChange} onSaveDrink={saveDrink} />
+          <DrinksTable
+            drinks={drinks}
+            onDrinkChange={handleDrinkChange}
+            onSaveDrink={saveDrink}
+          />
 
-          {/* PackagesTable code remains the same */}
+          <PackagesTable
+            packages={packages}
+            onPackageChange={handlePackageChange}
+            onSavePackage={onSavePackage}
+          />
+
+          {/* ... other code for file upload and modals */}
         </>
       )}
     </div>
