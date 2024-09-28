@@ -12,7 +12,7 @@ export default function DrinksList() {
       const drinksRef = collection(db, 'drinks');
       const snapshot = await getDocs(drinksRef);
       const drinksData = snapshot.docs.map(doc => ({
-        id: doc.id,
+        docID: doc.id, // Use Firestore's document ID, which will be the slug (e.g., "faxe-kondi-booster-original")
         ...doc.data(),
       }));
       setDrinks(drinksData);
@@ -31,9 +31,9 @@ export default function DrinksList() {
       <h1 className="text-4xl font-bold mb-8">Available Drinks</h1>
       <ul>
         {drinks.map((drink) => {
-          const slug = drink.id; // Use the document ID as the slug
+          const slug = drink.docID; // Use the document docID, e.g., "faxe-kondi-booster-original"
           return (
-            <li key={drink.id} className="mb-4">
+            <li key={drink.docID} className="mb-4">
               <Link href={`/drinks/${slug}`}>
                 <a className="text-2xl text-blue-500 hover:underline">
                   {drink.name} - {drink.size}

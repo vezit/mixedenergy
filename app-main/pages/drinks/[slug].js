@@ -1,7 +1,6 @@
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useBasket } from '../../lib/BasketContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase'; // Your Firebase config
 
@@ -11,8 +10,7 @@ export default function DrinkDetail() {
 
   const [drink, setDrink] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
-  const { addItemToBasket } = useBasket();
+  const [imageError, setImageError] = useState(false); // Track if the image fails to load
 
   useEffect(() => {
     if (!slug) return;
@@ -39,21 +37,21 @@ export default function DrinkDetail() {
     return <p>Drink not found.</p>;
   }
 
-  const addToBasket = () => {
-    const newDrink = { ...drink, quantity };
-    addItemToBasket(newDrink);
-  };
+  const imageUrl = imageError
+    ? '/images/default-drink.png' // Use fallback image if an error occurs
+    : `/images/drinks/${drink.image}`; // Local image path
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-8">
       <h1 className="text-4xl font-bold mb-8">{drink.name}</h1>
       {drink.image && (
         <Image
-          src={`/${drink.image}`}
+          src={imageUrl}
           alt={drink.name}
           width={400}
           height={400}
           className="rounded-lg shadow-lg"
+          onError={() => setImageError(true)} // Handle image load errors
         />
       )}
       <p className="text-xl text-gray-700 mt-4">Size: {drink.size}</p>
@@ -71,20 +69,6 @@ export default function DrinkDetail() {
           <li>Salt: {drink.nutrition.per100ml.salt}</li>
         </ul>
       </div>
-
-      <div className="mt-4">
-        <button onClick={() => setQuantity(quantity - 1)} disabled={quantity <= 1} className="px-4 py-2 bg-gray-200 rounded-l">
-          -
-        </button>
-        <span className="px-4 py-2 bg-gray-100">{quantity}</span>
-        <button onClick={() => setQuantity(quantity + 1)} className="px-4 py-2 bg-gray-200 rounded-r">
-          +
-        </button>
-      </div>
-
-      <button onClick={addToBasket} className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition">
-        Add to Cart
-      </button>
     </div>
   );
 }
