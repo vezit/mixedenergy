@@ -3,7 +3,13 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 
-function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddDrink }) {
+function DrinksTable({
+  drinks,
+  onDrinkChange,
+  onSaveDrink,
+  onDeleteDrink,
+  onAddDrink,
+}) {
   const [editingRows, setEditingRows] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDrink, setNewDrink] = useState({});
@@ -112,6 +118,12 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
     setNewDrink({});
   };
 
+  // Handle nested data editing (e.g., nutrition)
+  const handleNestedDataChange = (path, value) => {
+    const [docId, ...restPath] = path;
+    onDrinkChange(docId, restPath, value);
+  };
+
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold mb-4">Drinks</h2>
@@ -180,7 +192,9 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                           checked={key === 'isSugarFree' ? value || false : undefined}
                           onChange={(e) => {
                             const newValue =
-                              e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                              e.target.type === 'checkbox'
+                                ? e.target.checked
+                                : e.target.value;
                             if (key !== 'id' && key !== 'docId') {
                               onDrinkChange(drink.docId, [key], newValue);
                             }
@@ -218,7 +232,11 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
 
       {/* Add New Drink Modal */}
       {showAddModal && (
-        <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add New Drink">
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title="Add New Drink"
+        >
           <div className="space-y-4">
             {Object.keys(newDrink).map((key) => {
               if (key === 'id' || key === 'docId') return null;
@@ -241,11 +259,18 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                     </button>
                   ) : (
                     <input
-                      type={typeof value === 'number' ? 'number' : key === 'isSugarFree' ? 'checkbox' : 'text'}
+                      type={
+                        typeof value === 'number'
+                          ? 'number'
+                          : key === 'isSugarFree'
+                          ? 'checkbox'
+                          : 'text'
+                      }
                       value={key === 'isSugarFree' ? undefined : value || ''}
                       checked={key === 'isSugarFree' ? value || false : undefined}
                       onChange={(e) => {
-                        const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                        const val =
+                          e.target.type === 'checkbox' ? e.target.checked : e.target.value;
                         setNewDrink({
                           ...newDrink,
                           [key]: val,
@@ -258,10 +283,16 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
               );
             })}
             <div className="flex justify-end mt-4">
-              <button onClick={handleSaveNewDrink} className="bg-green-500 text-white px-4 py-2 rounded mr-2">
+              <button
+                onClick={handleSaveNewDrink}
+                className="bg-green-500 text-white px-4 py-2 rounded mr-2"
+              >
                 Save
               </button>
-              <button onClick={() => setShowAddModal(false)} className="bg-gray-300 px-4 py-2 rounded">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="bg-gray-300 px-4 py-2 rounded"
+              >
                 Cancel
               </button>
             </div>
@@ -275,7 +306,10 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
           isOpen={true}
           onClose={() => {
             if (modalStack.length > 1) {
-              handleBack();
+              setModalStack(modalStack.slice(0, -1));
+              const previous = modalStack[modalStack.length - 2];
+              setCurrentData(previous.data);
+              setCurrentPath(previous.path);
             } else {
               setCurrentData(null);
               setCurrentPath([]);
@@ -284,7 +318,66 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
           }}
           title={`Edit ${modalStack[modalStack.length - 1].title}`}
         >
-          {/* Modal content for editing nested objects */}
+          {Object.keys(currentData).map((key) => {
+            const value = currentData[key];
+            const isObject = typeof value === 'object' && value !== null;
+
+            return (
+              <div key={key} className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">{key}</label>
+                {isObject ? (
+                  <button
+                    className="text-blue-500 underline"
+                    onClick={() => {
+                      setModalStack([
+                        ...modalStack,
+                        {
+                          data: value,
+                          path: [...currentPath, key],
+                          title: key,
+                        },
+                      ]);
+                      setCurrentData(value);
+                      setCurrentPath([...currentPath, key]);
+                    }}
+                  >
+                    Edit {key}
+                  </button>
+                ) : (
+                  <input
+                    type="text"
+                    value={value || ''}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      const newData = { ...currentData, [key]: newValue };
+                      setCurrentData(newData);
+                      handleNestedDataChange([...currentPath, key], newValue);
+                    }}
+                    className="border p-1 w-full"
+                  />
+                )}
+              </div>
+            );
+          })}
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                if (modalStack.length > 1) {
+                  setModalStack(modalStack.slice(0, -1));
+                  const previous = modalStack[modalStack.length - 2];
+                  setCurrentData(previous.data);
+                  setCurrentPath(previous.path);
+                } else {
+                  setCurrentData(null);
+                  setCurrentPath([]);
+                  setModalStack([]);
+                }
+              }}
+              className="bg-gray-300 px-4 py-2 rounded"
+            >
+              Back
+            </button>
+          </div>
         </Modal>
       )}
     </div>

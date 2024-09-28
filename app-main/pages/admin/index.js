@@ -1,8 +1,23 @@
 // pages/admin/index.js
 
 import { useState, useEffect } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, setDoc, getDoc, query, where } from 'firebase/firestore';
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+} from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  deleteDoc,
+  setDoc,
+  getDoc,
+  query,
+  where,
+} from 'firebase/firestore';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
 import DrinksTable from '../../components/DrinksTable';
@@ -16,6 +31,7 @@ export default function AdminPage() {
   const [uploadedData, setUploadedData] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
+  const [userEmail, setUserEmail] = useState('');
 
   const router = useRouter();
   const auth = getAuth(firebaseApp);
@@ -28,6 +44,7 @@ export default function AdminPage() {
       } else if (user.email !== 'admin@mixedenergy.dk') {
         router.push('/');
       } else {
+        setUserEmail(user.email);
         setLoading(false); // User is authenticated and is admin
       }
     });
@@ -121,68 +138,111 @@ export default function AdminPage() {
   };
 
   // Function to add a new drink
-// Function to add a new drink
-const addDrink = async (newDrink) => {
-  try {
-    // Validate the drink object
-    if (!newDrink || !newDrink.name || !newDrink.salePrice || !newDrink.purchasePrice || !newDrink.packageQuantity) {
-      alert('Please provide all necessary fields: name, salePrice, purchasePrice, and packageQuantity.');
-      return;
+  const addDrink = async (newDrink) => {
+    try {
+      // Validate the drink object
+      if (
+        !newDrink ||
+        !newDrink.name ||
+        !newDrink.salePrice ||
+        !newDrink.purchasePrice ||
+        !newDrink.packageQuantity
+      ) {
+        alert(
+          'Please provide all necessary fields: name, salePrice, purchasePrice, and packageQuantity.'
+        );
+        return;
+      }
+
+      // Generate the docId based on the name
+      const generateDocId = (name) => {
+        return name
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+      };
+
+      const docId = generateDocId(newDrink.name);
+
+      if (!docId) {
+        alert('Invalid name for the new drink. Could not generate a valid docId.');
+        return;
+      }
+
+      // Check if a drink with the same docId already exists
+      const drinkRef = doc(db, 'drinks', docId);
+      const drinkSnap = await getDoc(drinkRef);
+
+      if (drinkSnap.exists()) {
+        alert(`docID: ${docId} already exists. Please choose a different name.`);
+        return;
+      }
+
+      // Ensure all existing IDs are numbers
+      const existingIds = drinks
+        .map((drink) => Number(drink.id))
+        .filter((id) => !isNaN(id));
+
+      const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+      const newId = maxId + 1;
+
+      // Check if 'id' already exists in the database
+      const idQuery = query(collection(db, 'drinks'), where('id', '==', newId));
+      const idQuerySnapshot = await getDocs(idQuery);
+
+      if (!idQuerySnapshot.empty) {
+        alert(`id: ${newId} already exists. Please try again.`);
+        return;
+      }
+
+      // Assign new id to the drink
+      newDrink.id = newId;
+
+      // Add the new drink to Firestore using docId
+      await setDoc(drinkRef, newDrink);
+
+      // Update local state to include the new drink
+      setDrinks([...drinks, { ...newDrink, docId }]);
+      alert('New drink added successfully.');
+    } catch (error) {
+      console.error('Error adding new drink:', error);
+      alert('Error adding new drink. See console for details.');
     }
+  };
 
-    // Generate the docId based on the name
-    const generateDocId = (name) => {
-      return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    };
+  // Function to add a new package
+  const addPackage = async (newPackage) => {
+    try {
+      // Validate the package object
+      if (!newPackage || !newPackage.title || !newPackage.slug || !newPackage.packages) {
+        alert('Please provide all necessary fields: title, slug, and packages.');
+        return;
+      }
 
-    const docId = generateDocId(newDrink.name);
+      // Generate the docId based on the slug
+      const docId = newPackage.slug;
 
-    if (!docId) {
-      alert('Invalid name for the new drink. Could not generate a valid docId.');
-      return;
+      // Check if a package with the same docId already exists
+      const packageRef = doc(db, 'packages', docId);
+      const packageSnap = await getDoc(packageRef);
+
+      if (packageSnap.exists()) {
+        alert(`docID: ${docId} already exists. Please choose a different slug.`);
+        return;
+      }
+
+      // Add the new package to Firestore using docId
+      await setDoc(packageRef, newPackage);
+
+      // Update local state to include the new package
+      setPackages([...packages, { ...newPackage, docId }]);
+      alert('New package added successfully.');
+    } catch (error) {
+      console.error('Error adding new package:', error);
+      alert('Error adding new package. See console for details.');
     }
-
-    // Check if a drink with the same docId already exists
-    const drinkRef = doc(db, 'drinks', docId);
-    const drinkSnap = await getDoc(drinkRef);
-
-    if (drinkSnap.exists()) {
-      alert(`docID: ${docId} already exists. Please choose a different name.`);
-      return;
-    }
-
-    // Ensure all existing IDs are numbers
-    const existingIds = drinks
-      .map((drink) => Number(drink.id))
-      .filter((id) => !isNaN(id));
-
-    const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
-    const newId = maxId + 1;
-
-    // Check if 'id' already exists in the database
-    const idQuery = query(collection(db, 'drinks'), where('id', '==', newId));
-    const idQuerySnapshot = await getDocs(idQuery);
-
-    if (!idQuerySnapshot.empty) {
-      alert(`id: ${newId} already exists. Please try again.`);
-      return;
-    }
-
-    // Assign new id to the drink
-    newDrink.id = newId;
-
-    // Add the new drink to Firestore using docId
-    await setDoc(drinkRef, newDrink);
-
-    // Update local state to include the new drink
-    setDrinks([...drinks, { ...newDrink, docId }]);
-    alert('New drink added successfully.');
-  } catch (error) {
-    console.error('Error adding new drink:', error);
-    alert('Error adding new drink. See console for details.');
-  }
-};
-
+  };
 
   // Handle file upload
   const handleFileUpload = (e) => {
@@ -230,7 +290,9 @@ const addDrink = async (newDrink) => {
 
     // Check for duplicate docIDs in drinks
     const drinkDocIds = Object.keys(data.drinks);
-    const duplicateDrinkDocIds = drinkDocIds.filter((id, index) => drinkDocIds.indexOf(id) !== index);
+    const duplicateDrinkDocIds = drinkDocIds.filter(
+      (id, index) => drinkDocIds.indexOf(id) !== index
+    );
     if (duplicateDrinkDocIds.length > 0) {
       return `Duplicate docIDs found in drinks: ${duplicateDrinkDocIds.join(', ')}`;
     }
@@ -246,7 +308,9 @@ const addDrink = async (newDrink) => {
 
     // Check for duplicate 'id' in drinks
     const drinkIds = Object.values(data.drinks).map((drink) => drink.id);
-    const duplicateDrinkIds = drinkIds.filter((id, index) => drinkIds.indexOf(id) !== index);
+    const duplicateDrinkIds = drinkIds.filter(
+      (id, index) => drinkIds.indexOf(id) !== index
+    );
     if (duplicateDrinkIds.length > 0) {
       // Find which drinks have the duplicate ids
       const duplicateDrinksInfo = Object.entries(data.drinks)
@@ -264,7 +328,9 @@ const addDrink = async (newDrink) => {
 
     // Similar validation for packages
     const packageDocIds = Object.keys(data.packages);
-    const duplicatePackageDocIds = packageDocIds.filter((id, index) => packageDocIds.indexOf(id) !== index);
+    const duplicatePackageDocIds = packageDocIds.filter(
+      (id, index) => packageDocIds.indexOf(id) !== index
+    );
     if (duplicatePackageDocIds.length > 0) {
       return `Duplicate docIDs found in packages: ${duplicatePackageDocIds.join(', ')}`;
     }
@@ -296,7 +362,9 @@ const addDrink = async (newDrink) => {
 
       // Delete existing packages
       const packagesSnapshot = await getDocs(collection(db, 'packages'));
-      const packagesDeletionPromises = packagesSnapshot.docs.map((doc) => deleteDoc(doc.ref));
+      const packagesDeletionPromises = packagesSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
       await Promise.all(packagesDeletionPromises);
 
       // Now, add new drinks
@@ -358,9 +426,85 @@ const addDrink = async (newDrink) => {
     }
   };
 
+  // Function to delete a package
+  const deletePackage = async (packageDocId) => {
+    if (confirm('Are you sure you want to delete this package?')) {
+      try {
+        // Delete the package document
+        await deleteDoc(doc(db, 'packages', packageDocId));
+        // Remove the package from the local state
+        setPackages(packages.filter((pkg) => pkg.docId !== packageDocId));
+        alert('Package deleted successfully.');
+      } catch (error) {
+        console.error('Error deleting package:', error);
+        alert('Error deleting package.');
+      }
+    }
+  };
+
+  // Function to export data
+  const handleExportData = async () => {
+    try {
+      // Fetch the latest data
+      const drinksSnapshot = await getDocs(collection(db, 'drinks'));
+      const packagesSnapshot = await getDocs(collection(db, 'packages'));
+
+      const drinksData = {};
+      drinksSnapshot.forEach((doc) => {
+        drinksData[doc.id] = doc.data();
+      });
+
+      const packagesData = {};
+      packagesSnapshot.forEach((doc) => {
+        packagesData[doc.id] = doc.data();
+      });
+
+      const dataToExport = {
+        drinks: drinksData,
+        packages: packagesData,
+      };
+
+      const jsonString = JSON.stringify(dataToExport, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'database_export.json';
+      link.click();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert('Error exporting data.');
+    }
+  };
+
+  const handleLogout = () => {
+    signOut(auth)
+      .then(() => {
+        router.push('/admin/login');
+      })
+      .catch((error) => {
+        console.error('Error during logout:', error);
+        alert('Error during logout.');
+      });
+  };
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Welcome to the Admin Management Page</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Welcome to the Admin Management Page</h1>
+        <div>
+          <span className="mr-4">Logged in as: {userEmail}</span>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -378,11 +522,22 @@ const addDrink = async (newDrink) => {
             drinks={drinks}
             onPackageChange={handlePackageChange}
             onSavePackage={onSavePackage}
+            onDeletePackage={deletePackage}
+            onAddPackage={addPackage}
           />
 
           <div className="mt-8">
             <h2 className="text-xl font-bold mb-2">Upload Packages and Drinks JSON</h2>
             <input type="file" accept=".json" onChange={handleFileUpload} />
+          </div>
+
+          <div className="mt-4">
+            <button
+              onClick={handleExportData}
+              className="bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Export Data
+            </button>
           </div>
 
           {/* Confirmation Modal */}
@@ -393,7 +548,8 @@ const addDrink = async (newDrink) => {
               title="Confirm Delete and Replace"
             >
               <p className="mb-4">
-                Warning: You are about to delete existing packages and drinks data and replace it with the uploaded data. This action cannot be undone.
+                Warning: You are about to delete existing packages and drinks data and
+                replace it with the uploaded data. This action cannot be undone.
               </p>
               <p className="mb-4">
                 Please type <strong>delete</strong> to confirm:
