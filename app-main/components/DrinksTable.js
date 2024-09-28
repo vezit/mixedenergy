@@ -18,13 +18,20 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
     }));
   };
 
-  // Get all keys from drinks data
-  const allKeys = drinks.reduce((keys, drink) => {
-    Object.keys(drink).forEach((key) => {
-      if (!keys.includes(key)) keys.push(key);
-    });
-    return keys;
-  }, []);
+  // Define the desired column order
+  const columnOrder = [
+    'id',
+    'docId',
+    'name',
+    'packageQuantity',
+    'purchasePrice',
+    'stock',
+    'salePrice',
+    'nutrition',
+    'isSugarFree',
+    'size',
+    'image',
+  ];
 
   const handleCellClick = (drink, key) => {
     const value = drink[key];
@@ -65,12 +72,10 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
     onDrinkChange(drinkDocId, fieldPath, newValue);
 
     // Update the currentData in modal
-    setCurrentData((prevData) => {
-      return {
-        ...prevData,
-        [key]: newValue,
-      };
-    });
+    setCurrentData((prevData) => ({
+      ...prevData,
+      [key]: newValue,
+    }));
   };
 
   const handleAddDrink = () => {
@@ -118,7 +123,7 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
         <thead>
           <tr>
             <th className="border px-4 py-2">Edit</th>
-            {allKeys.map((key) => (
+            {columnOrder.map((key) => (
               <th key={key} className="border px-4 py-2">{key}</th>
             ))}
             <th className="border px-4 py-2">Save</th>
@@ -138,9 +143,10 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                     {isEditing ? 'Lock' : 'Edit'}
                   </button>
                 </td>
-                {allKeys.map((key) => {
+                {columnOrder.map((key) => {
                   const value = drink[key];
                   const isObject = typeof value === 'object' && value !== null;
+
                   return (
                     <td key={key} className="border px-4 py-2">
                       {isObject ? (
@@ -153,8 +159,11 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                       ) : (
                         <input
                           type={
-                            typeof value === 'number' ? 'number' :
-                            key === 'isSugarFree' ? 'checkbox' : 'text'
+                            typeof value === 'number'
+                              ? 'number'
+                              : key === 'isSugarFree'
+                              ? 'checkbox'
+                              : 'text'
                           }
                           value={
                             key === 'isSugarFree' ? undefined : value || ''
@@ -163,7 +172,10 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                             key === 'isSugarFree' ? value || false : undefined
                           }
                           onChange={(e) => {
-                            const newValue = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                            const newValue =
+                              e.target.type === 'checkbox'
+                                ? e.target.checked
+                                : e.target.value;
                             onDrinkChange(drink.docId, [key], newValue);
                           }}
                           disabled={!isEditing}
@@ -229,8 +241,11 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                   ) : (
                     <input
                       type={
-                        typeof value === 'number' ? 'number' :
-                        key === 'isSugarFree' ? 'checkbox' : 'text'
+                        typeof value === 'number'
+                          ? 'number'
+                          : key === 'isSugarFree'
+                          ? 'checkbox'
+                          : 'text'
                       }
                       value={
                         key === 'isSugarFree' ? undefined : value || ''
@@ -239,7 +254,10 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                         key === 'isSugarFree' ? value || false : undefined
                       }
                       onChange={(e) => {
-                        const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                        const val =
+                          e.target.type === 'checkbox'
+                            ? e.target.checked
+                            : e.target.value;
                         setNewDrink({
                           ...newDrink,
                           [key]: val,
@@ -286,7 +304,10 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
         >
           <div>
             {modalStack.length > 1 && (
-              <button onClick={handleBack} className="mb-2 bg-gray-200 px-2 py-1 rounded">
+              <button
+                onClick={handleBack}
+                className="mb-2 bg-gray-200 px-2 py-1 rounded"
+              >
                 Back
               </button>
             )}
@@ -299,7 +320,8 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
               </thead>
               <tbody>
                 {Object.entries(currentData).map(([key, value]) => {
-                  const isObject = typeof value === 'object' && value !== null;
+                  const isObject =
+                    typeof value === 'object' && value !== null;
                   const path = [...currentPath];
 
                   return (
@@ -316,17 +338,25 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                         ) : (
                           <input
                             type={
-                              typeof value === 'number' ? 'number' :
-                              typeof value === 'boolean' ? 'checkbox' : 'text'
+                              typeof value === 'number'
+                                ? 'number'
+                                : typeof value === 'boolean'
+                                ? 'checkbox'
+                                : 'text'
                             }
                             value={
-                              typeof value === 'boolean' ? undefined : value || ''
+                              typeof value === 'boolean'
+                                ? undefined
+                                : value || ''
                             }
                             checked={
                               typeof value === 'boolean' ? value || false : undefined
                             }
                             onChange={(e) => {
-                              const newValue = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                              const newValue =
+                                e.target.type === 'checkbox'
+                                  ? e.target.checked
+                                  : e.target.value;
                               handleModalChange(currentPath, key, newValue);
                             }}
                             className="border p-1 w-full"
