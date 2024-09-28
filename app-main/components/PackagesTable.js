@@ -1,11 +1,13 @@
 // components/PackagesTable.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 
-function PackagesTable({ packages, onPackageChange, onSavePackage }) {
+function PackagesTable({ packages, drinks, onPackageChange, onSavePackage }) {
   const [editingRows, setEditingRows] = useState({});
-  const [modalStack, setModalStack] = useState([]);
+  const [modalType, setModalType] = useState(null);
+  const [currentPackage, setCurrentPackage] = useState(null);
+  const [selectedDrinks, setSelectedDrinks] = useState([]);
   const [currentData, setCurrentData] = useState(null);
 
   const toggleEditing = (id) => {
@@ -25,37 +27,20 @@ function PackagesTable({ packages, onPackageChange, onSavePackage }) {
 
   const handleCellClick = (pkg, key) => {
     const value = pkg[key];
-    if (typeof value === 'object' && value !== null) {
-      // Open modal
-      setModalStack([{ data: value, path: [pkg.id, key] }]);
-      setCurrentData(value);
+    if (key === 'drinks') {
+      // Open the drinks selection panel modal
+      setCurrentPackage(pkg);
+      setSelectedDrinks([...value]); // Initialize with current package drinks
+      setModalType('drinksSelection');
+    } else if (typeof value === 'object' && value !== null) {
+      // Handle other nested objects if needed
     }
   };
 
-  const handleModalCellClick = (value, path) => {
-    if (typeof value === 'object' && value !== null) {
-      // Drill down further
-      setModalStack([...modalStack, { data: value, path }]);
-      setCurrentData(value);
-    }
-  };
-
-  const handleBack = () => {
-    const newStack = [...modalStack];
-    newStack.pop();
-    setModalStack(newStack);
-    if (newStack.length > 0) {
-      setCurrentData(newStack[newStack.length - 1].data);
-    } else {
-      setCurrentData(null);
-    }
-  };
-
-  const handleModalChange = (path, key, newValue) => {
-    const pkgId = path[0];
-    const fieldPath = [...path.slice(1), key];
-    onPackageChange(pkgId, fieldPath, newValue);
-  };
+  // Compute available drinks
+  const availableDrinks = drinks.filter(
+    (drink) => !selectedDrinks.includes(drink.id)
+  );
 
   return (
     <div className="mb-8">
@@ -65,7 +50,9 @@ function PackagesTable({ packages, onPackageChange, onSavePackage }) {
           <tr>
             <th className="border px-4 py-2">Edit</th>
             {allKeys.map((key) => (
-              <th key={key} className="border px-4 py-2">{key}</th>
+              <th key={key} className="border px-4 py-2">
+                {key}
+              </th>
             ))}
             <th className="border px-4 py-2">Save</th>
           </tr>
@@ -85,19 +72,24 @@ function PackagesTable({ packages, onPackageChange, onSavePackage }) {
                 </td>
                 {allKeys.map((key) => {
                   const value = pkg[key];
-                  const isObject = typeof value === 'object' && value !== null;
+                  const isObject =
+                    typeof value === 'object' && value !== null;
                   return (
                     <td key={key} className="border px-4 py-2">
-                      {isObject ? (
+                      {key === 'drinks' ? (
                         <button
                           className="text-blue-500 underline"
                           onClick={() => handleCellClick(pkg, key)}
                         >
-                          {key}
+                          Manage Drinks
                         </button>
+                      ) : isObject ? (
+                        <span>{JSON.stringify(value)}</span>
                       ) : (
                         <input
-                          type={typeof value === 'number' ? 'number' : 'text'}
+                          type={
+                            typeof value === 'number' ? 'number' : 'text'
+                          }
                           value={value}
                           onChange={(e) => {
                             const newValue = e.target.value;
@@ -126,62 +118,99 @@ function PackagesTable({ packages, onPackageChange, onSavePackage }) {
         </tbody>
       </table>
 
-      {/* Modal for nested data */}
-      {currentData && (
-        <Modal isOpen={true} onClose={handleBack} title="Edit Data">
-          <div>
-            {modalStack.length > 1 && (
-              <button onClick={handleBack} className="mb-2 bg-gray-200 px-2 py-1 rounded">
-                Back
+      {/* Drinks Selection Modal */}
+      {modalType === 'drinksSelection' && (
+        <Modal
+          isOpen={true}
+          onClose={() => {
+            setModalType(null);
+            setSelectedDrinks([]);
+          }}
+          title="Select Drinks"
+        >
+          <div className="flex">
+            <div className="w-1/2">
+              <h3 className="text-lg font-bold mb-2">Available Drinks</h3>
+              <div className="border h-64 overflow-y-scroll">
+                <ul>
+                  {availableDrinks.map((drink) => (
+                    <li
+                      key={drink.id}
+                      onDoubleClick={() => {
+                        setSelectedDrinks([
+                          ...selectedDrinks,
+                          drink.id,
+                        ]);
+                      }}
+                      className="p-2 hover:bg-gray-200 cursor-pointer"
+                    >
+                      {drink.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                onClick={() =>
+                  setSelectedDrinks([
+                    ...selectedDrinks,
+                    ...availableDrinks.map((drink) => drink.id),
+                  ])
+                }
+                className="mt-2 bg-blue-500 text-white px-2 py-1 rounded"
+              >
+                Choose All
               </button>
-            )}
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border px-4 py-2">Field</th>
-                  <th className="border px-4 py-2">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(currentData).map(([key, value]) => {
-                  const isObject = typeof value === 'object' && value !== null;
-                  const path = [...modalStack[modalStack.length - 1].path, key];
-                  return (
-                    <tr key={key}>
-                      <td className="border px-4 py-2">{key}</td>
-                      <td className="border px-4 py-2">
-                        {isObject ? (
-                          <button
-                            className="text-blue-500 underline"
-                            onClick={() => handleModalCellClick(value, path)}
-                          >
-                            {key}
-                          </button>
-                        ) : (
-                          <input
-                            type={typeof value === 'number' ? 'number' : 'text'}
-                            value={value}
-                            onChange={(e) => {
-                              const newValue = e.target.value;
-                              // Update the currentData
-                              const updatedData = { ...currentData, [key]: newValue };
-                              setCurrentData(updatedData);
-                              handleModalChange(modalStack[modalStack.length - 1].path, key, newValue);
-                            }}
-                            className="border p-1 w-full"
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            </div>
+            <div className="w-1/2">
+              <h3 className="text-lg font-bold mb-2">Selected Drinks</h3>
+              <div className="border h-64 overflow-y-scroll">
+                <ul>
+                  {selectedDrinks.map((drinkId) => {
+                    const drink = drinks.find((d) => d.id === drinkId);
+                    return (
+                      <li
+                        key={drinkId}
+                        onDoubleClick={() => {
+                          setSelectedDrinks(
+                            selectedDrinks.filter((id) => id !== drinkId)
+                          );
+                        }}
+                        className="p-2 hover:bg-gray-200 cursor-pointer"
+                      >
+                        {drink ? drink.name : 'Unknown Drink'}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <button
+                onClick={() => setSelectedDrinks([])}
+                className="mt-2 bg-red-500 text-white px-2 py-1 rounded"
+              >
+                Remove All
+              </button>
+            </div>
+          </div>
+          <div className="flex justify-end mt-4">
             <button
-              onClick={() => setCurrentData(null)}
-              className="mt-4 bg-blue-500 text-white py-2 px-4 rounded"
+              onClick={() => {
+                // Save selectedDrinks to package
+                onPackageChange(currentPackage.id, ['drinks'], selectedDrinks);
+                setModalType(null);
+                setSelectedDrinks([]);
+              }}
+              className="bg-green-500 text-white px-4 py-2 rounded mr-2"
             >
-              Close
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setModalType(null);
+                setSelectedDrinks([]);
+              }}
+              className="bg-gray-300 px-4 py-2 rounded"
+            >
+              Cancel
             </button>
           </div>
         </Modal>

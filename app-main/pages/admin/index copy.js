@@ -212,38 +212,22 @@ export default function AdminPage() {
     }
   };
 
-  const deleteDrink = async (drinkId) => {
-    if (confirm('Are you sure you want to delete this drink?')) {
-      try {
-        // Delete the drink document
-        await deleteDoc(doc(db, 'drinks', drinkId));
-        // Remove the drink from the local state
-        setDrinks(drinks.filter((drink) => drink.id !== drinkId));
 
-        // Also remove the drink from any packages where it appears
-        const updatedPackages = packages.map((pkg) => {
-          const updatedPackage = { ...pkg };
-          if (updatedPackage.drinks && Array.isArray(updatedPackage.drinks)) {
-            updatedPackage.drinks = updatedPackage.drinks.filter(
-              (id) => id !== drinkId
-            );
-          }
-          return updatedPackage;
-        });
-        setPackages(updatedPackages);
+  // Function to delete a collection
+  const deleteCollection = async (collectionName) => {
+    const collectionRef = collection(db, collectionName);
+    const querySnapshot = await getDocs(collectionRef);
+    const batchSize = querySnapshot.size;
 
-        // Save the updated packages to Firestore
-        updatedPackages.forEach(async (pkg) => {
-          const packageRef = doc(db, 'packages', pkg.id);
-          await updateDoc(packageRef, { drinks: pkg.drinks });
-        });
-
-        alert('Drink deleted successfully.');
-      } catch (error) {
-        console.error('Error deleting drink:', error);
-        alert('Error deleting drink.');
-      }
+    if (batchSize === 0) {
+      return;
     }
+
+    const batch = db.batch();
+    querySnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
   };
 
   return (
@@ -253,19 +237,17 @@ export default function AdminPage() {
         <p>Loading...</p>
       ) : (
         <>
-        <DrinksTable
-          drinks={drinks}
-          onDrinkChange={handleDrinkChange}
-          onSaveDrink={saveDrink}
-          onDeleteDrink={deleteDrink} // Add this line
-        />
+          <DrinksTable
+            drinks={drinks}
+            onDrinkChange={handleDrinkChange}
+            onSaveDrink={saveDrink}
+          />
 
-        <PackagesTable
-          packages={packages}
-          drinks={drinks} // Pass drinks as a prop
-          onPackageChange={handlePackageChange}
-          onSavePackage={onSavePackage}
-        />
+          <PackagesTable
+            packages={packages}
+            onPackageChange={handlePackageChange}
+            onSavePackage={onSavePackage}
+          />
 
           <div className="mt-8">
             <h2 className="text-xl font-bold mb-2">Upload Packages and Drinks JSON</h2>
