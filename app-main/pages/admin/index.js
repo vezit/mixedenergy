@@ -11,6 +11,7 @@ import {
   deleteDoc,
   setDoc,
   getDoc,
+  writeBatch, // Import writeBatch
 } from 'firebase/firestore';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
@@ -136,40 +137,40 @@ export default function AdminPage() {
       const generateDocId = (name) => {
         return name.trim().toLowerCase().replace(/\s+/g, '-');
       };
-  
+
       const docId = generateDocId(newDrink.name);
-  
+
       // Check if a drink with the same docId already exists
       const drinkRef = doc(db, 'drinks', docId);
       const drinkSnap = await getDoc(drinkRef);
-  
+
       if (drinkSnap.exists()) {
         alert(`docID: ${docId} already exists`);
         return;
       }
-  
+
       // Ensure all existing IDs are numbers
       const existingIds = drinks
         .map((drink) => Number(drink.id))
         .filter((id) => !isNaN(id));
-  
+
       const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
       const newId = maxId + 1;
-  
+
       // Check if 'id' already exists in the database
       const idQuery = query(collection(db, 'drinks'), where('id', '==', newId));
       const idQuerySnapshot = await getDocs(idQuery);
-  
+
       if (!idQuerySnapshot.empty) {
         alert(`id: ${newId} already exists. Please try again.`);
         return;
       }
-  
+
       newDrink.id = newId;
-  
+
       // Use docId as document id
       await setDoc(drinkRef, newDrink);
-  
+
       // Update local state
       setDrinks([...drinks, { ...newDrink, docId }]);
       alert('New drink added successfully.');
@@ -179,18 +180,141 @@ export default function AdminPage() {
     }
   };
 
-  // Handle file upload (unchanged)
+  // Handle file upload
   const handleFileUpload = (e) => {
-    // ... existing code ...
+    const file = e.target.files[0];
+    if (!file) {
+      alert('No file selected');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        // Validate the data structure
+        const validationError = validateDataStructure(data);
+        if (validationError) {
+          alert(validationError);
+          return;
+        }
+
+        setUploadedData(data);
+        setShowConfirmModal(true);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        alert('Invalid JSON file.');
+      }
+    };
+
+    reader.readAsText(file);
   };
 
-  // Validate data structure (unchanged)
+  // Validate data structure
   const validateDataStructure = (data) => {
-    // ... existing code ...
+    if (!data || typeof data !== 'object') {
+      return 'Invalid data format. Expected an object.';
+    }
+
+    if (!data.drinks || typeof data.drinks !== 'object') {
+      return 'Data must contain a "drinks" object.';
+    }
+
+    if (!data.packages || typeof data.packages !== 'object') {
+      return 'Data must contain a "packages" object.';
+    }
+
+    // Check for duplicate docIDs in drinks
+    const drinkDocIds = Object.keys(data.drinks);
+    const drinkDocIdsSet = new Set(drinkDocIds);
+    if (drinkDocIds.length !== drinkDocIdsSet.size) {
+      return 'Duplicate docIDs found in drinks.';
+    }
+
+    // Validate docIDs format in drinks
+    for (const docId of drinkDocIds) {
+      // Check that docId is in correct format
+      // For example, it should be a lowercase string with hyphens
+      const docIdPattern = /^[a-z0-9-]+$/;
+      if (!docIdPattern.test(docId)) {
+        return `Invalid docID format in drinks: "${docId}". Expected lowercase letters, numbers, and hyphens only.`;
+      }
+    }
+
+    // Check for duplicate 'id' in drinks
+    const drinkIds = Object.values(data.drinks).map((drink) => drink.id);
+    const drinkIdsSet = new Set(drinkIds);
+    if (drinkIds.length !== drinkIdsSet.size) {
+      return 'Duplicate "id" values found in drinks.';
+    }
+
+    // Validate 'id' in drinks are unique and numbers
+    for (const drink of Object.values(data.drinks)) {
+      if (typeof drink.id !== 'number') {
+        return `Invalid "id" value in drinks. Expected number, got ${typeof drink.id}`;
+      }
+    }
+
+    // Similar validation for packages
+    const packageDocIds = Object.keys(data.packages);
+    const packageDocIdsSet = new Set(packageDocIds);
+    if (packageDocIds.length !== packageDocIdsSet.size) {
+      return 'Duplicate docIDs found in packages.';
+    }
+
+    // Validate docIDs format in packages
+    for (const docId of packageDocIds) {
+      const docIdPattern = /^[a-z0-9-]+$/;
+      if (!docIdPattern.test(docId)) {
+        return `Invalid docID format in packages: "${docId}". Expected lowercase letters, numbers, and hyphens only.`;
+      }
+    }
+
+    return null; // No error
   };
 
   const handleConfirmOverwrite = async () => {
-    // ... existing code ...
+    if (deleteInput !== 'delete') {
+      alert('Please type "delete" to confirm.');
+      return;
+    }
+
+    setShowConfirmModal(false);
+
+    try {
+      // Delete existing drinks
+      const drinksSnapshot = await getDocs(collection(db, 'drinks'));
+      const drinksDeletionPromises = drinksSnapshot.docs.map((doc) => deleteDoc(doc.ref));
+      await Promise.all(drinksDeletionPromises);
+
+      // Delete existing packages
+      const packagesSnapshot = await getDocs(collection(db, 'packages'));
+      const packagesDeletionPromises = packagesSnapshot.docs.map((doc) => deleteDoc(doc.ref));
+      await Promise.all(packagesDeletionPromises);
+
+      // Now, add new drinks
+      const drinksData = uploadedData.drinks;
+      for (const [docId, drinkData] of Object.entries(drinksData)) {
+        const drinkRef = doc(db, 'drinks', docId);
+        await setDoc(drinkRef, drinkData);
+      }
+
+      // Add new packages
+      const packagesData = uploadedData.packages;
+      for (const [docId, packageData] of Object.entries(packagesData)) {
+        const packageRef = doc(db, 'packages', docId);
+        await setDoc(packageRef, packageData);
+      }
+
+      alert('Data replaced successfully.');
+      // Refresh data
+      fetchData();
+    } catch (error) {
+      console.error('Error replacing data:', error);
+      alert('Error replacing data.');
+    } finally {
+      setDeleteInput('');
+    }
   };
 
   const deleteDrink = async (drinkDocId) => {
@@ -239,12 +363,12 @@ export default function AdminPage() {
             onDrinkChange={handleDrinkChange}
             onSaveDrink={saveDrink}
             onDeleteDrink={deleteDrink}
-            onAddDrink={addDrink} // Pass the function here
+            onAddDrink={addDrink}
           />
 
           <PackagesTable
             packages={packages}
-            drinks={drinks} // Pass drinks as a prop
+            drinks={drinks}
             onPackageChange={handlePackageChange}
             onSavePackage={onSavePackage}
           />
