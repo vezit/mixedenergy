@@ -30,12 +30,11 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
     const value = drink[key];
     if (typeof value === 'object' && value !== null) {
       // Open modal
-      setModalStack([{ data: value, path: [drink.id, key], title: key }]);
+      setModalStack([{ data: value, path: [drink.docId, key], title: key }]);
       setCurrentData(value);
-      setCurrentPath([drink.id, key]);
+      setCurrentPath([drink.docId, key]);
     }
   };
-
 
   const handleModalCellClick = (value, key, path) => {
     if (typeof value === 'object' && value !== null) {
@@ -61,9 +60,9 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
   };
 
   const handleModalChange = (path, key, newValue) => {
-    const drinkId = path[0];
+    const drinkDocId = path[0];
     const fieldPath = [...path.slice(1), key];
-    onDrinkChange(drinkId, fieldPath, newValue);
+    onDrinkChange(drinkDocId, fieldPath, newValue);
 
     // Update the currentData in modal
     setCurrentData((prevData) => {
@@ -76,15 +75,15 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
 
   const handleAddDrink = () => {
     setNewDrink({
-      image: '',
-      stock: 0,
-      id: '', // You might generate a temporary ID or leave it empty
-      name: '',
-      size: '',
+      image: '/images/path/to/image.png',
+      stock: 100,
+      // id is auto-generated; we don't need to set it here
+      name: 'Format Is Like This',
+      size: '0.5 l',
       isSugarFree: false,
-      salePrice: 0,
-      purchasePrice: 0,
-      packageQuantity: 0,
+      salePrice: 2500,
+      purchasePrice: 1250,
+      packageQuantity: 24,
       nutrition: {
         per100ml: {
           energy: '',
@@ -155,7 +154,7 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                         <input
                           type={
                             typeof value === 'number' ? 'number' :
-                              key === 'isSugarFree' ? 'checkbox' : 'text'
+                            key === 'isSugarFree' ? 'checkbox' : 'text'
                           }
                           value={
                             key === 'isSugarFree' ? undefined : value || ''
@@ -165,7 +164,7 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                           }
                           onChange={(e) => {
                             const newValue = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-                            onDrinkChange(drink.id, [key], newValue);
+                            onDrinkChange(drink.docId, [key], newValue);
                           }}
                           disabled={!isEditing}
                           className="border p-1 w-full"
@@ -207,6 +206,7 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
         >
           <div className="space-y-4">
             {Object.keys(newDrink).map((key) => {
+              if (key === 'id') return null; // Do not show id field
               const value = newDrink[key];
               const isObject = typeof value === 'object' && value !== null;
 
@@ -230,7 +230,7 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                     <input
                       type={
                         typeof value === 'number' ? 'number' :
-                          key === 'isSugarFree' ? 'checkbox' : 'text'
+                        key === 'isSugarFree' ? 'checkbox' : 'text'
                       }
                       value={
                         key === 'isSugarFree' ? undefined : value || ''
@@ -317,7 +317,7 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                           <input
                             type={
                               typeof value === 'number' ? 'number' :
-                                typeof value === 'boolean' ? 'checkbox' : 'text'
+                              typeof value === 'boolean' ? 'checkbox' : 'text'
                             }
                             value={
                               typeof value === 'boolean' ? undefined : value || ''
