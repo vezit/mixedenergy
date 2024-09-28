@@ -2,9 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, setDoc } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  deleteDoc,
+  setDoc,
+} from 'firebase/firestore';
 import { useRouter } from 'next/router';
-import { firebaseApp } from '../../lib/firebase'; // Ensure this is correctly imported
+import { firebaseApp } from '../../lib/firebase';
 import DrinksTable from '../../components/DrinksTable';
 import PackagesTable from '../../components/PackagesTable';
 import Modal from '../../components/Modal';
@@ -22,6 +30,27 @@ export default function AdminPage() {
   const auth = getAuth(firebaseApp);
   const db = getFirestore(firebaseApp);
 
+  // Add this function
+  const addDrink = async (newDrink) => {
+    try {
+      // Generate a unique 'id' field (int)
+      const existingIds = drinks.map((drink) => drink.id);
+      const maxId = Math.max(...existingIds);
+      const newId = (maxId || 0) + 1;
+      newDrink.id = newId;
+
+      // Use newDrink.id as document id
+      const drinkRef = doc(db, 'drinks', newDrink.id.toString());
+      await setDoc(drinkRef, newDrink);
+
+      // Update local state
+      setDrinks([...drinks, { ...newDrink, docId: newDrink.id.toString() }]);
+      alert('New drink added successfully.');
+    } catch (error) {
+      console.error('Error adding new drink:', error);
+      alert('Error adding new drink.');
+    }
+  };
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
@@ -38,10 +67,14 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     const drinksSnapshot = await getDocs(collection(db, 'drinks'));
-    setDrinks(drinksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-
-    const packagesSnapshot = await getDocs(collection(db, 'packages'));
-    setPackages(packagesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+    setDrinks(
+      drinksSnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        docId: doc.id, // Firestore document ID
+      }))
+    );
+  
+    // ... (fetch packages similarly)
   };
 
   useEffect(() => {
@@ -111,6 +144,7 @@ export default function AdminPage() {
     }
   };
 
+  
   // Handle file upload
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -253,19 +287,20 @@ export default function AdminPage() {
         <p>Loading...</p>
       ) : (
         <>
-        <DrinksTable
-          drinks={drinks}
-          onDrinkChange={handleDrinkChange}
-          onSaveDrink={saveDrink}
-          onDeleteDrink={deleteDrink} // Add this line
-        />
+          <DrinksTable
+            drinks={drinks}
+            onDrinkChange={handleDrinkChange}
+            onSaveDrink={saveDrink}
+            onDeleteDrink={deleteDrink}
+            onAddDrink={addDrink} // Pass the function here
+          />
 
-        <PackagesTable
-          packages={packages}
-          drinks={drinks} // Pass drinks as a prop
-          onPackageChange={handlePackageChange}
-          onSavePackage={onSavePackage}
-        />
+          <PackagesTable
+            packages={packages}
+            drinks={drinks} // Pass drinks as a prop
+            onPackageChange={handlePackageChange}
+            onSavePackage={onSavePackage}
+          />
 
           <div className="mt-8">
             <h2 className="text-xl font-bold mb-2">Upload Packages and Drinks JSON</h2>

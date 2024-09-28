@@ -3,15 +3,18 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 
-function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
+function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddDrink }) {
   const [editingRows, setEditingRows] = useState({});
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newDrink, setNewDrink] = useState({});
   const [modalStack, setModalStack] = useState([]);
   const [currentData, setCurrentData] = useState(null);
+  const [currentPath, setCurrentPath] = useState([]);
 
-  const toggleEditing = (id) => {
+  const toggleEditing = (docId) => {
     setEditingRows((prev) => ({
       ...prev,
-      [id]: !prev[id],
+      [docId]: !prev[docId],
     }));
   };
 
@@ -27,16 +30,19 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
     const value = drink[key];
     if (typeof value === 'object' && value !== null) {
       // Open modal
-      setModalStack([{ data: value, path: [drink.id, key] }]);
+      setModalStack([{ data: value, path: [drink.id, key], title: key }]);
       setCurrentData(value);
+      setCurrentPath([drink.id, key]);
     }
   };
 
-  const handleModalCellClick = (value, path) => {
+
+  const handleModalCellClick = (value, key, path) => {
     if (typeof value === 'object' && value !== null) {
       // Drill down further
-      setModalStack([...modalStack, { data: value, path }]);
+      setModalStack([...modalStack, { data: value, path: [...path, key], title: key }]);
       setCurrentData(value);
+      setCurrentPath([...path, key]);
     }
   };
 
@@ -45,9 +51,12 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
     newStack.pop();
     setModalStack(newStack);
     if (newStack.length > 0) {
-      setCurrentData(newStack[newStack.length - 1].data);
+      const lastItem = newStack[newStack.length - 1];
+      setCurrentData(lastItem.data);
+      setCurrentPath(lastItem.path);
     } else {
       setCurrentData(null);
+      setCurrentPath([]);
     }
   };
 
@@ -55,11 +64,57 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
     const drinkId = path[0];
     const fieldPath = [...path.slice(1), key];
     onDrinkChange(drinkId, fieldPath, newValue);
+
+    // Update the currentData in modal
+    setCurrentData((prevData) => {
+      return {
+        ...prevData,
+        [key]: newValue,
+      };
+    });
+  };
+
+  const handleAddDrink = () => {
+    setNewDrink({
+      image: '',
+      stock: 0,
+      id: '', // You might generate a temporary ID or leave it empty
+      name: '',
+      size: '',
+      isSugarFree: false,
+      salePrice: 0,
+      purchasePrice: 0,
+      packageQuantity: 0,
+      nutrition: {
+        per100ml: {
+          energy: '',
+          fat: '',
+          saturatedFat: '',
+          carbohydrates: '',
+          sugar: '',
+          protein: '',
+          salt: '',
+        },
+      },
+    });
+    setShowAddModal(true);
+  };
+
+  const handleSaveNewDrink = () => {
+    onAddDrink(newDrink);
+    setShowAddModal(false);
+    setNewDrink({});
   };
 
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold mb-4">Drinks</h2>
+      <button
+        className="mb-4 bg-green-500 text-white px-4 py-2 rounded"
+        onClick={handleAddDrink}
+      >
+        Add New Drink
+      </button>
       <table className="min-w-full border-collapse">
         <thead>
           <tr>
@@ -68,17 +123,18 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
               <th key={key} className="border px-4 py-2">{key}</th>
             ))}
             <th className="border px-4 py-2">Save</th>
+            <th className="border px-4 py-2">Delete</th>
           </tr>
         </thead>
         <tbody>
-          {drinks.map((drink, index) => {
-            const isEditing = editingRows[drink.id] || false;
+          {drinks.map((drink) => {
+            const isEditing = editingRows[drink.docId] || false;
             return (
-              <tr key={drink.id} className="border-b">
+              <tr key={drink.docId} className="border-b">
                 <td className="border px-4 py-2 text-center">
                   <button
                     className="bg-blue-500 text-white px-2 py-1 rounded"
-                    onClick={() => toggleEditing(drink.id)}
+                    onClick={() => toggleEditing(drink.docId)}
                   >
                     {isEditing ? 'Lock' : 'Edit'}
                   </button>
@@ -93,12 +149,20 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
                           className="text-blue-500 underline"
                           onClick={() => handleCellClick(drink, key)}
                         >
-                          {key}
+                          Edit {key}
                         </button>
                       ) : (
                         <input
-                          type={typeof value === 'number' ? 'number' : 'text'}
-                          value={value}
+                          type={
+                            typeof value === 'number' ? 'number' :
+                              key === 'isSugarFree' ? 'checkbox' : 'text'
+                          }
+                          value={
+                            key === 'isSugarFree' ? undefined : value || ''
+                          }
+                          checked={
+                            key === 'isSugarFree' ? value || false : undefined
+                          }
                           onChange={(e) => {
                             const newValue = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
                             onDrinkChange(drink.id, [key], newValue);
@@ -120,15 +184,106 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
                     </button>
                   )}
                 </td>
+                <td className="border px-4 py-2 text-center">
+                  <button
+                    className="bg-red-500 text-white px-2 py-1 rounded"
+                    onClick={() => onDeleteDrink(drink.docId)}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
 
+      {/* Add New Drink Modal */}
+      {showAddModal && (
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title="Add New Drink"
+        >
+          <div className="space-y-4">
+            {Object.keys(newDrink).map((key) => {
+              const value = newDrink[key];
+              const isObject = typeof value === 'object' && value !== null;
+
+              return (
+                <div key={key}>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {key}
+                  </label>
+                  {isObject ? (
+                    <button
+                      className="text-blue-500 underline"
+                      onClick={() => {
+                        setModalStack([{ data: value, path: [key], title: key }]);
+                        setCurrentData(value);
+                        setCurrentPath([key]);
+                      }}
+                    >
+                      Edit {key}
+                    </button>
+                  ) : (
+                    <input
+                      type={
+                        typeof value === 'number' ? 'number' :
+                          key === 'isSugarFree' ? 'checkbox' : 'text'
+                      }
+                      value={
+                        key === 'isSugarFree' ? undefined : value || ''
+                      }
+                      checked={
+                        key === 'isSugarFree' ? value || false : undefined
+                      }
+                      onChange={(e) => {
+                        const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                        setNewDrink({
+                          ...newDrink,
+                          [key]: val,
+                        });
+                      }}
+                      className="border p-1 w-full"
+                    />
+                  )}
+                </div>
+              );
+            })}
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={handleSaveNewDrink}
+                className="bg-green-500 text-white px-4 py-2 rounded mr-2"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="bg-gray-300 px-4 py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* Modal for nested data */}
       {currentData && (
-        <Modal isOpen={true} onClose={() => setCurrentData(null)} title="Edit Data">
+        <Modal
+          isOpen={true}
+          onClose={() => {
+            if (modalStack.length > 1) {
+              handleBack();
+            } else {
+              setCurrentData(null);
+              setCurrentPath([]);
+              setModalStack([]);
+            }
+          }}
+          title={`Edit ${modalStack[modalStack.length - 1].title}`}
+        >
           <div>
             {modalStack.length > 1 && (
               <button onClick={handleBack} className="mb-2 bg-gray-200 px-2 py-1 rounded">
@@ -145,7 +300,8 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
               <tbody>
                 {Object.entries(currentData).map(([key, value]) => {
                   const isObject = typeof value === 'object' && value !== null;
-                  const path = [...modalStack[modalStack.length - 1].path, key];
+                  const path = [...currentPath];
+
                   return (
                     <tr key={key}>
                       <td className="border px-4 py-2">{key}</td>
@@ -153,20 +309,25 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
                         {isObject ? (
                           <button
                             className="text-blue-500 underline"
-                            onClick={() => handleModalCellClick(value, path)}
+                            onClick={() => handleModalCellClick(value, key, path)}
                           >
-                            {key}
+                            Edit {key}
                           </button>
                         ) : (
                           <input
-                            type={typeof value === 'number' ? 'number' : 'text'}
-                            value={value}
+                            type={
+                              typeof value === 'number' ? 'number' :
+                                typeof value === 'boolean' ? 'checkbox' : 'text'
+                            }
+                            value={
+                              typeof value === 'boolean' ? undefined : value || ''
+                            }
+                            checked={
+                              typeof value === 'boolean' ? value || false : undefined
+                            }
                             onChange={(e) => {
-                              const newValue = e.target.value;
-                              // Update the currentData
-                              const updatedData = { ...currentData, [key]: newValue };
-                              setCurrentData(updatedData);
-                              handleModalChange(modalStack[modalStack.length - 1].path, key, newValue);
+                              const newValue = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                              handleModalChange(currentPath, key, newValue);
                             }}
                             className="border p-1 w-full"
                           />
@@ -177,12 +338,22 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink }) {
                 })}
               </tbody>
             </table>
-            <button
-              onClick={() => setCurrentData(null)}
-              className="mt-4 bg-blue-500 text-white py-2 px-4 rounded"
-            >
-              Close
-            </button>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => {
+                  if (modalStack.length > 1) {
+                    handleBack();
+                  } else {
+                    setCurrentData(null);
+                    setCurrentPath([]);
+                    setModalStack([]);
+                  }
+                }}
+                className="bg-gray-300 px-4 py-2 rounded"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </Modal>
       )}
