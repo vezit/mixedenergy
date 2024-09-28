@@ -82,7 +82,7 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
     setNewDrink({
       image: '/images/path/to/image.png',
       stock: 100,
-      // id is auto-generated; we don't need to set it here
+      // id and docId are auto-generated; we don't need to set them here
       name: 'Format Is Like This',
       size: '0.5 l',
       isSugarFree: false,
@@ -176,9 +176,11 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
                               e.target.type === 'checkbox'
                                 ? e.target.checked
                                 : e.target.value;
-                            onDrinkChange(drink.docId, [key], newValue);
+                            if (key !== 'id' && key !== 'docId') {
+                              onDrinkChange(drink.docId, [key], newValue);
+                            }
                           }}
-                          disabled={!isEditing}
+                          disabled={!isEditing || key === 'id' || key === 'docId'}
                           className="border p-1 w-full"
                         />
                       )}
@@ -218,7 +220,7 @@ function DrinksTable({ drinks, onDrinkChange, onSaveDrink, onDeleteDrink, onAddD
         >
           <div className="space-y-4">
             {Object.keys(newDrink).map((key) => {
-              if (key === 'id') return null; // Do not show id field
+              if (key === 'id' || key === 'docId') return null; // Do not show id or docId field
               const value = newDrink[key];
               const isObject = typeof value === 'object' && value !== null;
 
