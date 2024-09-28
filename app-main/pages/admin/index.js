@@ -288,8 +288,10 @@ export default function AdminPage() {
       return 'Data must contain a "packages" object.';
     }
 
-    // Check for duplicate docIDs in drinks
+    // Extract drink IDs from the drinks object
     const drinkDocIds = Object.keys(data.drinks);
+
+    // Check for duplicate docIDs in drinks
     const duplicateDrinkDocIds = drinkDocIds.filter(
       (id, index) => drinkDocIds.indexOf(id) !== index
     );
@@ -340,6 +342,17 @@ export default function AdminPage() {
       const docIdPattern = /^[a-z0-9-]+$/;
       if (!docIdPattern.test(docId)) {
         return `Invalid docID format in packages: "${docId}". Expected lowercase letters, numbers, and hyphens only.`;
+      }
+    }
+
+    // **New Validation: Ensure all drink IDs in packages exist in the drinks object**
+    for (const [pkgDocId, pkgData] of Object.entries(data.packages)) {
+      if (pkgData.drinks && Array.isArray(pkgData.drinks)) {
+        for (const drinkId of pkgData.drinks) {
+          if (!drinkDocIds.includes(drinkId)) {
+            return `Package "${pkgDocId}" references a drink "${drinkId}" that does not exist in the drinks object.`;
+          }
+        }
       }
     }
 
