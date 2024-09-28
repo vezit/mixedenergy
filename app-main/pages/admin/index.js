@@ -2,17 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  updateDoc,
-  doc,
-  deleteDoc,
-  setDoc,
-  getDoc,
-  writeBatch, // Import writeBatch
-} from 'firebase/firestore';
+import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, setDoc, getDoc, query, where } from 'firebase/firestore';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
 import DrinksTable from '../../components/DrinksTable';
@@ -131,54 +121,68 @@ export default function AdminPage() {
   };
 
   // Function to add a new drink
-  const addDrink = async (newDrink) => {
-    try {
-      // Generate the docId based on the name
-      const generateDocId = (name) => {
-        return name.trim().toLowerCase().replace(/\s+/g, '-');
-      };
-
-      const docId = generateDocId(newDrink.name);
-
-      // Check if a drink with the same docId already exists
-      const drinkRef = doc(db, 'drinks', docId);
-      const drinkSnap = await getDoc(drinkRef);
-
-      if (drinkSnap.exists()) {
-        alert(`docID: ${docId} already exists`);
-        return;
-      }
-
-      // Ensure all existing IDs are numbers
-      const existingIds = drinks
-        .map((drink) => Number(drink.id))
-        .filter((id) => !isNaN(id));
-
-      const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
-      const newId = maxId + 1;
-
-      // Check if 'id' already exists in the database
-      const idQuery = query(collection(db, 'drinks'), where('id', '==', newId));
-      const idQuerySnapshot = await getDocs(idQuery);
-
-      if (!idQuerySnapshot.empty) {
-        alert(`id: ${newId} already exists. Please try again.`);
-        return;
-      }
-
-      newDrink.id = newId;
-
-      // Use docId as document id
-      await setDoc(drinkRef, newDrink);
-
-      // Update local state
-      setDrinks([...drinks, { ...newDrink, docId }]);
-      alert('New drink added successfully.');
-    } catch (error) {
-      console.error('Error adding new drink:', error);
-      alert('Error adding new drink.');
+// Function to add a new drink
+const addDrink = async (newDrink) => {
+  try {
+    // Validate the drink object
+    if (!newDrink || !newDrink.name || !newDrink.salePrice || !newDrink.purchasePrice || !newDrink.packageQuantity) {
+      alert('Please provide all necessary fields: name, salePrice, purchasePrice, and packageQuantity.');
+      return;
     }
-  };
+
+    // Generate the docId based on the name
+    const generateDocId = (name) => {
+      return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    };
+
+    const docId = generateDocId(newDrink.name);
+
+    if (!docId) {
+      alert('Invalid name for the new drink. Could not generate a valid docId.');
+      return;
+    }
+
+    // Check if a drink with the same docId already exists
+    const drinkRef = doc(db, 'drinks', docId);
+    const drinkSnap = await getDoc(drinkRef);
+
+    if (drinkSnap.exists()) {
+      alert(`docID: ${docId} already exists. Please choose a different name.`);
+      return;
+    }
+
+    // Ensure all existing IDs are numbers
+    const existingIds = drinks
+      .map((drink) => Number(drink.id))
+      .filter((id) => !isNaN(id));
+
+    const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+    const newId = maxId + 1;
+
+    // Check if 'id' already exists in the database
+    const idQuery = query(collection(db, 'drinks'), where('id', '==', newId));
+    const idQuerySnapshot = await getDocs(idQuery);
+
+    if (!idQuerySnapshot.empty) {
+      alert(`id: ${newId} already exists. Please try again.`);
+      return;
+    }
+
+    // Assign new id to the drink
+    newDrink.id = newId;
+
+    // Add the new drink to Firestore using docId
+    await setDoc(drinkRef, newDrink);
+
+    // Update local state to include the new drink
+    setDrinks([...drinks, { ...newDrink, docId }]);
+    alert('New drink added successfully.');
+  } catch (error) {
+    console.error('Error adding new drink:', error);
+    alert('Error adding new drink. See console for details.');
+  }
+};
+
 
   // Handle file upload
   const handleFileUpload = (e) => {
@@ -275,7 +279,7 @@ export default function AdminPage() {
 
     return null; // No error
   };
-  
+
   const handleConfirmOverwrite = async () => {
     if (deleteInput !== 'delete') {
       alert('Please type "delete" to confirm.');
