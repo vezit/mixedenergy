@@ -136,32 +136,43 @@ export default function AdminPage() {
       const generateDocId = (name) => {
         return name.trim().toLowerCase().replace(/\s+/g, '-');
       };
-
+  
       const docId = generateDocId(newDrink.name);
-
+  
       // Check if a drink with the same docId already exists
       const drinkRef = doc(db, 'drinks', docId);
       const drinkSnap = await getDoc(drinkRef);
-
+  
       if (drinkSnap.exists()) {
         alert(`docID: ${docId} already exists`);
         return;
       }
-
-      // Generate a unique 'id' field (int)
-      const existingIds = drinks.map((drink) => drink.id);
-      const maxId = Math.max(...existingIds);
-      const newId = (maxId || 0) + 1;
+  
+      // Ensure all existing IDs are numbers
+      const existingIds = drinks
+        .map((drink) => Number(drink.id))
+        .filter((id) => !isNaN(id));
+  
+      const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+      const newId = maxId + 1;
+  
+      // Check if 'id' already exists in the database
+      const idQuery = query(collection(db, 'drinks'), where('id', '==', newId));
+      const idQuerySnapshot = await getDocs(idQuery);
+  
+      if (!idQuerySnapshot.empty) {
+        alert(`id: ${newId} already exists. Please try again.`);
+        return;
+      }
+  
       newDrink.id = newId;
-
+  
       // Use docId as document id
       await setDoc(drinkRef, newDrink);
-
+  
       // Update local state
       setDrinks([...drinks, { ...newDrink, docId }]);
       alert('New drink added successfully.');
-      window.location.reload();
-
     } catch (error) {
       console.error('Error adding new drink:', error);
       alert('Error adding new drink.');
