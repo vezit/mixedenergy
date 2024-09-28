@@ -226,15 +226,14 @@ export default function AdminPage() {
 
     // Check for duplicate docIDs in drinks
     const drinkDocIds = Object.keys(data.drinks);
-    const drinkDocIdsSet = new Set(drinkDocIds);
-    if (drinkDocIds.length !== drinkDocIdsSet.size) {
-      return 'Duplicate docIDs found in drinks.';
+    const duplicateDrinkDocIds = drinkDocIds.filter((id, index) => drinkDocIds.indexOf(id) !== index);
+    if (duplicateDrinkDocIds.length > 0) {
+      return `Duplicate docIDs found in drinks: ${duplicateDrinkDocIds.join(', ')}`;
     }
 
     // Validate docIDs format in drinks
     for (const docId of drinkDocIds) {
       // Check that docId is in correct format
-      // For example, it should be a lowercase string with hyphens
       const docIdPattern = /^[a-z0-9-]+$/;
       if (!docIdPattern.test(docId)) {
         return `Invalid docID format in drinks: "${docId}". Expected lowercase letters, numbers, and hyphens only.`;
@@ -243,23 +242,27 @@ export default function AdminPage() {
 
     // Check for duplicate 'id' in drinks
     const drinkIds = Object.values(data.drinks).map((drink) => drink.id);
-    const drinkIdsSet = new Set(drinkIds);
-    if (drinkIds.length !== drinkIdsSet.size) {
-      return 'Duplicate "id" values found in drinks.';
+    const duplicateDrinkIds = drinkIds.filter((id, index) => drinkIds.indexOf(id) !== index);
+    if (duplicateDrinkIds.length > 0) {
+      // Find which drinks have the duplicate ids
+      const duplicateDrinksInfo = Object.entries(data.drinks)
+        .filter(([docId, drink]) => duplicateDrinkIds.includes(drink.id))
+        .map(([docId, drink]) => `${drink.name} (id: ${drink.id})`);
+      return `Duplicate "id" values found in drinks: ${duplicateDrinksInfo.join(', ')}`;
     }
 
     // Validate 'id' in drinks are unique and numbers
-    for (const drink of Object.values(data.drinks)) {
+    for (const [docId, drink] of Object.entries(data.drinks)) {
       if (typeof drink.id !== 'number') {
-        return `Invalid "id" value in drinks. Expected number, got ${typeof drink.id}`;
+        return `Invalid "id" value in drinks. Expected number for "${drink.name}", got ${typeof drink.id}.`;
       }
     }
 
     // Similar validation for packages
     const packageDocIds = Object.keys(data.packages);
-    const packageDocIdsSet = new Set(packageDocIds);
-    if (packageDocIds.length !== packageDocIdsSet.size) {
-      return 'Duplicate docIDs found in packages.';
+    const duplicatePackageDocIds = packageDocIds.filter((id, index) => packageDocIds.indexOf(id) !== index);
+    if (duplicatePackageDocIds.length > 0) {
+      return `Duplicate docIDs found in packages: ${duplicatePackageDocIds.join(', ')}`;
     }
 
     // Validate docIDs format in packages
@@ -272,7 +275,7 @@ export default function AdminPage() {
 
     return null; // No error
   };
-
+  
   const handleConfirmOverwrite = async () => {
     if (deleteInput !== 'delete') {
       alert('Please type "delete" to confirm.');

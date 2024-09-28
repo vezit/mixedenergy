@@ -301,7 +301,7 @@
     "faxe-kondi-booster-original": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 31,
+      "id": 310,
       "name": "Faxe Kondi Booster Original",
       "size": "0.5 l",
       "isSugarFree": false,
@@ -389,7 +389,7 @@
     "faxe-kondi-booster-pink-dragon": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 35,
+      "id": 350,
       "name": "Faxe Kondi Booster Pink Dragon",
       "size": "0.5 l",
       "isSugarFree": true,
@@ -803,7 +803,7 @@
     "monster-energy-zero": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 32,
+      "id": 320,
       "name": "Monster Energy Zero",
       "size": "0.5 l",
       "isSugarFree": true,
@@ -831,7 +831,7 @@
     "monster-energy-ultra-zero": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 33,
+      "id": 330,
       "name": "Monster Energy Ultra Zero",
       "size": "0.5 l",
       "isSugarFree": true,
@@ -859,7 +859,7 @@
     "monster-energy-ultra-rosa": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 34,
+      "id": 340,
       "name": "Monster Energy Ultra Rosa",
       "size": "0.5 l",
       "isSugarFree": true,
@@ -915,7 +915,7 @@
     "monster-energy-pipeline-punch": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 36,
+      "id": 360,
       "name": "Monster Energy Pipeline Punch",
       "size": "0.5 l",
       "isSugarFree": false,
@@ -943,7 +943,7 @@
     "monster-energy-loco-mango": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 37,
+      "id": 370,
       "name": "Monster Energy Loco Mango",
       "size": "0.5 l",
       "isSugarFree": false,
@@ -971,7 +971,7 @@
     "monster-energy-nitro": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 38,
+      "id": 380,
       "name": "Monster Energy Nitro",
       "size": "0.5 l",
       "isSugarFree": false,
@@ -999,7 +999,7 @@
     "monster-energy-the-doctor": {
       "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
       "stock": 9999,
-      "id": 39,
+      "id": 390,
       "name": "Monster Energy The Doctor",
       "size": "0.5 l",
       "isSugarFree": false,
