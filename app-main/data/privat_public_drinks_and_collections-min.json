@@ -1,0 +1,86 @@
+{
+  "drinks_private": {
+    "faxe-kondi-booster-original": {
+      "_purchasePrice": 1079,
+      "_packageQuantity": 24
+    }
+  },
+  "drinks_public": {
+    "faxe-kondi-booster-original": {
+      "id": 310,
+      "name": "Faxe Kondi Booster Original",
+      "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+      "stock": 9999,
+      "size": "0.5 l",
+      "isSugarFree": false,
+      "salePrice": 2000,
+      "nutrition": {
+        "per100ml": {
+          "energy": "49 kcal",
+          "fat": "0 g",
+          "saturatedFat": "0 g",
+          "carbohydrates": "12 g",
+          "sugar": "12 g",
+          "protein": "0 g",
+          "salt": "0.05 g"
+        }
+      }
+    }
+  },
+  "packages_public": {
+    "mixed-any": {
+      "slug": "mixed-any",
+      "category": "vi-blander-for-dig",
+      "title": "Blandet Mix",
+      "description": "Bland Red Bull, Monster og Booster i en kasse",
+      "image": "/images/packages/mixed-any.jpg",
+      "packages": [
+        {
+          "size": 8
+        },
+        {
+          "size": 12
+        },
+        {
+          "size": 18
+        }
+      ],
+      "drinks": [
+        "red-bull-original",
+        "red-bull-sugarfree",
+        "red-bull-zero",
+        "red-bull-coconut-edition",
+        "red-bull-winter-edition",
+        "red-bull-red-edition-watermelon",
+        "red-bull-blue-edition",
+        "red-bull-apricot-edition",
+        "red-bull-purple-edition",
+        "red-bull-summer-edition",
+        "monster-energy",
+        "monster-energy-zero",
+        "monster-energy-ultra-zero",
+        "monster-energy-ultra-rosa",
+        "monster-energy-ultra-fiesta",
+        "monster-energy-pipeline-punch",
+        "monster-energy-loco-mango",
+        "monster-energy-nitro",
+        "monster-energy-the-doctor",
+        "monster-energy-lewis-hamilton",
+        "monster-energy-khaotic",
+        "monster-energy-ultra-gold",
+        "monster-energy-monarch",
+        "monster-energy-zero-sugar",
+        "monster-energy-ultra-peachy-keen",
+        "faxe-kondi-booster-original",
+        "faxe-kondi-booster-free",
+        "faxe-kondi-booster-black-edition",
+        "faxe-kondi-booster-frosty-blue",
+        "faxe-kondi-booster-pink-dragon",
+        "faxe-kondi-booster-energy",
+        "faxe-kondi-booster-sort-passion",
+        "faxe-kondi-booster-sort-zero",
+        "faxe-kondi-booster-twisted-ice-zero"
+      ]
+    }
+  }
+}

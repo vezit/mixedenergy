@@ -53,14 +53,39 @@ export default function AdminPage() {
   }, [auth, router]);
 
   const fetchData = async () => {
-    const drinksSnapshot = await getDocs(collection(db, 'drinks'));
-    setDrinks(
-      drinksSnapshot.docs.map((doc) => ({
-        ...doc.data(),
-        docId: doc.id, // Firestore document ID
-      }))
-    );
-
+    // Fetch public drinks
+    const drinksPublicSnapshot = await getDocs(collection(db, 'drinks_public'));
+    const drinksPublic = drinksPublicSnapshot.docs.map((doc) => ({
+      ...doc.data(),
+      docId: doc.id,
+    }));
+  
+    // Fetch private drinks
+    const drinksPrivateSnapshot = await getDocs(collection(db, 'drinks_private'));
+    const drinksPrivate = drinksPrivateSnapshot.docs.map((doc) => ({
+      ...doc.data(),
+      docId: doc.id,
+    }));
+  
+    // Merge public and private drinks
+    const drinksMap = {};
+    drinksPublic.forEach((drink) => {
+      drinksMap[drink.docId] = { ...drink };
+    });
+  
+    drinksPrivate.forEach((drink) => {
+      if (drinksMap[drink.docId]) {
+        drinksMap[drink.docId] = { ...drinksMap[drink.docId], ...drink };
+      } else {
+        // Handle case where private data exists without public data
+        drinksMap[drink.docId] = { ...drink };
+      }
+    });
+  
+    const mergedDrinks = Object.values(drinksMap);
+    setDrinks(mergedDrinks);
+  
+    // Fetch packages as before
     const packagesSnapshot = await getDocs(collection(db, 'packages'));
     setPackages(
       packagesSnapshot.docs.map((doc) => ({
@@ -69,6 +94,7 @@ export default function AdminPage() {
       }))
     );
   };
+  
 
   useEffect(() => {
     if (!loading) {
@@ -116,15 +142,22 @@ export default function AdminPage() {
   };
 
   const saveDrink = async (drink) => {
-    const drinkRef = doc(db, 'drinks', drink.docId);
+    const { purchasePrice, packageQuantity, ...publicData } = drink;
+    const privateData = { purchasePrice, packageQuantity };
+  
+    const drinkPublicRef = doc(db, 'drinks_public', drink.docId);
+    const drinkPrivateRef = doc(db, 'drinks_private', drink.docId);
+  
     try {
-      await updateDoc(drinkRef, drink); // Save the entire drink object
+      await updateDoc(drinkPublicRef, publicData);
+      await updateDoc(drinkPrivateRef, privateData);
       alert('Drink saved successfully');
     } catch (error) {
       console.error('Error saving drink:', error);
       alert('Error saving drink.');
     }
   };
+  
 
   const onSavePackage = async (pkg) => {
     const packageRef = doc(db, 'packages', pkg.docId);
@@ -153,7 +186,7 @@ export default function AdminPage() {
         );
         return;
       }
-
+  
       // Generate the docId based on the name
       const generateDocId = (name) => {
         return name
@@ -162,46 +195,53 @@ export default function AdminPage() {
           .replace(/\s+/g, '-')
           .replace(/[^a-z0-9-]/g, '');
       };
-
+  
       const docId = generateDocId(newDrink.name);
-
+  
       if (!docId) {
         alert('Invalid name for the new drink. Could not generate a valid docId.');
         return;
       }
-
+  
       // Check if a drink with the same docId already exists
-      const drinkRef = doc(db, 'drinks', docId);
-      const drinkSnap = await getDoc(drinkRef);
-
-      if (drinkSnap.exists()) {
+      const drinkPublicRef = doc(db, 'drinks_public', docId);
+      const drinkPrivateRef = doc(db, 'drinks_private', docId);
+      const drinkPublicSnap = await getDoc(drinkPublicRef);
+      const drinkPrivateSnap = await getDoc(drinkPrivateRef);
+  
+      if (drinkPublicSnap.exists() || drinkPrivateSnap.exists()) {
         alert(`docID: ${docId} already exists. Please choose a different name.`);
         return;
       }
-
+  
       // Ensure all existing IDs are numbers
       const existingIds = drinks
         .map((drink) => Number(drink.id))
         .filter((id) => !isNaN(id));
-
+  
       const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
       const newId = maxId + 1;
-
+  
       // Check if 'id' already exists in the database
-      const idQuery = query(collection(db, 'drinks'), where('id', '==', newId));
+      const idQuery = query(collection(db, 'drinks_public'), where('id', '==', newId));
       const idQuerySnapshot = await getDocs(idQuery);
-
+  
       if (!idQuerySnapshot.empty) {
         alert(`id: ${newId} already exists. Please try again.`);
         return;
       }
-
+  
       // Assign new id to the drink
       newDrink.id = newId;
-
+  
+      // Split the drink data into public and private fields
+      const { purchasePrice, packageQuantity, ...publicData } = newDrink;
+      const privateData = { purchasePrice, packageQuantity };
+  
       // Add the new drink to Firestore using docId
-      await setDoc(drinkRef, newDrink);
-
+      await setDoc(drinkPublicRef, publicData);
+      await setDoc(drinkPrivateRef, privateData);
+  
       // Update local state to include the new drink
       setDrinks([...drinks, { ...newDrink, docId }]);
       alert('New drink added successfully.');
@@ -210,6 +250,7 @@ export default function AdminPage() {
       alert('Error adding new drink. See console for details.');
     }
   };
+  
 
   // Function to add a new package
   const addPackage = async (newPackage) => {
@@ -364,36 +405,53 @@ export default function AdminPage() {
       alert('Please type "delete" to confirm.');
       return;
     }
-
+  
     setShowConfirmModal(false);
-
+  
     try {
-      // Delete existing drinks
-      const drinksSnapshot = await getDocs(collection(db, 'drinks'));
-      const drinksDeletionPromises = drinksSnapshot.docs.map((doc) => deleteDoc(doc.ref));
-      await Promise.all(drinksDeletionPromises);
-
+      // Delete existing drinks in both collections
+      const drinksPublicSnapshot = await getDocs(collection(db, 'drinks_public'));
+      const drinksPublicDeletionPromises = drinksPublicSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
+      await Promise.all(drinksPublicDeletionPromises);
+  
+      const drinksPrivateSnapshot = await getDocs(collection(db, 'drinks_private'));
+      const drinksPrivateDeletionPromises = drinksPrivateSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
+      await Promise.all(drinksPrivateDeletionPromises);
+  
       // Delete existing packages
       const packagesSnapshot = await getDocs(collection(db, 'packages'));
       const packagesDeletionPromises = packagesSnapshot.docs.map((doc) =>
         deleteDoc(doc.ref)
       );
       await Promise.all(packagesDeletionPromises);
-
+  
       // Now, add new drinks
       const drinksData = uploadedData.drinks;
       for (const [docId, drinkData] of Object.entries(drinksData)) {
-        const drinkRef = doc(db, 'drinks', docId);
-        await setDoc(drinkRef, drinkData);
+        // Split the drink data into public and private fields
+        const { purchasePrice, packageQuantity, ...publicData } = drinkData;
+        const privateData = { purchasePrice, packageQuantity };
+  
+        // Save public data to drinks_public collection
+        const drinkPublicRef = doc(db, 'drinks_public', docId);
+        await setDoc(drinkPublicRef, publicData);
+  
+        // Save private data to drinks_private collection
+        const drinkPrivateRef = doc(db, 'drinks_private', docId);
+        await setDoc(drinkPrivateRef, privateData);
       }
-
+  
       // Add new packages
       const packagesData = uploadedData.packages;
       for (const [docId, packageData] of Object.entries(packagesData)) {
         const packageRef = doc(db, 'packages', docId);
         await setDoc(packageRef, packageData);
       }
-
+  
       alert('Data replaced successfully.');
       // Refresh data
       fetchData();
@@ -408,11 +466,13 @@ export default function AdminPage() {
   const deleteDrink = async (drinkDocId) => {
     if (confirm('Are you sure you want to delete this drink?')) {
       try {
-        // Delete the drink document
-        await deleteDoc(doc(db, 'drinks', drinkDocId));
+        // Delete the drink document from both collections
+        await deleteDoc(doc(db, 'drinks_public', drinkDocId));
+        await deleteDoc(doc(db, 'drinks_private', drinkDocId));
+  
         // Remove the drink from the local state
         setDrinks(drinks.filter((drink) => drink.docId !== drinkDocId));
-
+  
         // Also remove the drink from any packages where it appears
         const updatedPackages = packages.map((pkg) => {
           const updatedPackage = { ...pkg };
@@ -424,13 +484,13 @@ export default function AdminPage() {
           return updatedPackage;
         });
         setPackages(updatedPackages);
-
+  
         // Save the updated packages to Firestore
         updatedPackages.forEach(async (pkg) => {
           const packageRef = doc(db, 'packages', pkg.docId);
           await updateDoc(packageRef, { drinks: pkg.drinks });
         });
-
+  
         alert('Drink deleted successfully.');
       } catch (error) {
         console.error('Error deleting drink:', error);
@@ -438,6 +498,7 @@ export default function AdminPage() {
       }
     }
   };
+  
 
   // Function to delete a package
   const deletePackage = async (packageDocId) => {
@@ -459,39 +520,50 @@ export default function AdminPage() {
   const handleExportData = async () => {
     try {
       // Fetch the latest data
-      const drinksSnapshot = await getDocs(collection(db, 'drinks'));
+      const drinksPublicSnapshot = await getDocs(collection(db, 'drinks_public'));
+      const drinksPrivateSnapshot = await getDocs(collection(db, 'drinks_private'));
       const packagesSnapshot = await getDocs(collection(db, 'packages'));
-
+  
+      // Create a map of drinks
       const drinksData = {};
-      drinksSnapshot.forEach((doc) => {
-        drinksData[doc.id] = doc.data();
+      drinksPublicSnapshot.forEach((doc) => {
+        drinksData[doc.id] = { ...doc.data() };
       });
-
+      drinksPrivateSnapshot.forEach((doc) => {
+        if (drinksData[doc.id]) {
+          drinksData[doc.id] = { ...drinksData[doc.id], ...doc.data() };
+        } else {
+          drinksData[doc.id] = { ...doc.data() };
+        }
+      });
+  
+      // Process packages as before
       const packagesData = {};
       packagesSnapshot.forEach((doc) => {
         packagesData[doc.id] = doc.data();
       });
-
+  
       const dataToExport = {
         drinks: drinksData,
         packages: packagesData,
       };
-
+  
       const jsonString = JSON.stringify(dataToExport, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-
+  
       const link = document.createElement('a');
       link.href = url;
       link.download = 'database_export.json';
       link.click();
-
+  
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting data:', error);
       alert('Error exporting data.');
     }
   };
+  
 
   const handleLogout = () => {
     signOut(auth)

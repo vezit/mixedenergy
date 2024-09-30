@@ -1,0 +1,828 @@
+{
+  "faxe-kondi-booster-original": {
+    "id": 310,
+    "name": "Faxe Kondi Booster Original",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "49 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "12 g",
+        "sugar": "12 g",
+        "protein": "0 g",
+        "salt": "0.05 g"
+      }
+    }
+  },
+  "faxe-kondi-booster-free": {
+    "id": 32,
+    "name": "Faxe Kondi Booster Free",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "49 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "12 g",
+        "sugar": "12 g",
+        "protein": "0 g",
+        "salt": "0.05 g"
+      }
+    }
+  },
+  "faxe-kondi-booster-black-edition": {
+    "id": 33,
+    "name": "Faxe Kondi Booster Black Edition",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "protein": "0 g",
+        "salt": "0.133 g"
+      }
+    }
+  },
+  "faxe-kondi-booster-frosty-blue": {
+    "id": 34,
+    "name": "Faxe Kondi Booster Frosty Blue",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "2 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0 g",
+        "sugar": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g"
+      }
+    }
+  },
+  "faxe-kondi-booster-pink-dragon": {
+    "id": 350,
+    "name": "Faxe Kondi Booster Pink Dragon",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "2 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0 g",
+        "sugar": "0 g",
+        "protein": "0 g",
+        "salt": "0.118 g"
+      }
+    }
+  },
+  "faxe-kondi-booster-energy": {
+    "id": 36,
+    "name": "Faxe Kondi Booster Energy",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "protein": "0 g",
+        "salt": "0.133 g"
+      }
+    }
+  },
+  "faxe-kondi-booster-sort-passion": {
+    "id": 37,
+    "name": "Faxe Kondi Booster Sort Passion",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "protein": "0 g",
+        "salt": "0.13 g"
+      }
+    }
+  },
+  "faxe-kondi-booster-sort-zero": {
+    "id": 38,
+    "name": "Faxe Kondi Booster Sort Zero",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0 g",
+        "sugar": "0 g",
+        "protein": "0 g",
+        "salt": "0.133 g",
+        "caffeine": "32 mg"
+      }
+    }
+  },
+  "faxe-kondi-booster-twisted-ice-zero": {
+    "id": 39,
+    "name": "Faxe Kondi Booster Twisted Ice Zero",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "niacin": "8.5 mg (53% RI)",
+        "pantothenicAcid": "4.2 mg (70% RI)",
+        "vitaminB6": "0.8 mg (57% RI)",
+        "vitaminB12": "2.5 µg (100% RI)"
+      }
+    }
+  },
+  "red-bull-original": {
+    "id": 20,
+    "name": "Red Bull Original",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11.0 g",
+        "sugar": "11.0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-sugarfree": {
+    "id": 21,
+    "name": "Red Bull Sugarfree",
+    "image": "/images/drinks/red-bull-sugarfree.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "pantothenicAcid": "2 mg (50% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-zero": {
+    "id": 22,
+    "name": "Red Bull Zero",
+    "image": "/images/drinks/red-bull-zero.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "2 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.02 g",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-coconut-edition": {
+    "id": 23,
+    "name": "Red Bull Coconut Edition",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "45 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11.0 g",
+        "sugar": "11.0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-winter-edition": {
+    "id": 24,
+    "name": "Red Bull Winter Edition",
+    "image": "/images/drinks/red-bull-winter-edition.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-red-edition-watermelon": {
+    "id": 25,
+    "name": "Red Bull Red Edition Watermelon",
+    "image": "/images/drinks/red-bull-red-edition-watermelon.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "45 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11.0 g",
+        "sugar": "11.0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-blue-edition": {
+    "id": 26,
+    "name": "Red Bull Blue Edition",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11.0 g",
+        "sugar": "11.0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-apricot-edition": {
+    "id": 27,
+    "name": "Red Bull Apricot Edition",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "45 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11.0 g",
+        "sugar": "11.0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-purple-edition": {
+    "id": 29,
+    "name": "Red Bull Purple Edition",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "44 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "10.0 g",
+        "sugar": "10.0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "niacin": "8 mg (50% NRV)",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "red-bull-summer-edition": {
+    "id": 30,
+    "name": "Red Bull Summer Edition",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.25 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "45 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.1 g",
+        "pantothenicAcid": "2 mg (33% NRV)",
+        "niacin": "8 mg (50% NRV)",
+        "vitaminB6": "2 mg (143% NRV)",
+        "vitaminB12": "2 µg (80% NRV)"
+      }
+    }
+  },
+  "monster-energy": {
+    "id": 31,
+    "name": "Monster Energy",
+    "image": "/images/drinks/monster-energy.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "42 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.18 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-zero": {
+    "id": 320,
+    "name": "Monster Energy Zero",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0.9 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-ultra-zero": {
+    "id": 330,
+    "name": "Monster Energy Ultra Zero",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0.9 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-ultra-rosa": {
+    "id": 340,
+    "name": "Monster Energy Ultra Rosa",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0.9 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-ultra-fiesta": {
+    "id": 35,
+    "name": "Monster Energy Ultra Fiesta",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0.9 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-pipeline-punch": {
+    "id": 360,
+    "name": "Monster Energy Pipeline Punch",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.20 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-loco-mango": {
+    "id": 370,
+    "name": "Monster Energy Loco Mango",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "47 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.20 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-nitro": {
+    "id": 380,
+    "name": "Monster Energy Nitro",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.18 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-the-doctor": {
+    "id": 390,
+    "name": "Monster Energy The Doctor",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "40 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "9.7 g",
+        "sugar": "9.7 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.20 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-lewis-hamilton": {
+    "id": 40,
+    "name": "Monster Energy Lewis Hamilton",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "46 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.18 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-khaotic": {
+    "id": 41,
+    "name": "Monster Energy Khaotic",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": false,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "47 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "11 g",
+        "sugar": "11 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.20 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-ultra-gold": {
+    "id": 42,
+    "name": "Monster Energy Ultra Gold",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0.9 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-monarch": {
+    "id": 43,
+    "name": "Monster Energy Monarch",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0.9 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-zero-sugar": {
+    "id": 44,
+    "name": "Monster Energy Zero Sugar",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "1 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  },
+  "monster-energy-ultra-peachy-keen": {
+    "id": 45,
+    "name": "Monster Energy Ultra Peachy Keen",
+    "image": "/images/drinks/monster-energy-ultra-peachy-keen.png",
+    "stock": 9999,
+    "size": "0.5 l",
+    "isSugarFree": true,
+    "salePrice": 2000,
+    "nutrition": {
+      "per100ml": {
+        "energy": "3 kcal",
+        "fat": "0 g",
+        "saturatedFat": "0 g",
+        "carbohydrates": "0.9 g",
+        "sugar": "0 g",
+        "fiber": "0 g",
+        "protein": "0 g",
+        "salt": "0.2 g",
+        "caffeine": "32 mg",
+        "vitaminB6": "0.8 mg (57% NRV)",
+        "vitaminB12": "2.5 µg (100% NRV)",
+        "niacin": "8.5 mg (53% NRV)",
+        "riboflavin": "0.7 mg (50% NRV)"
+      }
+    }
+  }
+}
