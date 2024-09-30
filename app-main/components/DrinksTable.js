@@ -29,30 +29,20 @@ function DrinksTable({
 
   // Define the desired column order
   const columnOrder = [
-    'id',
     'docId',
+    'id',
     'name',
-    'packageQuantity',
-    'purchasePrice',
-    'stock',
+    '_purchasePrice',
+    '_packageQuantity',
     'salePrice',
-    'nutrition',
+    'stock',
     'isSugarFree',
     'size',
     'image',
+    'nutrition',
   ];
 
-  const handleCellClick = (drink, key) => {
-    const value = drink[key];
-    if (typeof value === 'object' && value !== null) {
-      // Open modal
-      setModalStack([{ data: value, path: [drink.docId, key], title: key }]);
-      setCurrentData(value);
-      setCurrentPath([drink.docId, key]);
-    }
-  };
-
-  // Sorting function
+  // Function to handle sorting
   const requestSort = (key) => {
     let direction = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -86,17 +76,17 @@ function DrinksTable({
     return sortableDrinks;
   }, [drinks, sortConfig]);
 
-  // Add Drink Modal and Save logic...
+  // Handle adding a new drink
   const handleAddDrink = () => {
     setNewDrink({
       image: '/images/path/to/image.png',
       stock: 100,
-      name: 'Format Is Like This',
+      name: 'New Drink Name',
       size: '0.5 l',
       isSugarFree: false,
       salePrice: 2500,
-      purchasePrice: 1250,
-      packageQuantity: 24,
+      _purchasePrice: 1250,
+      _packageQuantity: 24,
       nutrition: {
         per100ml: {
           energy: '',
@@ -122,6 +112,17 @@ function DrinksTable({
   const handleNestedDataChange = (path, value) => {
     const [docId, ...restPath] = path;
     onDrinkChange(docId, restPath, value);
+  };
+
+  // Handle cell clicks for nested objects
+  const handleCellClick = (drink, key) => {
+    const value = drink[key];
+    if (typeof value === 'object' && value !== null) {
+      // Open modal
+      setModalStack([{ data: value, path: [drink.docId, key], title: key }]);
+      setCurrentData(value);
+      setCurrentPath([drink.docId, key]);
+    }
   };
 
   return (
@@ -169,9 +170,14 @@ function DrinksTable({
                 {columnOrder.map((key) => {
                   const value = drink[key];
                   const isObject = typeof value === 'object' && value !== null;
-
+                  const isPrivate = key.startsWith('_');
                   return (
-                    <td key={key} className="border px-4 py-2">
+                    <td
+                      key={key}
+                      className={`border px-4 py-2 ${
+                        isPrivate ? 'text-red-500' : ''
+                      }`}
+                    >
                       {isObject ? (
                         <button
                           className="text-blue-500 underline"
@@ -200,7 +206,9 @@ function DrinksTable({
                             }
                           }}
                           disabled={!isEditing || key === 'id' || key === 'docId'}
-                          className="border p-1 w-full"
+                          className={`border p-1 w-full ${
+                            isPrivate ? 'text-red-500' : ''
+                          }`}
                         />
                       )}
                     </td>
@@ -238,14 +246,21 @@ function DrinksTable({
           title="Add New Drink"
         >
           <div className="space-y-4">
-            {Object.keys(newDrink).map((key) => {
+            {columnOrder.map((key) => {
               if (key === 'id' || key === 'docId') return null;
               const value = newDrink[key];
               const isObject = typeof value === 'object' && value !== null;
+              const isPrivate = key.startsWith('_');
 
               return (
                 <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700">{key}</label>
+                  <label
+                    className={`block text-sm font-medium ${
+                      isPrivate ? 'text-red-500' : 'text-gray-700'
+                    }`}
+                  >
+                    {key}
+                  </label>
                   {isObject ? (
                     <button
                       className="text-blue-500 underline"
@@ -276,7 +291,7 @@ function DrinksTable({
                           [key]: val,
                         });
                       }}
-                      className="border p-1 w-full"
+                      className={`border p-1 w-full ${isPrivate ? 'text-red-500' : ''}`}
                     />
                   )}
                 </div>
