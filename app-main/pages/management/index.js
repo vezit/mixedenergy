@@ -28,10 +28,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (!loading) {
       const fetchData = async () => {
-        const drinksSnapshot = await getDocs(collection(db, 'drinks'));
+        const drinksSnapshot = await getDocs(collection(db, 'drinks_public'));
         setDrinks(drinksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-        const packagesSnapshot = await getDocs(collection(db, 'packages'));
+        const packagesSnapshot = await getDocs(collection(db, 'packages_public'));
         setPackages(packagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       };
 
