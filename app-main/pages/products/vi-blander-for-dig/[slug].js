@@ -22,7 +22,7 @@ export default function ViBlanderForDigProduct() {
     if (!slug) return;
 
     const fetchProduct = async () => {
-      const docRef = doc(db, 'packages', slug);
+      const docRef = doc(db, 'packages_public', slug);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const productData = docSnap.data();

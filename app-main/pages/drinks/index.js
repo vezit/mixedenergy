@@ -9,7 +9,7 @@ export default function DrinksList() {
 
   useEffect(() => {
     const fetchDrinks = async () => {
-      const drinksRef = collection(db, 'drinks');
+      const drinksRef = collection(db, 'drinks_public');
       const snapshot = await getDocs(drinksRef);
       const drinksData = snapshot.docs.map(doc => ({
         docID: doc.id, // Use Firestore's document ID, which will be the slug (e.g., "faxe-kondi-booster-original")

@@ -10,7 +10,7 @@ export default function Home() {
   // Fetch products from Firebase
   useEffect(() => {
     const fetchProducts = async () => {
-      const productsRef = collection(db, 'packages');
+      const productsRef = collection(db, 'packages_public');
       const snapshot = await getDocs(productsRef);
       const productsData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
