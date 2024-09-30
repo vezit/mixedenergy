@@ -1,6 +1,23 @@
-// /pages/admin/index.js
-import { useEffect } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+// pages/admin/index.js
+
+import { useState, useEffect } from 'react';
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+} from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  deleteDoc,
+  setDoc,
+  getDoc,
+  query,
+  where,
+} from 'firebase/firestore';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
 import DrinksTable from '../../components/DrinksTable';

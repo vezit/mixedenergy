@@ -2,54 +2,77 @@ import { useState, useEffect } from 'react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { getCookie, setCookie } from '../lib/cookies';
+import { v4 as uuidv4 } from 'uuid'; // Use a UUID library
 
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
   const [cookieError, setCookieError] = useState(false);
 
   const generateConsentId = () => {
-    return 'xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx'.replace(/[x]/g, () => {
-      return Math.floor(Math.random() * 16).toString(16);
-    });
+    return uuidv4(); // Generate a secure UUID
   };
 
   useEffect(() => {
-    const consentId = getCookie('cookie_consent_id') || generateConsentId();
-    const cookieSet = setCookie('cookie_consent_id', consentId, 365);
+    let consentId = getCookie('cookie_consent_id');
+    if (!consentId) {
+      consentId = generateConsentId();
+      const cookieSet = setCookie('cookie_consent_id', consentId, 365);
+      if (!cookieSet) {
+        setCookieError(true);
+        return;
+      }
+    }
 
-    if (!cookieSet) {
-      setCookieError(true);
+    const docRef = doc(db, 'sessions', consentId);
+
+    getDoc(docRef)
+      .then((docSnap) => {
+        if (docSnap.exists()) {
+          const sessionData = docSnap.data();
+          if (!sessionData.allowCookies) {
+            setShow(true); // Show banner if cookies aren't allowed yet
+          }
+        } else {
+          // Create session document if it doesn't exist
+          setDoc(docRef, {
+            consentId: consentId, // Ensure consentId matches document ID
+            allowCookies: false, // Initially set to false
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+            .then(() => {
+              setShow(true); // Show banner since cookies aren't allowed yet
+            })
+            .catch((error) => {
+              console.error('Error creating session document:', error);
+            });
+        }
+      })
+      .catch((error) => {
+        console.error('Error getting session document:', error);
+      });
+  }, []);
+
+  const acceptCookies = async () => {
+    const consentId = getCookie('cookie_consent_id');
+    if (!consentId) {
+      console.error('No consentId found in cookies');
       return;
     }
 
     const docRef = doc(db, 'sessions', consentId);
-    getDoc(docRef).then((docSnap) => {
-      if (docSnap.exists()) {
-        const sessionData = docSnap.data();
-        if (!sessionData.allowCookies) {
-          setShow(true); // Show banner if cookies aren't allowed yet
-        }
-      } else {
-        // Create session document if it doesn't exist
-        setDoc(docRef, {
-          consentId: consentId,
-          allowCookies: false, // Initially set to false
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-        setShow(true); // Show banner since cookies aren't allowed yet
-      }
+
+    await setDoc(
+      docRef,
+      {
+        consentId: consentId, // Ensure consentId matches document ID
+        allowCookies: true,
+        updatedAt: new Date(),
+      },
+      { merge: true }
+    ).catch((error) => {
+      console.error('Error updating session document:', error);
     });
-  }, []);
-
-  const acceptCookies = async () => {
-    const consentId = getCookie('cookie_consent_id') || generateConsentId();
-    const docRef = doc(db, 'sessions', consentId);
-
-    await setDoc(docRef, {
-      allowCookies: true, // Ensure allowCookies is set to true
-      updatedAt: new Date(), // Update the timestamp
-    }, { merge: true }); // Merge to avoid overwriting other fields
 
     setShow(false); // Hide banner after accepting cookies
   };

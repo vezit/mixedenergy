@@ -1,10 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, initializeFirestore, persistentLocalCache } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-
-let firebaseApp;
-let db;
-let auth;
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';  // Import Firebase Authentication
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,21 +12,16 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase services conditionally on client-side
-if (typeof window !== 'undefined') {
-  // Client-side execution (browser)
-  if (!getApps().length) {
-    firebaseApp = initializeApp(firebaseConfig);
-  } else {
-    firebaseApp = getApp();
-  }
-
-  // Initialize Firestore with the new persistence method
-  db = initializeFirestore(firebaseApp, {
-    localCache: persistentLocalCache()  // This enables local caching
-  });
-
-  auth = getAuth(firebaseApp);  // Initialize Firebase Auth
+let firebaseApp;
+if (!getApps().length) {
+  firebaseApp = initializeApp(firebaseConfig);
+} else {
+  firebaseApp = getApp();
 }
 
+// Initialize Firebase services
+const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);  // Initialize Firebase Auth
+
+// Export the initialized Firebase app, Firestore instance, and Auth instance
 export { firebaseApp, db, auth };
