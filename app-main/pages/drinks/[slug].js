@@ -17,7 +17,7 @@ export default function DrinkDetail() {
     if (!slug) return;
 
     const fetchDrink = async () => {
-      const docRef = doc(db, 'drinks', slug); // Fetching drink by slug (document ID)
+      const docRef = doc(db, 'drinks_public', slug); // Changed from 'drinks' to 'drinks_public'
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setDrink({ id: docSnap.id, ...docSnap.data() });
@@ -56,18 +56,20 @@ export default function DrinkDetail() {
         />
       )}
       <p className="text-xl text-gray-700 mt-4">Size: {drink.size}</p>
-      <p className="text-2xl font-bold mt-4">Price: {drink.salePrice}</p>
+      <p className="text-2xl font-bold mt-4">Price: {(parseInt(drink.salePrice) / 100).toFixed(2)} kr</p>
 
       <div className="mt-4">
         <h2 className="text-xl font-bold">Nutritional Information (per 100 mL):</h2>
         <ul className="list-disc list-inside">
-          <li>Energy: {drink.nutrition.per100ml.energy}</li>
-          <li>Fat: {drink.nutrition.per100ml.fat}</li>
-          <li>Saturated Fat: {drink.nutrition.per100ml.saturatedFat}</li>
-          <li>Carbohydrates: {drink.nutrition.per100ml.carbohydrates}</li>
-          <li>Sugar: {drink.nutrition.per100ml.sugar}</li>
-          <li>Protein: {drink.nutrition.per100ml.protein}</li>
-          <li>Salt: {drink.nutrition.per100ml.salt}</li>
+          {drink.nutrition && drink.nutrition.per100ml ? (
+            Object.entries(drink.nutrition.per100ml).map(([key, value]) => (
+              <li key={key}>
+                {key.charAt(0).toUpperCase() + key.slice(1)}: {value}
+              </li>
+            ))
+          ) : (
+            <li>No nutritional information available.</li>
+          )}
         </ul>
       </div>
     </div>

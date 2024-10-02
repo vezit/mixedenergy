@@ -1,4 +1,4 @@
-// /products/vi-blander-for-dig/:slug
+// /products/vi-blander-for-dig/[slug].js
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../lib/BasketContext';
@@ -10,9 +10,10 @@ export default function ViBlanderForDigProduct() {
   const { slug } = router.query;
 
   const [product, setProduct] = useState(null);
+  const [drinksData, setDrinksData] = useState({});
   const [loading, setLoading] = useState(true);
   const [randomSelection, setRandomSelection] = useState({});
-  const [price, setPrice] = useState(19900); // Default price based on the first package size (8)
+  const [price, setPrice] = useState(0); // Initialize price to 0
   const [selectedSize, setSelectedSize] = useState(8); // Default to the smallest package size (8)
   const [quantity, setQuantity] = useState(1);
 
@@ -28,11 +29,19 @@ export default function ViBlanderForDigProduct() {
         const productData = docSnap.data();
         setProduct({ id: docSnap.id, ...productData });
 
-        // Set the default price to the price of the first package size
-        setPrice(productData.packages[0].price);
+        // Fetch drinks data
+        const drinksData = {};
+        for (const drinkSlug of productData.drinks) {
+          const drinkDocRef = doc(db, 'drinks_public', drinkSlug);
+          const drinkDocSnap = await getDoc(drinkDocRef);
+          if (drinkDocSnap.exists()) {
+            drinksData[drinkSlug] = drinkDocSnap.data();
+          }
+        }
+        setDrinksData(drinksData);
 
         // Generate the random package on load
-        generateRandomPackage(productData.packages[0].size);
+        generateRandomPackage(selectedSize, drinksData);
       } else {
         setProduct(null);
       }
@@ -42,8 +51,19 @@ export default function ViBlanderForDigProduct() {
     fetchProduct();
   }, [slug]);
 
+  const calculateTotalPrice = (selection) => {
+    let totalPrice = 0;
+    for (const [drinkSlug, qty] of Object.entries(selection)) {
+      const drink = drinksData[drinkSlug];
+      if (drink && drink.salePrice) {
+        totalPrice += parseInt(drink.salePrice) * qty;
+      }
+    }
+    return totalPrice;
+  };
+
   // Function to generate a random package
-  const generateRandomPackage = (size) => {
+  const generateRandomPackage = (size, drinksDataParam = drinksData) => {
     if (!product) return;
 
     const randomSelection = {};
@@ -52,23 +72,27 @@ export default function ViBlanderForDigProduct() {
 
     while (remaining > 0 && drinksCopy.length > 0) {
       const randomIndex = Math.floor(Math.random() * drinksCopy.length);
-      const drink = drinksCopy[randomIndex];
-      const maxQty = remaining;
-      const qty = Math.ceil(Math.random() * maxQty);
-
-      randomSelection[drink] = (randomSelection[drink] || 0) + qty;
+      const drinkSlug = drinksCopy[randomIndex];
+      const drink = drinksDataParam[drinkSlug];
+      if (!drink) {
+        drinksCopy.splice(randomIndex, 1);
+        continue;
+      }
+      const qty = 1; // Select one at a time
+      randomSelection[drinkSlug] = (randomSelection[drinkSlug] || 0) + qty;
       remaining -= qty;
-
-      drinksCopy.splice(randomIndex, 1); // Remove selected drink from the array
     }
 
     setRandomSelection(randomSelection);
+
+    // Calculate price
+    const totalPrice = calculateTotalPrice(randomSelection);
+    setPrice(totalPrice);
   };
 
   // Function to handle package size change
-  const handleSizeChange = (size, price) => {
+  const handleSizeChange = (size) => {
     setSelectedSize(size);
-    setPrice(price);
     generateRandomPackage(size);
   };
 
@@ -87,10 +111,10 @@ export default function ViBlanderForDigProduct() {
       slug: product.id,
       title: `${product.title} - ${selectedSize} pcs`,
       description: `A mix of: ${Object.entries(randomSelection)
-        .map(([drink, qty]) => `${drink} (x${qty})`)
+        .map(([drinkSlug, qty]) => `${drinksData[drinkSlug]?.name || drinkSlug} (x${qty})`)
         .join(', ')}`,
       image: product.image,
-      price: price * quantity,
+      price: price, // Total price per package
       quantity: quantity,
       selectedSize: selectedSize,
       selectedProducts: randomSelection,
@@ -137,7 +161,7 @@ export default function ViBlanderForDigProduct() {
                     name="size"
                     value={pkg.size}
                     checked={selectedSize === pkg.size}
-                    onChange={() => handleSizeChange(pkg.size, pkg.price)}
+                    onChange={() => handleSizeChange(pkg.size)}
                   />
                   {pkg.size} pcs
                 </label>
@@ -148,9 +172,9 @@ export default function ViBlanderForDigProduct() {
             <div className="mt-4 max-h-[200px] overflow-y-auto pr-4">
               <h2 className="text-xl font-bold">Din Random {product.title}</h2>
               <ul className="list-disc list-inside">
-                {Object.entries(randomSelection).map(([drink, qty], index) => (
+                {Object.entries(randomSelection).map(([drinkSlug, qty], index) => (
                   <li key={index}>
-                    {drink} (x{qty})
+                    {drinksData[drinkSlug]?.name || drinkSlug} (x{qty})
                   </li>
                 ))}
               </ul>
@@ -175,7 +199,7 @@ export default function ViBlanderForDigProduct() {
             </button>
 
             {/* Price */}
-            <p className="text-2xl font-bold mt-4">{(price / 100) * quantity} kr</p>
+            <p className="text-2xl font-bold mt-4">{(price * quantity / 100).toFixed(2)} kr</p>
           </div>
         </div>
       </div>

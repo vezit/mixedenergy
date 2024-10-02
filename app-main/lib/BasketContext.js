@@ -1,3 +1,4 @@
+// lib/BasketContext.js
 import { createContext, useContext, useState, useEffect } from 'react';
 import { doc, setDoc, getDoc } from 'firebase/firestore'; // Firestore methods
 import { db } from '../lib/firebase'; // Import your Firestore instance
@@ -62,9 +63,19 @@ export const BasketProvider = ({ children }) => {
         ); // Update Firestore with customer details
     };
 
+    // Helper function to compare selected products
+    const isSameSelection = (a, b) => {
+        const aEntries = Object.entries(a).sort();
+        const bEntries = Object.entries(b).sort();
+        return JSON.stringify(aEntries) === JSON.stringify(bEntries);
+    };
+
     const addItemToBasket = (item) => {
         const existingItemIndex = basketItems.findIndex(
-            (basketItem) => basketItem.title === item.title
+            (basketItem) =>
+                basketItem.slug === item.slug &&
+                basketItem.selectedSize === item.selectedSize &&
+                isSameSelection(basketItem.selectedProducts, item.selectedProducts)
         );
 
         let updatedBasket;
@@ -90,6 +101,19 @@ export const BasketProvider = ({ children }) => {
         updateBasketInFirestore(updatedBasket); // Update Firestore
     };
 
+    // New function to update item quantity
+    const updateItemQuantity = (index, newQuantity) => {
+        if (newQuantity <= 0) {
+            removeItemFromBasket(index);
+        } else {
+            const updatedBasket = basketItems.map((item, i) =>
+                i === index ? { ...item, quantity: newQuantity } : item
+            );
+            setBasketItems(updatedBasket);
+            updateBasketInFirestore(updatedBasket);
+        }
+    };
+
     const updateCustomerDetails = (updatedDetails) => {
         setCustomerDetails(updatedDetails);
         updateCustomerDetailsInFirestore(updatedDetails); // Update Firestore with new customer details
@@ -106,6 +130,7 @@ export const BasketProvider = ({ children }) => {
                 updateCustomerDetails,
                 isNewItemAdded,
                 setIsNewItemAdded,
+                updateItemQuantity, // Export the new function
             }}
         >
             {children}

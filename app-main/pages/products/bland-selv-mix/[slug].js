@@ -1,55 +1,24 @@
+// /products/bland-selv-mix/[slug].js
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../lib/BasketContext';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-import Link from 'next/link';
 
 export default function BlandSelvMixProduct() {
   const router = useRouter();
   const { slug } = router.query;
 
   const [product, setProduct] = useState(null);
+  const [drinksData, setDrinksData] = useState({});
   const [loading, setLoading] = useState(true);
-  const [drinks, setDrinks] = useState([]); // Drinks associated with the product
-
-  const { addItemToBasket } = useBasket();
-  const [selectedSize, setSelectedSize] = useState(8); // Default package size
   const [selectedProducts, setSelectedProducts] = useState({});
-  const [price, setPrice] = useState(19900); // Default price for size 8
+  const [price, setPrice] = useState(0); // Initialize price to 0
+  const [selectedSize, setSelectedSize] = useState(8); // Default package size
   const [quantity, setQuantity] = useState(1);
   const maxProducts = parseInt(selectedSize);
 
-  // Function to check if Firestore persistence is working
-  const checkPersistence = async () => {
-    try {
-      const testDocRef = doc(db, 'test', 'persistence-check');
-      await setDoc(testDocRef, { test: 'Firestore persistence' });
-      console.log('Firestore persistence is working');
-    } catch (err) {
-      if (err.code === 'unavailable') {
-        console.error('Persistence is not working, offline data unavailable');
-      } else {
-        console.error('Error:', err);
-      }
-    }
-  };
-
-  // Add event listeners for online and offline status
-  useEffect(() => {
-    window.addEventListener('offline', () => {
-      console.log('You are offline');
-    });
-
-    window.addEventListener('online', () => {
-      console.log('You are back online');
-    });
-
-    return () => {
-      window.removeEventListener('offline', () => {});
-      window.removeEventListener('online', () => {});
-    };
-  }, []);
+  const { addItemToBasket } = useBasket();
 
   useEffect(() => {
     if (!slug) return;
@@ -60,7 +29,20 @@ export default function BlandSelvMixProduct() {
       if (docSnap.exists()) {
         const productData = docSnap.data();
         setProduct({ id: docSnap.id, ...productData });
-        setDrinks(productData.drinks || []); // Set the associated drinks list
+
+        // Fetch drinks data
+        const drinksData = {};
+        for (const drinkSlug of productData.drinks) {
+          const drinkDocRef = doc(db, 'drinks_public', drinkSlug);
+          const drinkDocSnap = await getDoc(drinkDocRef);
+          if (drinkDocSnap.exists()) {
+            drinksData[drinkSlug] = drinkDocSnap.data();
+          }
+        }
+        setDrinksData(drinksData);
+
+        // Generate a random selection
+        generateRandomSelection(selectedSize, drinksData);
       } else {
         setProduct(null);
       }
@@ -68,49 +50,53 @@ export default function BlandSelvMixProduct() {
     };
 
     fetchProduct();
-    checkPersistence(); // Call the persistence check after product is fetched
   }, [slug]);
-
-  // Generate a random selection on component mount
-  useEffect(() => {
-    generateRandomSelection(selectedSize);
-  }, [drinks]);
 
   // Update price and regenerate selection when package size changes
   useEffect(() => {
-    const selectedPackage = product?.packages.find((pkg) => pkg.size === selectedSize);
-    if (selectedPackage) {
-      setPrice(selectedPackage.price);
-      generateRandomSelection(selectedSize);
-    }
-  }, [selectedSize, product]);
+    generateRandomSelection(selectedSize);
+  }, [selectedSize]);
 
   // Function to generate a random selection of drinks
-  const generateRandomSelection = (size) => {
+  const generateRandomSelection = (size, drinksDataParam = drinksData) => {
     const randomSelection = {};
     let remaining = parseInt(size);
-    const drinksCopy = [...drinks];
+    const drinksCopy = Object.keys(drinksDataParam);
 
     while (remaining > 0 && drinksCopy.length > 0) {
       const randomIndex = Math.floor(Math.random() * drinksCopy.length);
-      const drink = drinksCopy[randomIndex];
-      const maxQty = remaining;
-      const qty = Math.ceil(Math.random() * maxQty);
+      const drinkSlug = drinksCopy[randomIndex];
+      const qty = 1; // Select one at a time
 
-      randomSelection[drink] = (randomSelection[drink] || 0) + qty;
+      randomSelection[drinkSlug] = (randomSelection[drinkSlug] || 0) + qty;
       remaining -= qty;
 
-      // Remove the drink if no more can be added
-      drinksCopy.splice(randomIndex, 1);
+      // Optionally remove the drink if we don't want duplicates
+      // drinksCopy.splice(randomIndex, 1);
     }
 
     setSelectedProducts(randomSelection);
+
+    // Calculate price
+    const totalPrice = calculateTotalPrice(randomSelection);
+    setPrice(totalPrice);
+  };
+
+  const calculateTotalPrice = (selection) => {
+    let totalPrice = 0;
+    for (const [drinkSlug, qty] of Object.entries(selection)) {
+      const drink = drinksData[drinkSlug];
+      if (drink && drink.salePrice) {
+        totalPrice += parseInt(drink.salePrice) * qty;
+      }
+    }
+    return totalPrice;
   };
 
   // Function to handle quantity changes
-  const handleProductQuantityChange = (drink, action) => {
+  const handleProductQuantityChange = (drinkSlug, action) => {
     setSelectedProducts((prevSelected) => {
-      const currentQty = prevSelected[drink] || 0;
+      const currentQty = prevSelected[drinkSlug] || 0;
       let newQty = currentQty;
 
       if (action === 'increment' && getTotalSelected() < maxProducts) {
@@ -119,10 +105,14 @@ export default function BlandSelvMixProduct() {
         newQty = currentQty - 1;
       }
 
-      const updatedSelected = { ...prevSelected, [drink]: newQty };
+      const updatedSelected = { ...prevSelected, [drinkSlug]: newQty };
       if (newQty === 0) {
-        delete updatedSelected[drink];
+        delete updatedSelected[drinkSlug];
       }
+
+      // Recalculate price
+      const totalPrice = calculateTotalPrice(updatedSelected);
+      setPrice(totalPrice);
 
       return updatedSelected;
     });
@@ -144,10 +134,10 @@ export default function BlandSelvMixProduct() {
       slug: product.id,
       title: `${product.title} - ${selectedSize} pcs`,
       description: `A mix of: ${Object.entries(selectedProducts)
-        .map(([drink, qty]) => `${drink} (x${qty})`)
+        .map(([drinkSlug, qty]) => `${drinksData[drinkSlug]?.name || drinkSlug} (x${qty})`)
         .join(', ')}`,
       image: product.image,
-      price: price * quantity,
+      price: price, // Total price per package
       quantity: quantity,
       selectedSize: selectedSize,
       selectedProducts: selectedProducts,
@@ -203,22 +193,22 @@ export default function BlandSelvMixProduct() {
           {/* Scrollable Drinks Selection */}
           <div className="mt-4 max-h-[500px] overflow-y-auto pr-4">
             <p>Select drinks (exactly {maxProducts}):</p>
-            {drinks.map((drink, index) => (
+            {Object.keys(drinksData).map((drinkSlug, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
-                <span>{drink}</span>
+                <span>{drinksData[drinkSlug]?.name || drinkSlug}</span>
                 <div className="flex items-center">
                   <button
-                    onClick={() => handleProductQuantityChange(drink, 'decrement')}
+                    onClick={() => handleProductQuantityChange(drinkSlug, 'decrement')}
                     className="px-2 py-1 bg-gray-200 rounded-l"
-                    disabled={!selectedProducts[drink]}
+                    disabled={!selectedProducts[drinkSlug]}
                   >
                     -
                   </button>
                   <span className="px-4 py-2 bg-gray-100">
-                    {selectedProducts[drink] || 0}
+                    {selectedProducts[drinkSlug] || 0}
                   </span>
                   <button
-                    onClick={() => handleProductQuantityChange(drink, 'increment')}
+                    onClick={() => handleProductQuantityChange(drinkSlug, 'increment')}
                     className="px-2 py-1 bg-gray-200 rounded-r"
                     disabled={getTotalSelected() >= maxProducts}
                   >
@@ -241,7 +231,7 @@ export default function BlandSelvMixProduct() {
           </button>
 
           {/* Price */}
-          <p className="text-2xl font-bold mt-4">{price * quantity / 100} kr</p>
+          <p className="text-2xl font-bold mt-4">{(price * quantity / 100).toFixed(2)} kr</p>
         </div>
       </div>
     </div>
