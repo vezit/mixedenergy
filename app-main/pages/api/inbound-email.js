@@ -15,14 +15,14 @@ export default async function handler(req, res) {
   // Verify that required fields are present
   if (!timestamp || !token || !signature) {
     console.error('Missing required fields: timestamp, token, or signature');
-    return res.status(400).json({ message: 'Bad Request' });
+    return res.status(400).json({ message: 'Bad Request: Missing timestamp, token, or signature' });
   }
 
   // Verify the Mailgun signature
   const apiKey = process.env.MAILGUN_API_KEY;
   if (!apiKey) {
-    console.error('MAILGUN_API_KEY is not defined');
-    return res.status(500).json({ message: 'Server configuration error' });
+    console.error('MAILGUN_API_KEY is not defined in environment variables');
+    return res.status(500).json({ message: 'Server configuration error: MAILGUN_API_KEY is missing' });
   }
 
   const hmac = crypto
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     .digest('hex');
 
   if (hmac !== signature) {
-    console.error('Invalid signature');
+    console.error('Invalid Mailgun signature');
     return res.status(403).json({ message: 'Invalid signature' });
   }
 
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
   // Verify that required email fields are present
   if (!sender || !recipient || !subject || !bodyPlain) {
     console.error('Missing email data fields');
-    return res.status(400).json({ message: 'Bad Request' });
+    return res.status(400).json({ message: 'Bad Request: Missing email data fields' });
   }
 
   // Store email data in Firestore
@@ -61,6 +61,6 @@ export default async function handler(req, res) {
     res.status(200).json({ message: 'Email received and processed' });
   } catch (error) {
     console.error('Error storing email:', error);
-    res.status(500).json({ message: 'Error storing email', error });
+    res.status(500).json({ message: 'Error storing email', error: error.message });
   }
 }
