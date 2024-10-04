@@ -34,10 +34,10 @@ export default async function handler(req, res) {
     }
 
     // Verify the Mailgun signature
-    const apiKey = process.env.MAILGUN_API_KEY;
+    const apiKey = process.env.MAILGUN_GLOBAL_API_KEY;
     if (!apiKey) {
-      console.error('MAILGUN_API_KEY is not defined in environment variables');
-      return res.status(500).json({ message: 'Server configuration error: MAILGUN_API_KEY is missing' });
+      console.error('MAILGUN_GLOBAL_API_KEY is not defined in environment variables');
+      return res.status(500).json({ message: 'Server configuration error: MAILGUN_GLOBAL_API_KEY is missing' });
     }
 
     const hmac = crypto
