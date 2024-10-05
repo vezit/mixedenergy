@@ -1,4 +1,4 @@
-// pages/api/inbound-email.js
+// pages/api/inbound-email-helloworld.js
 
 import { db } from '../../lib/firebaseAdmin'; // Firestore admin import
 
