@@ -32,21 +32,21 @@ export default async function handler(req, res) {
     try {
       const messageHeaders = JSON.parse(messageHeadersJson);
       messageHeaders.forEach(([headerName, headerValue]) => {
-        if (headerName.toLowerCase() === 'message-id') messageId = headerValue;
-        if (headerName.toLowerCase() === 'in-reply-to') inReplyTo = headerValue;
+        if (headerName.toLowerCase() === 'message-id') messageId = headerValue || null;
+        if (headerName.toLowerCase() === 'in-reply-to') inReplyTo = headerValue || null;
       });
     } catch (err) {
       console.error('Error parsing message headers:', err);
     }
 
-    // Make sure messageId exists to avoid undefined errors
+    // Safeguard: Ensure messageId exists and is not undefined
     if (!messageId) {
       console.error('Message ID is missing');
       return res.status(400).json({ message: 'Bad Request: Missing message ID' });
     }
 
-    // Clean messageId and inReplyTo (remove < > if they exist)
-    const cleanMessageId = messageId.replace(/[<>]/g, '');
+    // Safely clean messageId and inReplyTo only if they exist
+    const cleanMessageId = messageId ? messageId.replace(/[<>]/g, '') : null;
     const cleanInReplyTo = inReplyTo ? inReplyTo.replace(/[<>]/g, '') : null;
 
     console.log('Cleaned messageId:', cleanMessageId);
