@@ -6,6 +6,7 @@ import { db } from '../../lib/firebaseAdmin';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
+    console.error(`Method ${req.method} not allowed on /api/sendEmail`);
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
@@ -40,8 +41,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Email Data being sent:', emailData);
+
     // Send the email
     const mgResponse = await mailgunClient.messages.create(DOMAIN, emailData);
+
+    console.log('Mailgun Response:', mgResponse);
 
     // Get the Mailgun assigned Message-Id
     const messageId = mgResponse.id; // Includes angle brackets
@@ -49,6 +54,7 @@ export default async function handler(req, res) {
     // Store the sent email in Firestore
     const docRef = db.collection('emails').doc();
     await docRef.set({
+      timestamp: new Date().toISOString(),
       sender: 'info@mixedenergy.dk',
       recipient: to,
       subject,
@@ -58,6 +64,8 @@ export default async function handler(req, res) {
       threadId: threadId || messageId,
       receivedAt: new Date(),
     });
+
+    console.log(`Stored email in Firestore with ID: ${docRef.id}`);
 
     return res.status(200).json({ message: 'Email sent successfully' });
   } catch (error) {

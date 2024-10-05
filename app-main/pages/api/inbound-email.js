@@ -17,6 +17,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Received email data:', req.body);
+
     const getStringValue = (field) => {
       if (Array.isArray(field)) return field[0];
       return field;
@@ -48,7 +50,6 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('Received data:', req.body);
     console.log('Parsed messageId:', messageId);
     console.log('Parsed inReplyTo:', inReplyTo);
 
@@ -58,7 +59,7 @@ export default async function handler(req, res) {
     }
 
     // Determine the threadId
-    let threadId = messageId; // Default to messageId if no inReplyTo
+    let threadId = inReplyTo || messageId; // Use inReplyTo if available
 
     if (inReplyTo) {
       // Find the parent email to get the threadId
