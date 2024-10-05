@@ -1,6 +1,7 @@
 import { db } from '../../lib/firebaseAdmin'; // Firestore admin import
 
 export default async function handler(req, res) {
+  console.log('FIREBASE_ADMIN_KEY:', process.env.FIREBASE_ADMIN_KEY);
   if (req.method !== 'POST') {
     console.warn(`Method ${req.method} not allowed on /api/inbound-email`);
     return res.status(405).json({ message: 'Method Not Allowed' });
