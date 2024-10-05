@@ -1,4 +1,4 @@
-// import { db } from '../../lib/firebaseAdmin'; // Firestore admin import
+import { db } from '../../lib/firebaseAdmin'; // Firestore admin import
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
