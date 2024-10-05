@@ -11,7 +11,7 @@ if (!admin.apps.length) {
 
   // Parse FIREBASE_ADMIN_KEY and handle newlines in the private key
   const serviceAccount = JSON.parse(
-    process.env.FIREBASE_ADMIN_KEY.replace(/\\n/g, '\n')
+    process.env.FIREBASE_ADMIN_KEY.replace(/\\\\n/g, '\\n')
   );
 
   privatekey = serviceAccount.private_key;
