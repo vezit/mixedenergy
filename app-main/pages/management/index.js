@@ -1,5 +1,3 @@
-// /pages/management/index.js
-
 import { useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { useRouter } from 'next/router';
@@ -112,6 +110,12 @@ export default function ManagementPage() {
     const lastEmail = threadEmails[threadEmails.length - 1];
 
     try {
+      // Ensure messageId includes angle brackets
+      let inReplyToMessageId = lastEmail.messageId;
+      if (!inReplyToMessageId.startsWith('<')) {
+        inReplyToMessageId = `<${inReplyToMessageId}>`;
+      }
+
       const response = await fetch('/api/sendEmail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,7 +123,7 @@ export default function ManagementPage() {
           to: lastEmail.sender,
           subject: 'Re: ' + lastEmail.subject,
           text: replyContent,
-          inReplyToMessageId: lastEmail.messageId,
+          inReplyToMessageId,
           threadId: lastEmail.threadId,
         }),
       });
@@ -216,21 +220,32 @@ export default function ManagementPage() {
           {/* Email Threads List */}
           <div className="w-1/3 border-r overflow-y-auto" style={{ maxHeight: '80vh' }}>
             <h2 className="text-xl font-bold mb-2">Inbox</h2>
-            <ul>
-              {emails.map((email) => (
-                <li
-                  key={email.threadId}
-                  className="border-b p-2 cursor-pointer hover:bg-gray-100"
-                  onClick={() => setSelectedThread(email)}
-                >
-                  <p className="font-semibold">{email.subject}</p>
-                  <p className="text-sm text-gray-600">{email.sender}</p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(email.receivedAt.seconds * 1000).toLocaleString()}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <table className="min-w-full table-auto border-collapse">
+              <thead>
+                <tr>
+                  <th className="border px-4 py-2 text-left">Subject</th>
+                  <th className="border px-4 py-2 text-left">Sender</th>
+                  <th className="border px-4 py-2 text-left">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {emails.map((email) => (
+                  <tr
+                    key={email.threadId}
+                    className="cursor-pointer hover:bg-gray-100"
+                    onClick={() => setSelectedThread(email)}
+                  >
+                    <td className="border px-4 py-2 font-semibold">{email.subject}</td>
+                    <td className="border px-4 py-2 text-sm">{email.sender}</td>
+                    <td className="border px-4 py-2 text-xs text-gray-500">
+                      {email.receivedAt.toDate
+                        ? email.receivedAt.toDate().toLocaleString()
+                        : new Date(email.receivedAt.seconds * 1000).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {/* Email Thread and Reply */}
@@ -239,23 +254,20 @@ export default function ManagementPage() {
               <div>
                 <h2 className="text-xl font-bold mb-2">Conversation</h2>
                 {threadEmails.map((email) => (
-                  <div key={email.docId} className="mb-4">
-                    <p>
-                      <strong>From:</strong> {email.sender}
-                    </p>
-                    <p>
-                      <strong>To:</strong> {email.recipient}
-                    </p>
-                    <p>
+                  <div key={email.docId} className="mb-4 border-b pb-2">
+                    <p className="text-sm text-gray-500">
+                      <strong>From:</strong> {email.sender} &nbsp;
+                      <strong>To:</strong> {email.recipient} &nbsp;
                       <strong>Date:</strong>{' '}
-                      {new Date(email.receivedAt.seconds * 1000).toLocaleString()}
+                      {email.receivedAt.toDate
+                        ? email.receivedAt.toDate().toLocaleString()
+                        : new Date(email.receivedAt.seconds * 1000).toLocaleString()}
                     </p>
-                    <p>{email.bodyPlain}</p>
-                    <hr className="my-2" />
+                    <p className="mt-2">{email.bodyPlain}</p>
                   </div>
                 ))}
 
-                <h3 className="text-lg font-bold mb-2">Reply</h3>
+                <h3 className="text-lg font-bold mb-2 mt-4">Reply</h3>
                 <textarea
                   className="w-full border p-2"
                   rows="5"

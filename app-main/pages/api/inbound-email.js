@@ -1,6 +1,4 @@
-// /pages/api/inbound-email.js
-
-import { db } from '../../lib/firebaseAdmin'; // Firestore admin import
+import { db } from '../../lib/firebaseAdmin';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -17,7 +15,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Access form data from req.body
     const getStringValue = (field) => {
       if (Array.isArray(field)) return field[0];
       return field;
@@ -29,29 +26,14 @@ export default async function handler(req, res) {
     const subject = getStringValue(req.body.subject);
     const bodyPlain = getStringValue(req.body['body-plain']);
 
-    // Parse message headers to extract messageId and inReplyTo
-    const messageHeadersJson = getStringValue(req.body['message-headers']);
-    let messageId = null;
-    let inReplyTo = null;
-
-    if (messageHeadersJson) {
-      try {
-        const messageHeaders = JSON.parse(messageHeadersJson);
-        for (const [headerName, headerValue] of messageHeaders) {
-          if (headerName.toLowerCase() === 'message-id') {
-            messageId = headerValue;
-          } else if (headerName.toLowerCase() === 'in-reply-to') {
-            inReplyTo = headerValue;
-          }
-        }
-      } catch (err) {
-        console.error('Error parsing message-headers:', err);
-      }
-    }
+    // Extract Message-Id and In-Reply-To directly from headers
+    const messageId = getStringValue(req.body['Message-Id']) || null;
+    const inReplyTo = getStringValue(req.body['In-Reply-To']) || null;
 
     console.log('Received data:', req.body);
+    console.log('Parsed messageId:', messageId);
+    console.log('Parsed inReplyTo:', inReplyTo);
 
-    // Check that essential fields are present
     if (!timestamp || !sender || !recipient || !subject || !bodyPlain || !messageId) {
       console.error('Missing required fields');
       return res.status(400).json({ message: 'Bad Request: Missing required fields' });
@@ -70,13 +52,13 @@ export default async function handler(req, res) {
 
       if (!parentEmailSnapshot.empty) {
         threadId = parentEmailSnapshot.docs[0].data().threadId;
+      } else {
+        console.warn('Parent email not found for inReplyTo:', inReplyTo);
       }
     }
 
-    // Generate a new document ID automatically with Firestore
-    const docRef = db.collection('emails').doc(); // Generate unique document ID
-
     // Store the email data in Firestore
+    const docRef = db.collection('emails').doc();
     await docRef.set({
       timestamp,
       sender,
@@ -91,7 +73,6 @@ export default async function handler(req, res) {
 
     console.log(`Stored email in Firestore with ID: ${docRef.id}`);
 
-    // Respond with success and the generated document ID
     return res.status(200).json({
       message: 'Email data received and stored successfully',
       documentId: docRef.id,

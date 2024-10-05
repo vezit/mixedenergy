@@ -1,5 +1,3 @@
-// /pages/api/sendEmail.js
-
 import mailgun from 'mailgun.js';
 import formData from 'form-data';
 import { db } from '../../lib/firebaseAdmin';
@@ -16,7 +14,7 @@ export default async function handler(req, res) {
   const mailgunClient = mg.client({
     username: 'api',
     key: process.env.MAILGUN_API_KEY || '',
-    url: 'https://api.eu.mailgun.net', // Adjust if necessary for your region
+    url: 'https://api.eu.mailgun.net',
   });
 
   const DOMAIN = process.env.MAILGUN_DOMAIN || '';
@@ -29,9 +27,14 @@ export default async function handler(req, res) {
     text,
   };
 
+  // Ensure In-Reply-To and References headers include angle brackets
   if (inReplyToMessageId) {
-    emailData['h:In-Reply-To'] = inReplyToMessageId;
-    emailData['h:References'] = inReplyToMessageId;
+    let inReplyToWithBrackets = inReplyToMessageId;
+    if (!inReplyToMessageId.startsWith('<')) {
+      inReplyToWithBrackets = `<${inReplyToMessageId}>`;
+    }
+    emailData['h:In-Reply-To'] = inReplyToWithBrackets;
+    emailData['h:References'] = inReplyToWithBrackets;
   }
 
   try {
@@ -39,7 +42,7 @@ export default async function handler(req, res) {
     const mgResponse = await mailgunClient.messages.create(DOMAIN, emailData);
 
     // Get the Mailgun assigned Message-Id
-    const messageId = mgResponse.id; // This includes angle brackets
+    const messageId = mgResponse.id; // Includes angle brackets
 
     // Store the sent email in Firestore
     const docRef = db.collection('emails').doc();
