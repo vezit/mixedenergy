@@ -65,9 +65,10 @@ export default function ManagementPage() {
     try {
       let emailsRef = collection(db, 'emails');
       let q;
-
+  
+      const field = currentView === 'inbox' ? 'recipient' : 'sender';
+  
       if (searchQuery.trim() !== '') {
-        const field = currentView === 'inbox' ? 'recipient' : 'sender';
         q = query(
           emailsRef,
           where(field, '==', 'info@mixedenergy.dk'),
@@ -77,14 +78,13 @@ export default function ManagementPage() {
           limit(20)
         );
       } else {
-        const field = currentView === 'inbox' ? 'recipient' : 'sender';
         q = query(
           emailsRef,
           where(field, '==', 'info@mixedenergy.dk'),
           orderBy('receivedAt', 'desc'),
           limit(20)
         );
-
+  
         if (direction === 'next' && cursor) {
           q = query(
             emailsRef,
@@ -103,31 +103,32 @@ export default function ManagementPage() {
           );
         }
       }
-
+  
       const emailsSnapshot = await getDocs(q);
-
+  
       if (emailsSnapshot.empty) {
         if (direction === 'next') {
           setNoMoreOlderEmails(true);
         } else if (direction === 'prev') {
           setNoMoreNewerEmails(true);
         }
+        setEmails([]); // Clear the emails array if no results
         return;
       } else {
         setNoMoreOlderEmails(false);
         setNoMoreNewerEmails(false);
       }
-
+  
       // Update pagination cursors
       const first = emailsSnapshot.docs[0];
       const last = emailsSnapshot.docs[emailsSnapshot.docs.length - 1];
       setFirstVisible(first);
       setLastVisible(last);
-
+  
       // Group emails by threadId
       const threadsMap = new Map();
       const uniqueEmails = new Set();
-
+  
       emailsSnapshot.docs.forEach((doc) => {
         const email = { docId: doc.id, ...doc.data() };
         const threadId = email.threadId || email.messageId;
@@ -138,13 +139,14 @@ export default function ManagementPage() {
           currentView === 'inbox' ? email.sender : email.recipient;
         uniqueEmails.add(otherPartyEmail);
       });
-
+  
       setEmails(Array.from(threadsMap.values()));
       setSenderEmails(Array.from(uniqueEmails));
     } catch (error) {
       console.error('Error fetching emails:', error);
     }
   };
+  
 
   useEffect(() => {
     if (selectedThread) {

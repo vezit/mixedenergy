@@ -24,11 +24,24 @@ export default async function handler(req, res) {
       return field;
     };
 
+    const extractEmailAddress = (str) => {
+      const match = str.match(/<([^>]+)>/);
+      if (match) {
+        return match[1];
+      } else {
+        // If there are no angle brackets, return the string as is
+        return str.trim();
+      }
+    };
+
     const timestamp = getStringValue(req.body.timestamp);
-    const sender = getStringValue(req.body.sender);
-    const recipient = getStringValue(req.body.recipient);
+    const rawSender = getStringValue(req.body.sender);
+    const rawRecipient = getStringValue(req.body.recipient);
     const subject = getStringValue(req.body.subject);
     const bodyPlain = getStringValue(req.body['body-plain']);
+
+    const sender = extractEmailAddress(rawSender);
+    const recipient = extractEmailAddress(rawRecipient);
 
     // Parse message headers to extract messageId and inReplyTo
     const messageHeadersJson = getStringValue(req.body['message-headers']);

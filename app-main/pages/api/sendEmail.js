@@ -51,12 +51,24 @@ export default async function handler(req, res) {
     // Get the Mailgun assigned Message-Id
     const messageId = mgResponse.id; // Includes angle brackets
 
+    // Extract recipient email address
+    const extractEmailAddress = (str) => {
+      const match = str.match(/<([^>]+)>/);
+      if (match) {
+        return match[1];
+      } else {
+        return str.trim();
+      }
+    };
+
+    const recipientEmail = extractEmailAddress(to);
+
     // Store the sent email in Firestore
     const docRef = db.collection('emails').doc();
     await docRef.set({
       timestamp: new Date().toISOString(),
       sender: 'info@mixedenergy.dk',
-      recipient: to,
+      recipient: recipientEmail,
       subject,
       bodyPlain: text,
       messageId,
