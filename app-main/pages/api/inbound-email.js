@@ -13,7 +13,7 @@ export const config = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     console.warn(`Method ${req.method} not allowed on /api/inbound-email`);
-    return res.status(405).json({ message: 'Method Not Allowed' });
+    return res.status(405).json({ message: 'Method Not Allowed Next' });
   }
 
   const form = new formidable.IncomingForm();
