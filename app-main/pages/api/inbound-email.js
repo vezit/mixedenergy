@@ -1,10 +1,11 @@
+// /pages/api/inbound-email.js
+
 import crypto from 'crypto';
 import { db } from '../../lib/firebaseAdmin';
-import formidable from 'formidable';
 
 export const config = {
   api: {
-    bodyParser: false, // Disable bodyParser to handle raw data from Mailgun
+    bodyParser: true, // Enable Next.js's default body parsing
   },
 };
 
@@ -20,41 +21,47 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  const form = formidable(); // Use formidable without 'new'
+  // Access form data from req.body
+  const fields = req.body;
 
-  form.parse(req, async (err, fields) => {
-    if (err) {
-      console.error('Error parsing form data', err);
-      return res.status(400).json({ message: 'Error parsing form data' });
-    }
+  // Ensure fields are strings
+  const getStringValue = (field) => {
+    if (Array.isArray(field)) return field[0];
+    return field;
+  };
 
-    const { timestamp, token, signature, sender, recipient, subject, 'body-plain': bodyPlain } = fields;
+  let timestamp = getStringValue(fields.timestamp);
+  let token = getStringValue(fields.token);
+  let signature = getStringValue(fields.signature);
+  let sender = getStringValue(fields.sender);
+  let recipient = getStringValue(fields.recipient);
+  let subject = getStringValue(fields.subject);
+  let bodyPlain = getStringValue(fields['body-plain']);
 
-    if (!timestamp || !token || !signature || !sender || !recipient || !subject || !bodyPlain) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
+  if (!timestamp || !token || !signature || !sender || !recipient || !subject || !bodyPlain) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
 
-    // Verify Mailgun signature
-    const apiKey = process.env.MAILGUN_GLOBAL_API_KEY;
-    const hmac = crypto.createHmac('sha256', apiKey).update(timestamp.concat(token)).digest('hex');
-    if (hmac !== signature) {
-      return res.status(403).json({ message: 'Invalid signature' });
-    }
+  // Verify Mailgun signature
+  const apiKey = process.env.MAILGUN_GLOBAL_API_KEY;
+  const hmac = crypto.createHmac('sha256', apiKey).update(timestamp + token).digest('hex');
+  if (hmac !== signature) {
+    return res.status(403).json({ message: 'Invalid signature' });
+  }
 
-    try {
-      const emailDocId = `${timestamp}-${token}`;
-      await db.collection('emails').doc(emailDocId).set({
-        sender,
-        recipient,
-        subject,
-        bodyPlain,
-        receivedAt: new Date(),
-      });
+  try {
+    const emailDocId = `${timestamp}-${token}`;
+    await db.collection('emails').doc(emailDocId).set({
+      sender,
+      recipient,
+      subject,
+      bodyPlain,
+      receivedAt: new Date(),
+    });
 
-      return res.status(200).json({ message: 'Email received and stored' });
-    } catch (error) {
-      console.error('Error storing email:', error);
-      return res.status(500).json({ message: 'Error storing email', error: error.message });
-    }
-  });
+    return res.status(200).json({ message: 'Email received and stored' });
+  } catch (error) {
+    console.error('Error storing email:', error);
+    return res.status(500).json({ message: 'Error storing email', error: error.message });
+  }
 }
