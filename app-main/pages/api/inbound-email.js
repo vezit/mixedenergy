@@ -1,50 +1,66 @@
-// pages/api/inbound-email.js
+import crypto from 'crypto';
+import { db } from '../../lib/firebaseAdmin';
+import formidable from 'formidable';
 
-import { db } from '../../lib/firebaseAdmin'; // Firestore admin import
+export const config = {
+  api: {
+    bodyParser: false, // Disable default body parsing to handle raw POST data
+  },
+};
 
 export default async function handler(req, res) {
-  console.log('FIREBASE_ADMIN_KEY:', process.env.FIREBASE_ADMIN_KEY);
+  const secret = req.query.secret;
+
+  // Check if the secret is correct
+  if (secret !== process.env.SECRET_INCOMING_MAIL_PARAMETER) {
+    console.error('Unauthorized request');
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   if (req.method !== 'POST') {
     console.warn(`Method ${req.method} not allowed on /api/inbound-email`);
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  try {
-    // Parse JSON data from the request body
-    const { timestamp, token, signature, sender, recipient, subject, 'body-plain': bodyPlain } = req.body;
-
-    console.log('Received data:', req.body);
-
-    // Check that essential fields are present
-    if (!timestamp || !token || !signature || !sender || !recipient || !subject || !bodyPlain) {
-      console.error('Missing required fields');
-      return res.status(400).json({ message: 'Bad Request: Missing required fields' });
+  const form = new formidable.IncomingForm();
+  
+  form.parse(req, async (err, fields) => {
+    if (err) {
+      console.error('Error parsing form data', err);
+      return res.status(400).json({ message: 'Error parsing form data' });
     }
 
-    // Generate a new document ID automatically with Firestore
-    const docRef = db.collection('test-email').doc(); // Generate unique document ID
+    const { timestamp, token, signature, sender, recipient, subject, 'body-plain': bodyPlain } = fields;
 
-    // Store the email data in Firestore
-    await docRef.set({
-      timestamp,
-      token,
-      signature,
-      sender,
-      recipient,
-      subject,
-      bodyPlain,
-      receivedAt: new Date(),
-    });
+    if (!timestamp || !token || !signature || !sender || !recipient || !subject || !bodyPlain) {
+      console.error('Missing required fields');
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
 
-    console.log(`Stored email in Firestore with ID: ${docRef.id}`);
+    // Verify Mailgun signature
+    const apiKey = process.env.MAILGUN_GLOBAL_API_KEY;
+    const hmac = crypto.createHmac('sha256', apiKey).update(timestamp.concat(token)).digest('hex');
+    if (hmac !== signature) {
+      console.error('Invalid Mailgun signature');
+      return res.status(403).json({ message: 'Invalid signature' });
+    }
 
-    // Respond with success and the generated document ID
-    return res.status(200).json({
-      message: 'Email data received and stored successfully',
-      documentId: docRef.id,
-    });
-  } catch (error) {
-    console.error('Error storing email:', error);
-    return res.status(500).json({ message: 'Internal Server Error', error: error.message });
-  }
+    try {
+      const emailDocId = `${timestamp}-${token}`;
+      
+      await db.collection('emails').doc(emailDocId).set({
+        sender,
+        recipient,
+        subject,
+        bodyPlain,
+        receivedAt: new Date(),
+      });
+
+      console.log(`Stored email with ID: ${emailDocId}`);
+      return res.status(200).json({ message: 'Email received and processed' });
+    } catch (error) {
+      console.error('Error storing email:', error);
+      return res.status(500).json({ message: 'Error storing email', error: error.message });
+    }
+  });
 }
