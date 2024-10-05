@@ -1,3 +1,5 @@
+// /pages/api/sendEmail.js
+
 import mailgun from 'mailgun.js';
 import formData from 'form-data';
 import { db } from '../../lib/firebaseAdmin';
@@ -27,14 +29,9 @@ export default async function handler(req, res) {
     text,
   };
 
-  // Ensure In-Reply-To and References headers include angle brackets
   if (inReplyToMessageId) {
-    let inReplyToWithBrackets = inReplyToMessageId;
-    if (!inReplyToMessageId.startsWith('<')) {
-      inReplyToWithBrackets = `<${inReplyToMessageId}>`;
-    }
-    emailData['h:In-Reply-To'] = inReplyToWithBrackets;
-    emailData['h:References'] = inReplyToWithBrackets;
+    emailData['h:In-Reply-To'] = inReplyToMessageId;
+    emailData['h:References'] = inReplyToMessageId;
   }
 
   try {

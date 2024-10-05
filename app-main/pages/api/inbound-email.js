@@ -1,3 +1,5 @@
+// /pages/api/inbound-email.js
+
 import { db } from '../../lib/firebaseAdmin';
 
 export default async function handler(req, res) {
@@ -26,9 +28,25 @@ export default async function handler(req, res) {
     const subject = getStringValue(req.body.subject);
     const bodyPlain = getStringValue(req.body['body-plain']);
 
-    // Extract Message-Id and In-Reply-To directly from headers
-    const messageId = getStringValue(req.body['Message-Id']) || null;
-    const inReplyTo = getStringValue(req.body['In-Reply-To']) || null;
+    // Parse message headers to extract messageId and inReplyTo
+    const messageHeadersJson = getStringValue(req.body['message-headers']);
+    let messageId = null;
+    let inReplyTo = null;
+
+    if (messageHeadersJson) {
+      try {
+        const messageHeaders = JSON.parse(messageHeadersJson);
+        for (const [headerName, headerValue] of messageHeaders) {
+          if (headerName.toLowerCase() === 'message-id') {
+            messageId = headerValue;
+          } else if (headerName.toLowerCase() === 'in-reply-to') {
+            inReplyTo = headerValue;
+          }
+        }
+      } catch (err) {
+        console.error('Error parsing message-headers:', err);
+      }
+    }
 
     console.log('Received data:', req.body);
     console.log('Parsed messageId:', messageId);
