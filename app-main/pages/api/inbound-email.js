@@ -1,5 +1,3 @@
-// /pages/api/inbound-email.js
-
 import { db } from '../../lib/firebaseAdmin';
 
 export default async function handler(req, res) {
@@ -27,11 +25,7 @@ export default async function handler(req, res) {
     const extractEmailAddress = (str) => {
       if (!str) return '';
       const match = str.match(/<([^>]+)>/);
-      if (match) {
-        return match[1];
-      } else {
-        return str.trim();
-      }
+      return match ? match[1] : str.trim();
     };
 
     const timestamp = getStringValue(req.body.timestamp);
@@ -50,14 +44,12 @@ export default async function handler(req, res) {
 
     if (messageHeadersJson) {
       try {
-        console.log('messageHeadersJson:', messageHeadersJson);
         const messageHeaders = JSON.parse(messageHeadersJson);
         for (const [headerName, headerValue] of messageHeaders) {
-          console.log('Header:', headerName, 'Value:', headerValue);
           if (headerName.toLowerCase() === 'message-id' && headerValue) {
-            messageId = headerValue.replace(/[<>]/g, '');
+            messageId = headerValue; // Store the raw messageId without .replace() for safety
           } else if (headerName.toLowerCase() === 'in-reply-to' && headerValue) {
-            inReplyTo = headerValue.replace(/[<>]/g, '');
+            inReplyTo = headerValue; // Store the raw inReplyTo without .replace() for safety
           }
         }
       } catch (err) {
@@ -93,6 +85,10 @@ export default async function handler(req, res) {
       }
     }
 
+    // Safely clean up messageId and inReplyTo (only if they exist)
+    const cleanMessageId = messageId ? messageId.replace(/[<>]/g, '') : null;
+    const cleanInReplyTo = inReplyTo ? inReplyTo.replace(/[<>]/g, '') : null;
+
     // Store the email data in Firestore
     await db.collection('emails').add({
       timestamp,
@@ -100,8 +96,8 @@ export default async function handler(req, res) {
       recipient,
       subject,
       bodyPlain,
-      messageId,
-      inReplyTo,
+      messageId: cleanMessageId,
+      inReplyTo: cleanInReplyTo,
       threadId,
       receivedAt: new Date(),
     });
