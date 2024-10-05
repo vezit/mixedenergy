@@ -37,14 +37,13 @@ export default async function handler(req, res) {
     if (messageHeadersJson) {
       try {
         const messageHeaders = JSON.parse(messageHeadersJson);
-        for (const [headerName, headerValue] of messageHeaders) {
-          console.log(`Header: ${headerName}, Value: ${headerValue}`);
+        messageHeaders.forEach(([headerName, headerValue]) => {
           if (headerName.toLowerCase() === 'message-id') {
-            messageId = headerValue;
+            messageId = headerValue || null;
           } else if (headerName.toLowerCase() === 'in-reply-to') {
-            inReplyTo = headerValue;
+            inReplyTo = headerValue || null;
           }
-        }
+        });
       } catch (err) {
         console.error('Error parsing message-headers:', err);
       }
@@ -58,7 +57,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Bad Request: Missing required fields' });
     }
 
-    // Safely clean up messageId and inReplyTo (only if they exist)
+    // Safely clean up messageId and inReplyTo (only if they exist and are valid)
     const cleanMessageId = messageId ? messageId.replace(/[<>]/g, '') : null;
     const cleanInReplyTo = inReplyTo ? inReplyTo.replace(/[<>]/g, '') : null;
 
