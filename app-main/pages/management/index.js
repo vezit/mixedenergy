@@ -9,14 +9,15 @@ import {
   getDocs,
   query,
   orderBy,
-  Timestamp,
+  where,
 } from 'firebase/firestore';
 import { firebaseApp } from '../../lib/firebase';
 
 export default function ManagementPage() {
   const [loading, setLoading] = useState(true);
   const [emails, setEmails] = useState([]);
-  const [selectedEmail, setSelectedEmail] = useState(null);
+  const [selectedThread, setSelectedThread] = useState(null);
+  const [threadEmails, setThreadEmails] = useState([]);
   const [replyContent, setReplyContent] = useState('');
   const [composeSubject, setComposeSubject] = useState('');
   const [composeRecipient, setComposeRecipient] = useState('');
@@ -47,12 +48,19 @@ export default function ManagementPage() {
           const emailsRef = collection(db, 'emails');
           const q = query(emailsRef, orderBy('receivedAt', 'desc'));
           const emailsSnapshot = await getDocs(q);
-          setEmails(
-            emailsSnapshot.docs.map((doc) => ({
-              docId: doc.id,
-              ...doc.data(),
-            }))
-          );
+
+          // Group emails by threadId
+          const threadsMap = new Map();
+
+          emailsSnapshot.docs.forEach((doc) => {
+            const email = { docId: doc.id, ...doc.data() };
+            const threadId = email.threadId || email.messageId;
+            if (!threadsMap.has(threadId)) {
+              threadsMap.set(threadId, email);
+            }
+          });
+
+          setEmails(Array.from(threadsMap.values()));
         } catch (error) {
           console.error('Error fetching emails:', error);
         }
@@ -61,6 +69,32 @@ export default function ManagementPage() {
       fetchEmails();
     }
   }, [db, loading]);
+
+  useEffect(() => {
+    const fetchThreadEmails = async () => {
+      if (selectedThread) {
+        try {
+          const emailsRef = collection(db, 'emails');
+          const q = query(
+            emailsRef,
+            where('threadId', '==', selectedThread.threadId),
+            orderBy('receivedAt', 'asc')
+          );
+          const threadSnapshot = await getDocs(q);
+          setThreadEmails(
+            threadSnapshot.docs.map((doc) => ({
+              docId: doc.id,
+              ...doc.data(),
+            }))
+          );
+        } catch (error) {
+          console.error('Error fetching thread emails:', error);
+        }
+      }
+    };
+
+    fetchThreadEmails();
+  }, [db, selectedThread]);
 
   const handleLogout = () => {
     signOut(auth)
@@ -73,20 +107,42 @@ export default function ManagementPage() {
   };
 
   const handleReply = async () => {
+    if (!selectedThread) return;
+
+    const lastEmail = threadEmails[threadEmails.length - 1];
+
     try {
       const response = await fetch('/api/sendEmail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: selectedEmail.sender,
-          subject: 'Re: ' + selectedEmail.subject,
+          to: lastEmail.sender,
+          subject: 'Re: ' + lastEmail.subject,
           text: replyContent,
+          inReplyToMessageId: lastEmail.messageId,
+          threadId: lastEmail.threadId,
         }),
       });
 
       if (response.ok) {
         alert('Reply sent successfully.');
         setReplyContent('');
+        // Refresh thread emails
+        setSelectedThread(null);
+        setThreadEmails([]);
+        // Fetch emails again
+        const emailsRef = collection(db, 'emails');
+        const q = query(emailsRef, orderBy('receivedAt', 'desc'));
+        const emailsSnapshot = await getDocs(q);
+        const threadsMap = new Map();
+        emailsSnapshot.docs.forEach((doc) => {
+          const email = { docId: doc.id, ...doc.data() };
+          const threadId = email.threadId || email.messageId;
+          if (!threadsMap.has(threadId)) {
+            threadsMap.set(threadId, email);
+          }
+        });
+        setEmails(Array.from(threadsMap.values()));
       } else {
         const data = await response.json();
         console.error('Error sending email:', data);
@@ -115,6 +171,22 @@ export default function ManagementPage() {
         setComposeRecipient('');
         setComposeSubject('');
         setComposeContent('');
+        // Refresh emails
+        setSelectedThread(null);
+        setThreadEmails([]);
+        // Fetch emails again
+        const emailsRef = collection(db, 'emails');
+        const q = query(emailsRef, orderBy('receivedAt', 'desc'));
+        const emailsSnapshot = await getDocs(q);
+        const threadsMap = new Map();
+        emailsSnapshot.docs.forEach((doc) => {
+          const email = { docId: doc.id, ...doc.data() };
+          const threadId = email.threadId || email.messageId;
+          if (!threadsMap.has(threadId)) {
+            threadsMap.set(threadId, email);
+          }
+        });
+        setEmails(Array.from(threadsMap.values()));
       } else {
         const data = await response.json();
         console.error('Error sending email:', data);
@@ -141,15 +213,15 @@ export default function ManagementPage() {
         <p>Loading...</p>
       ) : (
         <div className="flex">
-          {/* Email List */}
+          {/* Email Threads List */}
           <div className="w-1/3 border-r overflow-y-auto" style={{ maxHeight: '80vh' }}>
             <h2 className="text-xl font-bold mb-2">Inbox</h2>
             <ul>
               {emails.map((email) => (
                 <li
-                  key={email.docId}
+                  key={email.threadId}
                   className="border-b p-2 cursor-pointer hover:bg-gray-100"
-                  onClick={() => setSelectedEmail(email)}
+                  onClick={() => setSelectedThread(email)}
                 >
                   <p className="font-semibold">{email.subject}</p>
                   <p className="text-sm text-gray-600">{email.sender}</p>
@@ -161,24 +233,28 @@ export default function ManagementPage() {
             </ul>
           </div>
 
-          {/* Email Detail and Reply */}
+          {/* Email Thread and Reply */}
           <div className="w-2/3 p-4 overflow-y-auto" style={{ maxHeight: '80vh' }}>
-            {selectedEmail ? (
+            {selectedThread ? (
               <div>
-                <h2 className="text-xl font-bold mb-2">{selectedEmail.subject}</h2>
-                <p>
-                  <strong>From:</strong> {selectedEmail.sender}
-                </p>
-                <p>
-                  <strong>To:</strong> {selectedEmail.recipient}
-                </p>
-                <p>
-                  <strong>Date:</strong>{' '}
-                  {new Date(selectedEmail.receivedAt.seconds * 1000).toLocaleString()}
-                </p>
-                <hr className="my-2" />
-                <p>{selectedEmail.bodyPlain}</p>
-                <hr className="my-2" />
+                <h2 className="text-xl font-bold mb-2">Conversation</h2>
+                {threadEmails.map((email) => (
+                  <div key={email.docId} className="mb-4">
+                    <p>
+                      <strong>From:</strong> {email.sender}
+                    </p>
+                    <p>
+                      <strong>To:</strong> {email.recipient}
+                    </p>
+                    <p>
+                      <strong>Date:</strong>{' '}
+                      {new Date(email.receivedAt.seconds * 1000).toLocaleString()}
+                    </p>
+                    <p>{email.bodyPlain}</p>
+                    <hr className="my-2" />
+                  </div>
+                ))}
+
                 <h3 className="text-lg font-bold mb-2">Reply</h3>
                 <textarea
                   className="w-full border p-2"
@@ -194,7 +270,7 @@ export default function ManagementPage() {
                 </button>
               </div>
             ) : (
-              <p>Select an email to view its content.</p>
+              <p>Select an email thread to view its content.</p>
             )}
           </div>
         </div>

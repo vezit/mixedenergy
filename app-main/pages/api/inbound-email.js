@@ -24,19 +24,35 @@ export default async function handler(req, res) {
     };
 
     const timestamp = getStringValue(req.body.timestamp);
-    const token = getStringValue(req.body.token);
-    const signature = getStringValue(req.body.signature);
     const sender = getStringValue(req.body.sender);
     const recipient = getStringValue(req.body.recipient);
     const subject = getStringValue(req.body.subject);
     const bodyPlain = getStringValue(req.body['body-plain']);
+    const messageId = getStringValue(req.body['Message-Id']);
+    const inReplyTo = getStringValue(req.body['In-Reply-To']) || null;
 
     console.log('Received data:', req.body);
 
     // Check that essential fields are present
-    if (!timestamp || !token || !signature || !sender || !recipient || !subject || !bodyPlain) {
+    if (!timestamp || !sender || !recipient || !subject || !bodyPlain || !messageId) {
       console.error('Missing required fields');
       return res.status(400).json({ message: 'Bad Request: Missing required fields' });
+    }
+
+    // Determine the threadId
+    let threadId = messageId; // Default to messageId if no inReplyTo
+
+    if (inReplyTo) {
+      // Find the parent email to get the threadId
+      const parentEmailSnapshot = await db
+        .collection('emails')
+        .where('messageId', '==', inReplyTo)
+        .limit(1)
+        .get();
+
+      if (!parentEmailSnapshot.empty) {
+        threadId = parentEmailSnapshot.docs[0].data().threadId;
+      }
     }
 
     // Generate a new document ID automatically with Firestore
@@ -45,12 +61,13 @@ export default async function handler(req, res) {
     // Store the email data in Firestore
     await docRef.set({
       timestamp,
-      token,
-      signature,
       sender,
       recipient,
       subject,
       bodyPlain,
+      messageId,
+      inReplyTo,
+      threadId,
       receivedAt: new Date(),
     });
 
