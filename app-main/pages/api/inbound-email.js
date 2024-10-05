@@ -1,88 +1,36 @@
-import crypto from 'crypto';
-import { db } from '../../lib/firebaseAdmin';
-import formidable from 'formidable';
-
-export const config = {
-  api: {
-    bodyParser: false, // Disable body parsing for file upload handling
-  },
-};
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     console.warn(`Method ${req.method} not allowed on /api/inbound-email`);
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const form = new formidable.IncomingForm();
+  try {
+    // Directly parse JSON data from the request body
+    const { timestamp, token, signature, sender, recipient, subject, 'body-plain': bodyPlain } = req.body;
 
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error('Error parsing the form data', err);
-      return res.status(400).json({ message: 'Bad Request: Error parsing form data' });
+    console.log('Received data:', req.body);
+
+    // Check that essential fields are present
+    if (!timestamp || !token || !signature || !sender || !recipient || !subject || !bodyPlain) {
+      console.error('Missing required fields');
+      return res.status(400).json({ message: 'Bad Request: Missing required fields' });
     }
 
-    console.log('Parsed Fields:', fields); // Log the entire parsed request to debug
-
-    // Extract necessary fields from Mailgun's POST request
-    const { timestamp, token, signature } = fields;
-
-    // Verify required fields are present
-    if (!timestamp || !token || !signature) {
-      console.error('Missing required fields: timestamp, token, or signature');
-      return res.status(400).json({ message: 'Bad Request: Missing timestamp, token, or signature' });
-    }
-
-    // Verify the Mailgun signature
-    const apiKey = process.env.MAILGUN_GLOBAL_API_KEY;
-    if (!apiKey) {
-      console.error('MAILGUN_GLOBAL_API_KEY is not defined in environment variables');
-      return res.status(500).json({ message: 'Server configuration error: MAILGUN_GLOBAL_API_KEY is missing' });
-    }
-
-    const hmac = crypto
-      .createHmac('sha256', apiKey)
-      .update(timestamp.concat(token))
-      .digest('hex');
-
-    if (hmac !== signature) {
-      console.error('Invalid Mailgun signature');
-      return res.status(403).json({ message: 'Invalid signature' });
-    }
-
-    // Extract email data
-    const sender = fields.sender;
-    const recipient = fields.recipient;
-    const subject = fields.subject;
-    const bodyPlain = fields['body-plain']; // Use bracket notation to handle 'body-plain'
-
-    // Log each of these fields for debugging purposes
-    console.log('Email Fields:', { sender, recipient, subject, bodyPlain });
-
-    // Verify that required email fields are present
-    if (!sender || !recipient || !subject || !bodyPlain) {
-      console.error('Missing email data fields');
-      return res.status(400).json({ message: 'Bad Request: Missing email data fields' });
-    }
-
-    // Store email data in Firestore
-    try {
-      const emailDocId = `${timestamp}-${token}`;
-      await db.collection('emails').doc(emailDocId).set({
+    // For now, just respond with the data we received to confirm it's coming through
+    return res.status(200).json({
+      message: 'Email data received successfully',
+      data: {
+        timestamp,
+        token,
+        signature,
         sender,
         recipient,
         subject,
         bodyPlain,
-        receivedAt: new Date(),
-      });
-
-      console.log(`Email from ${sender} stored with ID: ${emailDocId}`);
-
-      // Respond to Mailgun
-      res.status(200).json({ message: 'Email received and processed' });
-    } catch (error) {
-      console.error('Error storing email:', error);
-      res.status(500).json({ message: 'Error storing email', error: error.message });
-    }
-  });
+      },
+    });
+  } catch (error) {
+    console.error('Error processing request:', error);
+    return res.status(500).json({ message: 'Internal Server Error', error: error.message });
+  }
 }
