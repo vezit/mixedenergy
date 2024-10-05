@@ -1,5 +1,3 @@
-import { db } from '../../lib/firebaseAdmin'; // Firestore admin import
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     console.warn(`Method ${req.method} not allowed on /api/inbound-email`);
@@ -7,7 +5,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse JSON data from the request body
+    // Directly parse JSON data from the request body
     const { timestamp, token, signature, sender, recipient, subject, 'body-plain': bodyPlain } = req.body;
 
     console.log('Received data:', req.body);
@@ -18,30 +16,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Bad Request: Missing required fields' });
     }
 
-    // Generate a new document ID automatically with Firestore
-    const docRef = db.collection('test-email').doc(); // Generate unique document ID
-
-    // Store the email data in Firestore
-    await docRef.set({
-      timestamp,
-      token,
-      signature,
-      sender,
-      recipient,
-      subject,
-      bodyPlain,
-      receivedAt: new Date(),
-    });
-
-    console.log(`Stored email in Firestore with ID: ${docRef.id}`);
-
-    // Respond with success and the generated document ID
+    // For now, just respond with the data we received to confirm it's coming through
     return res.status(200).json({
-      message: 'Email data received and stored successfully',
-      documentId: docRef.id,
+      message: 'Email data received successfully',
+      data: {
+        timestamp,
+        token,
+        signature,
+        sender,
+        recipient,
+        subject,
+        bodyPlain,
+      },
     });
   } catch (error) {
-    console.error('Error storing email:', error);
+    console.error('Error processing request:', error);
     return res.status(500).json({ message: 'Internal Server Error', error: error.message });
   }
 }
