@@ -53,9 +53,9 @@ export default async function handler(req, res) {
         const messageHeaders = JSON.parse(messageHeadersJson);
         for (const [headerName, headerValue] of messageHeaders) {
           if (headerName.toLowerCase() === 'message-id') {
-            messageId = headerValue;
+            messageId = headerValue.replace(/[<>]/g, '');
           } else if (headerName.toLowerCase() === 'in-reply-to') {
-            inReplyTo = headerValue;
+            inReplyTo = headerValue.replace(/[<>]/g, '');
           }
         }
       } catch (err) {
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     }
 
     // Determine the threadId
-    let threadId = inReplyTo || messageId; // Use inReplyTo if available
+    let threadId = messageId; // Default to the current messageId
 
     if (inReplyTo) {
       // Find the parent email to get the threadId
@@ -86,12 +86,13 @@ export default async function handler(req, res) {
         threadId = parentEmailSnapshot.docs[0].data().threadId;
       } else {
         console.warn('Parent email not found for inReplyTo:', inReplyTo);
+        // Use inReplyTo as threadId to group orphaned replies
+        threadId = inReplyTo;
       }
     }
 
     // Store the email data in Firestore
-    const docRef = db.collection('emails').doc();
-    await docRef.set({
+    await db.collection('emails').add({
       timestamp,
       sender,
       recipient,
@@ -103,11 +104,10 @@ export default async function handler(req, res) {
       receivedAt: new Date(),
     });
 
-    console.log(`Stored email in Firestore with ID: ${docRef.id}`);
+    console.log('Stored email in Firestore.');
 
     return res.status(200).json({
       message: 'Email data received and stored successfully',
-      documentId: docRef.id,
     });
   } catch (error) {
     console.error('Error storing email:', error);

@@ -23,11 +23,11 @@ export default async function handler(req, res) {
   const mg = new mailgun(formData);
   const mailgunClient = mg.client({
     username: 'api',
-    key: process.env.MAILGUN_API_KEY || '',
-    url: 'https://api.eu.mailgun.net', // Added to specify the EU endpoint
+    key: process.env.MAILGUN_API_KEY,
+    url: 'https://api.eu.mailgun.net',
   });
 
-  const DOMAIN = process.env.MAILGUN_DOMAIN || '';
+  const DOMAIN = process.env.MAILGUN_DOMAIN;
 
   // Define email data
   const emailData = {
@@ -50,8 +50,8 @@ export default async function handler(req, res) {
 
     console.log('Mailgun Response:', mgResponse);
 
-    // Get the Mailgun assigned Message-Id
-    const messageId = mgResponse.id; // Includes angle brackets
+    // Get the Mailgun assigned Message-Id and remove angle brackets
+    const messageId = mgResponse.id.replace(/[<>]/g, '');
 
     // Extract recipient email address
     const extractEmailAddress = (str) => {
@@ -66,8 +66,7 @@ export default async function handler(req, res) {
     const recipientEmail = extractEmailAddress(emailData.to);
 
     // Store the sent email in Firestore
-    const docRef = db.collection('emails').doc();
-    await docRef.set({
+    await db.collection('emails').add({
       timestamp: new Date().toISOString(),
       sender: 'info@mixedenergy.dk',
       recipient: recipientEmail,
@@ -79,11 +78,11 @@ export default async function handler(req, res) {
       receivedAt: new Date(),
     });
 
-    console.log(`Stored order confirmation email in Firestore with ID: ${docRef.id}`);
+    console.log('Stored order confirmation email in Firestore.');
 
     return res.status(200).json({ message: 'Email sent successfully' });
   } catch (error) {
     console.error('Error sending email:', error);
-    return res.status(500).json({ message: 'Error sending email', error });
+    return res.status(500).json({ message: 'Error sending email', error: error.message });
   }
 }

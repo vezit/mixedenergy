@@ -6,13 +6,13 @@ import { useRouter } from 'next/router';
 import {
   getFirestore,
   collection,
-  getDocs,
   query,
-  orderBy,
   where,
+  orderBy,
   limit,
   startAfter,
   endBefore,
+  getDocs,
 } from 'firebase/firestore';
 import { firebaseApp } from '../../lib/firebase';
 import Modal from '../../components/Modal';
@@ -59,15 +59,16 @@ export default function ManagementPage() {
     if (!loading) {
       fetchEmails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, currentView]);
 
   const fetchEmails = async (direction = 'initial', cursor = null) => {
     try {
-      let emailsRef = collection(db, 'emails');
+      const emailsRef = collection(db, 'emails');
       let q;
-  
+
       const field = currentView === 'inbox' ? 'recipient' : 'sender';
-  
+
       if (searchQuery.trim() !== '') {
         q = query(
           emailsRef,
@@ -84,7 +85,7 @@ export default function ManagementPage() {
           orderBy('receivedAt', 'desc'),
           limit(20)
         );
-  
+
         if (direction === 'next' && cursor) {
           q = query(
             emailsRef,
@@ -103,9 +104,9 @@ export default function ManagementPage() {
           );
         }
       }
-  
+
       const emailsSnapshot = await getDocs(q);
-  
+
       if (emailsSnapshot.empty) {
         if (direction === 'next') {
           setNoMoreOlderEmails(true);
@@ -118,17 +119,17 @@ export default function ManagementPage() {
         setNoMoreOlderEmails(false);
         setNoMoreNewerEmails(false);
       }
-  
+
       // Update pagination cursors
       const first = emailsSnapshot.docs[0];
       const last = emailsSnapshot.docs[emailsSnapshot.docs.length - 1];
       setFirstVisible(first);
       setLastVisible(last);
-  
+
       // Group emails by threadId
       const threadsMap = new Map();
       const uniqueEmails = new Set();
-  
+
       emailsSnapshot.docs.forEach((doc) => {
         const email = { docId: doc.id, ...doc.data() };
         const threadId = email.threadId || email.messageId;
@@ -139,14 +140,13 @@ export default function ManagementPage() {
           currentView === 'inbox' ? email.sender : email.recipient;
         uniqueEmails.add(otherPartyEmail);
       });
-  
+
       setEmails(Array.from(threadsMap.values()));
       setSenderEmails(Array.from(uniqueEmails));
     } catch (error) {
       console.error('Error fetching emails:', error);
     }
   };
-  
 
   useEffect(() => {
     if (selectedThread) {
@@ -280,7 +280,9 @@ export default function ManagementPage() {
         <h1 className="text-2xl font-bold">Management Panel</h1>
         <div>
           <button
-            onClick={() => setCurrentView(currentView === 'inbox' ? 'sent' : 'inbox')}
+            onClick={() =>
+              setCurrentView(currentView === 'inbox' ? 'sent' : 'inbox')
+            }
             className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
           >
             Switch to {currentView === 'inbox' ? 'Sent' : 'Inbox'}
@@ -365,67 +367,6 @@ export default function ManagementPage() {
             Older &rarr;
           </button>
         )}
-      </div>
-
-      {/* Compose New Email */}
-      <div className="mt-8">
-        <h2 className="text-xl font-bold mb-2">Compose New Email</h2>
-        <div className="relative">
-          <input
-            type="email"
-            placeholder="Recipient"
-            value={composeRecipient}
-            onChange={(e) => {
-              setComposeRecipient(e.target.value);
-              const query = e.target.value.toLowerCase();
-              if (query.length > 0) {
-                const filteredEmails = senderEmails.filter((email) =>
-                  email.toLowerCase().includes(query)
-                );
-                setRecipientSuggestions(filteredEmails);
-              } else {
-                setRecipientSuggestions([]);
-              }
-            }}
-            className="w-full border p-2 mb-2"
-          />
-          {recipientSuggestions.length > 0 && (
-            <ul className="absolute bg-white border w-full max-h-40 overflow-y-auto z-10">
-              {recipientSuggestions.map((email, index) => (
-                <li
-                  key={index}
-                  className="p-2 cursor-pointer hover:bg-gray-100"
-                  onClick={() => {
-                    setComposeRecipient(email);
-                    setRecipientSuggestions([]);
-                  }}
-                >
-                  {email}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <input
-          type="text"
-          placeholder="Subject"
-          value={composeSubject}
-          onChange={(e) => setComposeSubject(e.target.value)}
-          className="w-full border p-2 mb-2"
-        />
-        <textarea
-          placeholder="Message"
-          value={composeContent}
-          onChange={(e) => setComposeContent(e.target.value)}
-          className="w-full border p-2 mb-2"
-          rows="5"
-        ></textarea>
-        <button
-          onClick={handleCompose}
-          className="bg-green-500 text-white px-4 py-2 rounded"
-        >
-          Send Email
-        </button>
       </div>
 
       {/* Modal for Conversation */}
