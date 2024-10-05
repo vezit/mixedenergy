@@ -10,6 +10,9 @@ import {
   query,
   orderBy,
   where,
+  limit,
+  startAfter,
+  endBefore,
 } from 'firebase/firestore';
 import { firebaseApp } from '../../lib/firebase';
 import Modal from '../../components/Modal';
@@ -17,6 +20,8 @@ import Modal from '../../components/Modal';
 export default function ManagementPage() {
   const [loading, setLoading] = useState(true);
   const [emails, setEmails] = useState([]);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [firstVisible, setFirstVisible] = useState(null);
   const [selectedThread, setSelectedThread] = useState(null);
   const [threadEmails, setThreadEmails] = useState([]);
   const [replyContent, setReplyContent] = useState('');
@@ -26,6 +31,9 @@ export default function ManagementPage() {
   const [senderEmails, setSenderEmails] = useState([]);
   const [recipientSuggestions, setRecipientSuggestions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [noMoreOlderEmails, setNoMoreOlderEmails] = useState(false);
+  const [noMoreNewerEmails, setNoMoreNewerEmails] = useState(true);
 
   const router = useRouter();
   const auth = getAuth(firebaseApp);
@@ -47,61 +55,109 @@ export default function ManagementPage() {
 
   useEffect(() => {
     if (!loading) {
-      const fetchEmails = async () => {
-        try {
-          const emailsRef = collection(db, 'emails');
-          const q = query(emailsRef, orderBy('receivedAt', 'desc'));
-          const emailsSnapshot = await getDocs(q);
-
-          // Group emails by threadId
-          const threadsMap = new Map();
-          const uniqueSenders = new Set();
-
-          emailsSnapshot.docs.forEach((doc) => {
-            const email = { docId: doc.id, ...doc.data() };
-            const threadId = email.threadId || email.messageId;
-            if (!threadsMap.has(threadId)) {
-              threadsMap.set(threadId, email);
-            }
-            uniqueSenders.add(email.sender);
-          });
-
-          setEmails(Array.from(threadsMap.values()));
-          setSenderEmails(Array.from(uniqueSenders));
-        } catch (error) {
-          console.error('Error fetching emails:', error);
-        }
-      };
-
       fetchEmails();
     }
-  }, [db, loading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
-  useEffect(() => {
-    const fetchThreadEmails = async () => {
-      if (selectedThread) {
-        try {
-          const emailsRef = collection(db, 'emails');
-          const q = query(
+  const fetchEmails = async (direction = 'initial', cursor = null) => {
+    try {
+      let emailsRef = collection(db, 'emails');
+      let q;
+
+      if (searchQuery.trim() !== '') {
+        q = query(
+          emailsRef,
+          where('subject', '>=', searchQuery),
+          where('subject', '<=', searchQuery + '\uf8ff'),
+          orderBy('subject'),
+          limit(20)
+        );
+      } else {
+        q = query(emailsRef, orderBy('receivedAt', 'desc'), limit(20));
+        if (direction === 'next' && cursor) {
+          q = query(
             emailsRef,
-            where('threadId', '==', selectedThread.threadId),
-            orderBy('receivedAt', 'asc')
+            orderBy('receivedAt', 'desc'),
+            startAfter(cursor),
+            limit(20)
           );
-          const threadSnapshot = await getDocs(q);
-          setThreadEmails(
-            threadSnapshot.docs.map((doc) => ({
-              docId: doc.id,
-              ...doc.data(),
-            }))
+        } else if (direction === 'prev' && cursor) {
+          q = query(
+            emailsRef,
+            orderBy('receivedAt', 'desc'),
+            endBefore(cursor),
+            limit(20)
           );
-        } catch (error) {
-          console.error('Error fetching thread emails:', error);
         }
       }
-    };
 
-    fetchThreadEmails();
-  }, [db, selectedThread]);
+      const emailsSnapshot = await getDocs(q);
+
+      if (emailsSnapshot.empty) {
+        if (direction === 'next') {
+          setNoMoreOlderEmails(true);
+        } else if (direction === 'prev') {
+          setNoMoreNewerEmails(true);
+        }
+        return;
+      } else {
+        setNoMoreOlderEmails(false);
+        setNoMoreNewerEmails(false);
+      }
+
+      // Update pagination cursors
+      const first = emailsSnapshot.docs[0];
+      const last = emailsSnapshot.docs[emailsSnapshot.docs.length - 1];
+      setFirstVisible(first);
+      setLastVisible(last);
+
+      // Group emails by threadId
+      const threadsMap = new Map();
+      const uniqueSenders = new Set();
+
+      emailsSnapshot.docs.forEach((doc) => {
+        const email = { docId: doc.id, ...doc.data() };
+        const threadId = email.threadId || email.messageId;
+        if (!threadsMap.has(threadId)) {
+          threadsMap.set(threadId, email);
+        }
+        uniqueSenders.add(email.sender);
+      });
+
+      setEmails(Array.from(threadsMap.values()));
+      setSenderEmails(Array.from(uniqueSenders));
+    } catch (error) {
+      console.error('Error fetching emails:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedThread) {
+      fetchThreadEmails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedThread]);
+
+  const fetchThreadEmails = async () => {
+    try {
+      const emailsRef = collection(db, 'emails');
+      const q = query(
+        emailsRef,
+        where('threadId', '==', selectedThread.threadId),
+        orderBy('receivedAt', 'asc')
+      );
+      const threadSnapshot = await getDocs(q);
+      setThreadEmails(
+        threadSnapshot.docs.map((doc) => ({
+          docId: doc.id,
+          ...doc.data(),
+        }))
+      );
+    } catch (error) {
+      console.error('Error fetching thread emails:', error);
+    }
+  };
 
   const handleLogout = () => {
     signOut(auth)
@@ -180,37 +236,20 @@ export default function ManagementPage() {
     }
   };
 
-  const fetchEmails = async () => {
-    try {
-      const emailsRef = collection(db, 'emails');
-      const q = query(emailsRef, orderBy('receivedAt', 'desc'));
-      const emailsSnapshot = await getDocs(q);
-
-      // Group emails by threadId
-      const threadsMap = new Map();
-      const uniqueSenders = new Set();
-
-      emailsSnapshot.docs.forEach((doc) => {
-        const email = { docId: doc.id, ...doc.data() };
-        const threadId = email.threadId || email.messageId;
-        if (!threadsMap.has(threadId)) {
-          threadsMap.set(threadId, email);
-        }
-        uniqueSenders.add(email.sender);
-      });
-
-      setEmails(Array.from(threadsMap.values()));
-      setSenderEmails(Array.from(uniqueSenders));
-    } catch (error) {
-      console.error('Error fetching emails:', error);
-    }
-  };
-
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedThread(null);
     setThreadEmails([]);
     setReplyContent('');
+  };
+
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchEmails();
   };
 
   return (
@@ -228,8 +267,19 @@ export default function ManagementPage() {
         <p>Loading...</p>
       ) : (
         <div>
+          {/* Search Field */}
+          <form onSubmit={handleSearchSubmit} className="mb-4">
+            <input
+              type="text"
+              placeholder="Search by subject"
+              value={searchQuery}
+              onChange={handleSearch}
+              className="border p-2 w-full"
+            />
+          </form>
+
           {/* Inbox */}
-          <div className="overflow-y-auto" style={{ maxHeight: '80vh' }}>
+          <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
             <h2 className="text-xl font-bold mb-2">Inbox</h2>
             <table className="min-w-full table-auto border-collapse">
               <thead>
@@ -264,6 +314,26 @@ export default function ManagementPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex justify-center mt-4">
+            {!noMoreNewerEmails && (
+              <button
+                onClick={() => fetchEmails('prev', firstVisible)}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded mr-2"
+              >
+                &larr; Newer
+              </button>
+            )}
+            {!noMoreOlderEmails && (
+              <button
+                onClick={() => fetchEmails('next', lastVisible)}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
+              >
+                Older &rarr;
+              </button>
+            )}
           </div>
         </div>
       )}

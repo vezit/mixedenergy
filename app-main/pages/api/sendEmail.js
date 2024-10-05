@@ -30,8 +30,13 @@ export default async function handler(req, res) {
   };
 
   if (inReplyToMessageId) {
-    emailData['h:In-Reply-To'] = inReplyToMessageId;
-    emailData['h:References'] = inReplyToMessageId;
+    // Ensure headers include angle brackets
+    const inReplyToWithBrackets = inReplyToMessageId.startsWith('<')
+      ? inReplyToMessageId
+      : `<${inReplyToMessageId}>`;
+
+    emailData['h:In-Reply-To'] = inReplyToWithBrackets;
+    emailData['h:References'] = inReplyToWithBrackets;
   }
 
   try {
