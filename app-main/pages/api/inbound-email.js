@@ -1,19 +1,17 @@
-// pages/api/inbound-email.js
-
 import crypto from 'crypto';
-import { db } from '../../lib/firebaseAdmin'; // Import db from firebaseAdmin.js
+import { db } from '../../lib/firebaseAdmin';
 import formidable from 'formidable';
 
 export const config = {
   api: {
-    bodyParser: false, // Disable Next.js's default body parsing
+    bodyParser: false, // Disable body parsing for file upload handling
   },
 };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     console.warn(`Method ${req.method} not allowed on /api/inbound-email`);
-    return res.status(405).json({ message: 'Method Not Allowed Next' });
+    return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
   const form = new formidable.IncomingForm();
@@ -24,10 +22,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Bad Request: Error parsing form data' });
     }
 
+    console.log('Parsed Fields:', fields); // Log the entire parsed request to debug
+
     // Extract necessary fields from Mailgun's POST request
     const { timestamp, token, signature } = fields;
 
-    // Verify that required fields are present
+    // Verify required fields are present
     if (!timestamp || !token || !signature) {
       console.error('Missing required fields: timestamp, token, or signature');
       return res.status(400).json({ message: 'Bad Request: Missing timestamp, token, or signature' });
@@ -51,7 +51,13 @@ export default async function handler(req, res) {
     }
 
     // Extract email data
-    const { sender, recipient, subject, 'body-plain': bodyPlain } = fields;
+    const sender = fields.sender;
+    const recipient = fields.recipient;
+    const subject = fields.subject;
+    const bodyPlain = fields['body-plain']; // Use bracket notation to handle 'body-plain'
+
+    // Log each of these fields for debugging purposes
+    console.log('Email Fields:', { sender, recipient, subject, bodyPlain });
 
     // Verify that required email fields are present
     if (!sender || !recipient || !subject || !bodyPlain) {
