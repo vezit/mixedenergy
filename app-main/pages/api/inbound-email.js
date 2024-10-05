@@ -1,5 +1,3 @@
-// /pages/api/inbound-email.js
-
 import crypto from 'crypto';
 import { db } from '../../lib/firebaseAdmin';
 import formidable from 'formidable';
@@ -22,7 +20,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  const form = new formidable.IncomingForm();
+  const form = formidable(); // Use formidable without 'new'
+
   form.parse(req, async (err, fields) => {
     if (err) {
       console.error('Error parsing form data', err);
