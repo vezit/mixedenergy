@@ -46,10 +46,11 @@ export default async function handler(req, res) {
       try {
         const messageHeaders = JSON.parse(messageHeadersJson);
         for (const [headerName, headerValue] of messageHeaders) {
-          if (headerName.toLowerCase() === 'message-id' && headerValue) {
-            messageId = headerValue; // Store the raw messageId without .replace() for safety
-          } else if (headerName.toLowerCase() === 'in-reply-to' && headerValue) {
-            inReplyTo = headerValue; // Store the raw inReplyTo without .replace() for safety
+          console.log(`Header: ${headerName}, Value: ${headerValue}`);
+          if (headerName.toLowerCase() === 'message-id') {
+            messageId = headerValue;
+          } else if (headerName.toLowerCase() === 'in-reply-to') {
+            inReplyTo = headerValue;
           }
         }
       } catch (err) {
@@ -65,29 +66,36 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Bad Request: Missing required fields' });
     }
 
-    // Determine the threadId
-    let threadId = messageId; // Default to the current messageId
+    // Log messageId and inReplyTo values before using them
+    console.log('Pre-clean messageId:', messageId);
+    console.log('Pre-clean inReplyTo:', inReplyTo);
 
-    if (inReplyTo) {
+    // Safely clean up messageId and inReplyTo (only if they exist)
+    const cleanMessageId = messageId ? messageId.replace(/[<>]/g, '') : null;
+    const cleanInReplyTo = inReplyTo ? inReplyTo.replace(/[<>]/g, '') : null;
+
+    console.log('Clean messageId:', cleanMessageId);
+    console.log('Clean inReplyTo:', cleanInReplyTo);
+
+    // Determine the threadId
+    let threadId = cleanMessageId; // Default to the current messageId
+
+    if (cleanInReplyTo) {
       // Find the parent email to get the threadId
       const parentEmailSnapshot = await db
         .collection('emails')
-        .where('messageId', '==', inReplyTo)
+        .where('messageId', '==', cleanInReplyTo)
         .limit(1)
         .get();
 
       if (!parentEmailSnapshot.empty) {
         threadId = parentEmailSnapshot.docs[0].data().threadId;
       } else {
-        console.warn('Parent email not found for inReplyTo:', inReplyTo);
+        console.warn('Parent email not found for inReplyTo:', cleanInReplyTo);
         // Use inReplyTo as threadId to group orphaned replies
-        threadId = inReplyTo;
+        threadId = cleanInReplyTo;
       }
     }
-
-    // Safely clean up messageId and inReplyTo (only if they exist)
-    const cleanMessageId = messageId ? messageId.replace(/[<>]/g, '') : null;
-    const cleanInReplyTo = inReplyTo ? inReplyTo.replace(/[<>]/g, '') : null;
 
     // Store the email data in Firestore
     await db.collection('emails').add({
