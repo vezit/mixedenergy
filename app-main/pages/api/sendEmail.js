@@ -21,16 +21,12 @@ export default async function handler(req, res) {
 
   const DOMAIN = process.env.MAILGUN_DOMAIN || '';
 
-  // Generate a unique message ID
-  const messageId = `<${Date.now()}-${Math.random().toString(36).substring(2, 15)}@${DOMAIN}>`;
-
   // Define email data
   const emailData = {
     from: 'MixedEnergy <info@mixedenergy.dk>',
     to,
     subject,
     text,
-    'h:Message-Id': messageId,
   };
 
   if (inReplyToMessageId) {
@@ -40,7 +36,10 @@ export default async function handler(req, res) {
 
   try {
     // Send the email
-    await mailgunClient.messages.create(DOMAIN, emailData);
+    const mgResponse = await mailgunClient.messages.create(DOMAIN, emailData);
+
+    // Get the Mailgun assigned Message-Id
+    const messageId = mgResponse.id; // This includes angle brackets
 
     // Store the sent email in Firestore
     const docRef = db.collection('emails').doc();
