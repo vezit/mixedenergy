@@ -6,14 +6,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const secret = req.query.secret;
-
-  // Check if the secret parameter is correct
-  if (secret !== process.env.SECRET_INCOMING_MAIL_PARAMETER) {
-    console.error('Unauthorized request');
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
   try {
     console.log('Received email data:', req.body);
 
@@ -65,10 +57,6 @@ export default async function handler(req, res) {
       console.error('Missing required fields');
       return res.status(400).json({ message: 'Bad Request: Missing required fields' });
     }
-
-    // Log messageId and inReplyTo values before using them
-    console.log('Pre-clean messageId:', messageId);
-    console.log('Pre-clean inReplyTo:', inReplyTo);
 
     // Safely clean up messageId and inReplyTo (only if they exist)
     const cleanMessageId = messageId ? messageId.replace(/[<>]/g, '') : null;
