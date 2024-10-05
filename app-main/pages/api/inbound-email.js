@@ -21,15 +21,15 @@ export default async function handler(req, res) {
 
     const getStringValue = (field) => {
       if (Array.isArray(field)) return field[0];
-      return field;
+      return field || '';
     };
 
     const extractEmailAddress = (str) => {
+      if (!str) return '';
       const match = str.match(/<([^>]+)>/);
       if (match) {
         return match[1];
       } else {
-        // If there are no angle brackets, return the string as is
         return str.trim();
       }
     };
@@ -50,11 +50,13 @@ export default async function handler(req, res) {
 
     if (messageHeadersJson) {
       try {
+        console.log('messageHeadersJson:', messageHeadersJson);
         const messageHeaders = JSON.parse(messageHeadersJson);
         for (const [headerName, headerValue] of messageHeaders) {
-          if (headerName.toLowerCase() === 'message-id') {
+          console.log('Header:', headerName, 'Value:', headerValue);
+          if (headerName.toLowerCase() === 'message-id' && headerValue) {
             messageId = headerValue.replace(/[<>]/g, '');
-          } else if (headerName.toLowerCase() === 'in-reply-to') {
+          } else if (headerName.toLowerCase() === 'in-reply-to' && headerValue) {
             inReplyTo = headerValue.replace(/[<>]/g, '');
           }
         }

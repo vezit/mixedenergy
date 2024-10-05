@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const { secret } = req.query;
 
   // Verify the secret
-  if (secret !== 'slkjdsfdslkads') {
+  if (secret !== 'YOUR_SECRET_KEY') {
     console.error('Unauthorized request to sendOrderConfirmation');
     return res.status(403).json({ message: 'Forbidden' });
   }
@@ -23,21 +23,21 @@ export default async function handler(req, res) {
   const mg = new mailgun(formData);
   const mailgunClient = mg.client({
     username: 'api',
-    key: process.env.MAILGUN_API_KEY,
+    key: process.env.MAILGUN_API_KEY || '',
     url: 'https://api.eu.mailgun.net',
   });
 
-  const DOMAIN = process.env.MAILGUN_DOMAIN;
+  const DOMAIN = process.env.MAILGUN_DOMAIN || '';
 
   // Define email data
   const emailData = {
     from: 'MixedEnergy <info@mixedenergy.dk>',
     to: 'victor@reipur.com', // Replace with the recipient's email
-    subject: 'Ordrenummer: MM03A3D9C89', // Updated to match the specified format
+    subject: 'Ordrenummer: MM03A3D9C89',
     html: `<html>
       <body>
         <h1>Hello World</h1>
-        <p>This is your order confirmation. from next js</p>
+        <p>This is your order confirmation. from Next.js</p>
       </body>
     </html>`,
   };
