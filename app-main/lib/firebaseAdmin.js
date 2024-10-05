@@ -1,5 +1,3 @@
-// lib/firebaseAdmin.js
-
 import * as admin from 'firebase-admin';
 
 let privatekey; // Declare privatekey
@@ -13,10 +11,9 @@ if (!admin.apps.length) {
   let serviceAccount;
 
   try {
-    // Parse FIREBASE_ADMIN_KEY and handle newlines in the private key
-    serviceAccount = JSON.parse(
-      process.env.FIREBASE_ADMIN_KEY.replace(/\\n/g, '\n')
-    );
+    // Properly parse the FIREBASE_ADMIN_KEY by replacing \\n with \n
+    const formattedKey = process.env.FIREBASE_ADMIN_KEY.replace(/\\\\n/g, '\\n');
+    serviceAccount = JSON.parse(formattedKey);
   } catch (error) {
     console.error('Error parsing FIREBASE_ADMIN_KEY:', error);
     throw error; // Re-throw the error after logging

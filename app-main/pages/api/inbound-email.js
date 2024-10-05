@@ -1,3 +1,5 @@
+// pages/api/inbound-email.js
+
 import { db } from '../../lib/firebaseAdmin'; // Firestore admin import
 
 export default async function handler(req, res) {
