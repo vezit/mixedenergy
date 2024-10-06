@@ -16,7 +16,7 @@ export default function Basket() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     const updatedDetails = { ...customerDetails, [name]: value };
-    updateCustomerDetails(updatedDetails); // Update customer details via context
+    updateCustomerDetails(updatedDetails);
 
     if (name === 'postalCode' && value.length === 4 && /^\d{4}$/.test(value)) {
       fetch(`https://api.dataforsyningen.dk/postnumre/${value}`)
@@ -40,14 +40,14 @@ export default function Basket() {
         .then((res) => res.json())
         .then((data) => {
           setPickupPoints(data.servicePointInformationResponse?.servicePoints || []);
-          setLoading(false); // Stop loading after success
+          setLoading(false);
         })
         .catch((error) => {
           console.error('Error fetching PostNord service points:', error);
-          setLoading(false); // Stop loading in case of error
+          setLoading(false);
         });
     } else {
-      setLoading(false); // Stop loading if customer details are incomplete
+      setLoading(false);
     }
   };
 
@@ -65,11 +65,11 @@ export default function Basket() {
         streetNumber: data.dawaResponse.resultater[0].adresse.husnr,
       };
 
-      updateCustomerDetails(updatedDetails); // Update state with new details
-      fetchPickupPoints(updatedDetails); // Fetch pickup points after validating
+      updateCustomerDetails(updatedDetails);
+      fetchPickupPoints(updatedDetails);
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
-      setLoading(false); // Stop loading in case of error
+      setLoading(false);
     }
   };
 
@@ -98,7 +98,91 @@ export default function Basket() {
     <div>
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
 
-      {/* Customer details form... */}
+      <div className="mb-4">
+        <label className="block mb-2">Fulde Navn *</label>
+        <input
+          type="text"
+          name="fullName"
+          value={customerDetails.fullName}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.fullName ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.fullName && <p className="text-red-500 mt-1">{errors.fullName}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">Mobilnummer *</label>
+        <input
+          type="text"
+          name="mobileNumber"
+          value={customerDetails.mobileNumber}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.mobileNumber ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.mobileNumber && <p className="text-red-500 mt-1">{errors.mobileNumber}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">E-mail Adresse *</label>
+        <input
+          type="email"
+          name="email"
+          value={customerDetails.email}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.email && <p className="text-red-500 mt-1">{errors.email}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">Vejnavn og Husnummer *</label>
+        <input
+          type="text"
+          name="address"
+          value={customerDetails.address}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.address ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.address && <p className="text-red-500 mt-1">{errors.address}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">Postnummer *</label>
+        <input
+          type="text"
+          name="postalCode"
+          value={customerDetails.postalCode}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.postalCode ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.postalCode && <p className="text-red-500 mt-1">{errors.postalCode}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">By *</label>
+        <input
+          type="text"
+          name="city"
+          value={customerDetails.city}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''}`}
+          required
+          disabled={true}
+        />
+        {errors.city && <p className="text-red-500 mt-1">{errors.city}</p>}
+      </div>
+
+      <button
+        onClick={handleShowPickupPoints}
+        className="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+      >
+        Fortsæt
+      </button>
     </div>
   );
 
