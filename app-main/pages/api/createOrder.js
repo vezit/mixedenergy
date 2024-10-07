@@ -45,6 +45,8 @@ export default async function handler(req, res) {
       customerDetails,
       status: 'pending',
       createdAt: new Date(),
+      orderConfirmationSend: false,
+      orderConfirmationSendAt: null,
     };
 
     await db.collection('orders').doc(orderId).set(orderData);
