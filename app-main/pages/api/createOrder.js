@@ -10,19 +10,43 @@ export default async function handler(req, res) {
 
   const { basketItems, customerDetails } = req.body;
 
-  // Generate a unique order ID
-  const orderId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-  // Create a new order document
-  const orderData = {
-    orderId,
-    basketItems,
-    customerDetails,
-    status: 'pending',
-    createdAt: new Date(),
+  // Function to generate a unique order ID
+  const generateOrderId = async () => {
+    const generateRandomString = (length) => {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      const charactersLength = characters.length;
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      }
+      return result;
+    };
+  
+    let orderId;
+    let orderExists = true;
+  
+    while (orderExists) {
+      orderId = generateRandomString(20); // Generate a 20-character random string
+      const doc = await db.collection('orders').doc(orderId).get();
+      orderExists = doc.exists;
+    }
+  
+    return orderId;
   };
-
+  
   try {
+    // Generate a unique order ID
+    const orderId = await generateOrderId();
+
+    // Create a new order document
+    const orderData = {
+      orderId,
+      basketItems,
+      customerDetails,
+      status: 'pending',
+      createdAt: new Date(),
+    };
+
     await db.collection('orders').doc(orderId).set(orderData);
     res.status(200).json({ orderId });
   } catch (error) {

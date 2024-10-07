@@ -115,9 +115,9 @@ export default function Basket() {
 
       const paymentData = await paymentResponse.json();
 
-      if (paymentData.link && paymentData.link.url) {
+      if (paymentData.url) {
         // Redirect to Quickpay payment link
-        window.location.href = paymentData.link.url;
+        window.location.href = paymentData.url;
       } else {
         // Handle error
         console.error('Error initiating payment:', paymentData);
