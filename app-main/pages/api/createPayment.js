@@ -11,17 +11,17 @@ export default async function handler(req, res) {
   const { orderId } = req.body;
 
   try {
+    const formDataCreatePayment = new URLSearchParams();
+    formDataCreatePayment.append('currency', 'DKK');
+    formDataCreatePayment.append('order_id', orderId);
+    
     const response = await fetch('https://api.quickpay.net/payments', {
       method: 'POST',
       headers: {
         'Accept-Version': 'v10',
         'Authorization': `Basic ${Buffer.from(`:${process.env.QUICKPAY_API_KEY}`).toString('base64')}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        currency: 'DKK',
-        order_id: orderId,
-      }),
+      body: formDataCreatePayment,
     });
 
     const paymentData = await response.json();
@@ -37,19 +37,20 @@ export default async function handler(req, res) {
     // });
 
     // Create a payment link
+    const formDataPaymentLink = new URLSearchParams();
+    formDataPaymentLink.append('amount', calculateTotalAmount()); // Implement this function to calculate the total amount in cents
+    formDataPaymentLink.append('continue_url', 'https://www.mixedenergy.dk/payment-success');
+    formDataPaymentLink.append('cancel_url', 'https://www.mixedenergy.dk/payment-cancel');
+    formDataPaymentLink.append('callback_url', 'https://www.mixedenergy.dk/api/quickpayCallback');
+    
     const linkResponse = await fetch(`https://api.quickpay.net/payments/${paymentData.id}/link`, {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         'Accept-Version': 'v10',
         'Authorization': `Basic ${Buffer.from(`:${process.env.QUICKPAY_API_KEY}`).toString('base64')}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        amount: calculateTotalAmount(), // Implement this function to calculate the total amount in cents
-        continue_url: 'https://www.mixedenergy.dk/payment-success',
-        cancel_url: 'https://www.mixedenergy.dk/payment-cancel',
-        callback_url: 'https://www.mixedenergy.dk/api/quickpayCallback',
-      }),
+      body: formDataPaymentLink.toString(),
     });
 
     const linkData = await linkResponse.json();

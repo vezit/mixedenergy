@@ -5,7 +5,7 @@ import { db } from '../../lib/firebaseAdmin';
 import { sendOrderConfirmation } from '../../lib/email';
 
 export default async function handler(req, res) {
-  const apiKey = process.env.QUICKPAY_PRIVATE_KEY;
+  const apiKey = process.env.QUICKPAY_API_KEY;
   const checksumHeader = req.headers['quickpay-checksum-sha256'];
   const bodyAsString = JSON.stringify(req.body);
   const computedChecksum = crypto
