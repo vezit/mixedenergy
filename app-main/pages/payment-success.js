@@ -1,5 +1,9 @@
+import { useRouter } from 'next/router';
+
 export default function PaymentSuccess() {
-    const orderId = "1234567890";
+    const router = useRouter();
+    const { orderId } = router.query;
+
     return (
         <div>
             <h1>Payment Success</h1>
