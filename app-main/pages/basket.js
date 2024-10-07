@@ -94,6 +94,41 @@ export default function Basket() {
     setShowPickupPoints(true);
   };
 
+
+  const handlePayment = async () => {
+    try {
+      // Step 1: Create Order
+      const orderResponse = await fetch('/api/createOrder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ basketItems, customerDetails }),
+      });
+
+      const { orderId } = await orderResponse.json();
+
+      // Step 2: Create Payment
+      const paymentResponse = await fetch('/api/createPayment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+
+      const paymentData = await paymentResponse.json();
+
+      if (paymentData.link && paymentData.link.url) {
+        // Redirect to Quickpay payment link
+        window.location.href = paymentData.link.url;
+      } else {
+        // Handle error
+        console.error('Error initiating payment:', paymentData);
+        alert('Der opstod en fejl under betalingsprocessen. Prøv igen senere.');
+      }
+    } catch (error) {
+      console.error('Error during payment process:', error);
+      alert('Der opstod en fejl under betalingsprocessen. Prøv igen senere.');
+    }
+  };
+
   const renderCustomerDetails = () => (
     <div>
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
@@ -229,7 +264,7 @@ export default function Basket() {
         Total: {(basketItems.reduce((total, item) => total + (item.price * item.quantity), 0) / 100).toFixed(2)} kr
       </div>
       <button
-        onClick={() => alert('Checkout process')}
+        onClick={handlePayment}
         className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition"
       >
         BETAL

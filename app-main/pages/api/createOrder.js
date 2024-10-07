@@ -4,6 +4,7 @@ import { db } from '../../lib/firebaseAdmin';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
+    console.warn(`Method ${req.method} not allowed on /api/createOrder`);
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
