@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { orderId } = req.body;
+  const { orderId, totalPrice } = req.body;
 
   try {
     const formDataCreatePayment = new URLSearchParams();
@@ -31,14 +31,9 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: 'Error creating payment' });
     }
 
-    // Optionally, update the order with payment ID
-    // await db.collection('orders').doc(orderId).update({
-    //   paymentId: paymentData.id,
-    // });
-
     // Create a payment link
     const formDataPaymentLink = new URLSearchParams();
-    formDataPaymentLink.append('amount', calculateTotalAmount()); // Implement this function to calculate the total amount in cents
+    formDataPaymentLink.append('amount', totalPrice); // Use the totalPrice from the request body
     formDataPaymentLink.append('continue_url', 'https://www.mixedenergy.dk/payment-success?orderId=' + orderId);
     formDataPaymentLink.append('cancel_url', 'https://www.mixedenergy.dk/basket');
     formDataPaymentLink.append('callback_url', 'https://www.mixedenergy.dk/api/quickpayCallback');
@@ -65,11 +60,4 @@ export default async function handler(req, res) {
     console.error('Error in createPayment:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
-}
-
-// Helper function to calculate total amount
-function calculateTotalAmount() {
-  // Implement logic to calculate total amount in cents (øre)
-  // For example, sum up the prices of items in the order
-  return 5000; // Replace with actual amount
 }
