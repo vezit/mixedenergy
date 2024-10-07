@@ -2,7 +2,7 @@
 
 import crypto from 'crypto';
 import { db } from '../../lib/firebaseAdmin';
-import { sendOrderConfirmation } from '../../lib/email'; // Your email sending function
+import { sendOrderConfirmation } from '../../lib/email';
 
 export default async function handler(req, res) {
   const apiKey = process.env.QUICKPAY_PRIVATE_KEY;
@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     .digest('hex');
 
   if (checksumHeader !== computedChecksum) {
+    console.error('Invalid Quickpay signature');
     return res.status(403).json({ message: 'Invalid signature' });
   }
 
