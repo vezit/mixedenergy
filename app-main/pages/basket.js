@@ -103,14 +103,14 @@ export default function Basket() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ basketItems, customerDetails }),
       });
-
-      const { orderId } = await orderResponse.json();
-
+      
+      const { orderId, totalPrice } = await orderResponse.json();
+      
       // Step 2: Create Payment
       const paymentResponse = await fetch('/api/createPayment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, totalPrice }),
       });
 
       const paymentData = await paymentResponse.json();
