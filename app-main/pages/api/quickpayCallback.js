@@ -38,14 +38,27 @@ export default async function handler(req, res) {
       status: payment.accepted ? 'paid' : 'failed',
       paymentDetails: payment,
       updatedAt: new Date(),
+      orderConfirmationSend: false,
+      orderConfirmationSendAt: null,
     };
-
-    await orderRef.set(updatedOrderData);
 
     // Send order confirmation if payment is accepted
     if (payment.accepted) {
-      await sendOrderConfirmation(orderData.customerDetails.email, updatedOrderData);
+      try {
+        const emailSent = await sendOrderConfirmation(orderData.customerDetails.email, updatedOrderData);
+
+        // Only update orderConfirmationSend fields if email was sent successfully
+        if (emailSent) {
+          updatedOrderData.orderConfirmationSend = true;
+          updatedOrderData.orderConfirmationSendAt = new Date();
+        }
+      } catch (emailError) {
+        console.error('Error sending order confirmation email:', emailError);
+      }
     }
+
+    // Update Firestore with the final order data
+    await orderRef.set(updatedOrderData);
 
     res.status(200).json({ message: 'Order updated successfully' });
   } catch (error) {
