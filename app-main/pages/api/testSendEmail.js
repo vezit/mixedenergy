@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   // Define test email and order data
-  const testEmail = 'test@example.com';
+  const testEmail = 'mixedenergy.dk@gmail.com';
   const testOrderData = {
     customerDetails: {
       fullName: 'Test User',
