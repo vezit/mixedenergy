@@ -2,7 +2,7 @@
 
 // import { useRouter } from 'next/router';
 // import { useEffect, useState } from 'react';
-// import { db } from '../lib/firebaseAdmin';
+
 
 // export default function PaymentSuccess() {
 //   const router = useRouter();
