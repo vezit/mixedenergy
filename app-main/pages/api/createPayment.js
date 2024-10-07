@@ -39,8 +39,8 @@ export default async function handler(req, res) {
     // Create a payment link
     const formDataPaymentLink = new URLSearchParams();
     formDataPaymentLink.append('amount', calculateTotalAmount()); // Implement this function to calculate the total amount in cents
-    formDataPaymentLink.append('continue_url', 'https://www.mixedenergy.dk/payment-success');
-    formDataPaymentLink.append('cancel_url', 'https://www.mixedenergy.dk/payment-cancel');
+    formDataPaymentLink.append('continue_url', 'https://www.mixedenergy.dk/payment-success?orderId=' + orderId);
+    formDataPaymentLink.append('cancel_url', 'https://www.mixedenergy.dk/basket');
     formDataPaymentLink.append('callback_url', 'https://www.mixedenergy.dk/api/quickpayCallback');
     
     const linkResponse = await fetch(`https://api.quickpay.net/payments/${paymentData.id}/link`, {
