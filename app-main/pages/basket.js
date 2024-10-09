@@ -1,4 +1,3 @@
-// pages/basket.js
 import { useState, useEffect } from 'react';
 import router from 'next/router';
 import { useBasket } from '../lib/BasketContext';
@@ -58,7 +57,9 @@ export default function Basket() {
 
   const fetchPickupPoints = (updatedDetails) => {
     if (updatedDetails.city && updatedDetails.postalCode && updatedDetails.streetNumber) {
-      fetch(`/api/postnord/servicepoints?city=${updatedDetails.city}&postalCode=${updatedDetails.postalCode}&streetName=${updatedDetails.address}&streetNumber=${updatedDetails.streetNumber}`)
+      fetch(
+        `/api/postnord/servicepoints?city=${updatedDetails.city}&postalCode=${updatedDetails.postalCode}&streetName=${updatedDetails.address}&streetNumber=${updatedDetails.streetNumber}`
+      )
         .then((res) => res.json())
         .then((data) => {
           setPickupPoints(data.servicePointInformationResponse?.servicePoints || []);
@@ -115,10 +116,9 @@ export default function Basket() {
     validateAddressWithDAWA();
     setShowPickupPoints(true);
     // Move to the next step
-    setCurrentStep(2);
+    setCurrentStep(3);
   };
 
-  // Update handlePayment to move to the next step
   const handleProceedToConfirmation = () => {
     if (!selectedPoint) {
       alert('Vælg venligst et afhentningssted.');
@@ -126,9 +126,8 @@ export default function Basket() {
     }
 
     // Move to the next step
-    setCurrentStep(3);
+    setCurrentStep(4);
   };
-
 
   const handlePayment = async () => {
     try {
@@ -136,7 +135,7 @@ export default function Basket() {
       const orderResponse = await fetch('/api/createOrder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ basketItems, customerDetails }),
+        body: JSON.stringify({ basketItems, customerDetails, selectedPoint }),
       });
 
       const { orderId, totalPrice } = await orderResponse.json();
@@ -258,7 +257,7 @@ export default function Basket() {
 
   const renderShippingAndPayment = () => (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Fragt og betaling</h2>
+      <h2 className="text-2xl font-bold mb-4">Fragt og levering</h2>
       {showPickupPoints && (
         <div className="mt-8">
           {loading ? (
@@ -287,6 +286,16 @@ export default function Basket() {
               </div>
             </div>
           )}
+          {!loading && (
+            <div className="text-right mt-4">
+              <button
+                onClick={handleProceedToConfirmation}
+                className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+              >
+                Næste: Godkend din ordre
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -296,7 +305,12 @@ export default function Basket() {
     <div>
       <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
       <div className="text-right text-xl font-bold">
-        Total: {(basketItems.reduce((total, item) => total + (item.price * item.quantity), 0) / 100).toFixed(2)} kr
+        Total:{' '}
+        {(
+          basketItems.reduce((total, item) => total + item.price * item.quantity, 0) /
+          100
+        ).toFixed(2)}{' '}
+        kr
       </div>
       <button
         onClick={handlePayment}
@@ -307,12 +321,10 @@ export default function Basket() {
     </div>
   );
 
-    return (
+  return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
-
       {/* Include the BannerSteps component */}
-      <BannerSteps currentStep={currentStep} />
+      <BannerSteps currentStep={currentStep} setCurrentStep={setCurrentStep} />
 
       {basketItems.length === 0 ? (
         <p>Din kurv er tom. Du lander på siden om 5 sekunder</p>
@@ -321,6 +333,7 @@ export default function Basket() {
           {/* Step 1: Basket Items */}
           {currentStep === 1 && (
             <>
+              <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
               {basketItems.map((item, index) => (
                 <div
                   key={index}
@@ -385,7 +398,6 @@ export default function Basket() {
           {currentStep === 2 && (
             <>
               {renderCustomerDetails()}
-              {/* Move to the next step after customer details are validated */}
             </>
           )}
 
@@ -393,16 +405,6 @@ export default function Basket() {
           {currentStep === 3 && (
             <>
               {renderShippingAndPayment()}
-              {!loading && (
-                <div className="text-right mt-4">
-                  <button
-                    onClick={handleProceedToConfirmation}
-                    className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
-                  >
-                    Næste: Godkend din ordre
-                  </button>
-                </div>
-              )}
             </>
           )}
 
@@ -410,7 +412,6 @@ export default function Basket() {
           {currentStep === 4 && (
             <>
               {renderOrderConfirmation()}
-              {/* Payment button is already included in renderOrderConfirmation */}
             </>
           )}
         </>
