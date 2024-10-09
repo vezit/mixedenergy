@@ -24,6 +24,10 @@ export default function Basket() {
   // New state for step management
   const [currentStep, setCurrentStep] = useState(1);
 
+  // New state for terms acceptance
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState('');
+
   useEffect(() => {
     if (basketItems.length === 0) {
       const timer = setTimeout(() => {
@@ -130,6 +134,13 @@ export default function Basket() {
   };
 
   const handlePayment = async () => {
+    if (!termsAccepted) {
+      setTermsError(
+        'Du skal acceptere vores forretningsvilkår før du kan fortsætte, sæt flueben i boksen herover.'
+      );
+      return;
+    }
+
     try {
       // Prepare deliveryAddress
       const selectedPickupPoint = pickupPoints.find(
@@ -381,6 +392,32 @@ ${customerDetails.country}`
           <p>
             <strong>Total inkl. moms: {(totalPriceWithShipping / 100).toFixed(2)} kr.</strong>
           </p>
+        </div>
+
+        {/* Terms and Conditions Checkbox */}
+        <div className="mb-4 p-4 border rounded">
+          <p>
+            Jeg har læst og accepteret{' '}
+            <a href="/handelsbetingelser" className="text-blue-500 underline">
+              forretningsvilkår samt persondatapolitik
+            </a>
+            .
+          </p>
+          <div className="mt-2">
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                className="form-checkbox"
+                checked={termsAccepted}
+                onChange={(e) => {
+                  setTermsAccepted(e.target.checked);
+                  if (e.target.checked) setTermsError('');
+                }}
+              />
+              <span className="ml-2">Accepter</span>
+            </label>
+          </div>
+          {termsError && <p className="text-red-500 mt-1">{termsError}</p>}
         </div>
 
         <button
