@@ -20,5 +20,4 @@ app-main/.next/
 requirements.txt
 .env.local
 *copy*.local
-app-main/lib/firebaseAdminKey.json
 .vscode/settings.json

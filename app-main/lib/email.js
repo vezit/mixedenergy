@@ -3,38 +3,38 @@
 import nodemailer from 'nodemailer';
 
 export async function sendOrderConfirmation(email, orderData) {
-  // Create a transporter using your SMTP settings
   const transporter = nodemailer.createTransport({
     host: 'asmtp.dandomain.dk',
     port: 587,
-    secure: false, // true for 465, false for other ports
+    secure: false,
     auth: {
       user: 'info@mixedenergy.dk',
-      pass: process.env.SMTP_PASSWORD, // Set this in your environment variables
+      pass: process.env.SMTP_PASSWORD,
     },
     tls: {
       ciphers: 'SSLv3',
     },
   });
 
-  // Prepare email content
   const mailOptions = {
     from: '"Mixed Energy" <info@mixedenergy.dk>',
     to: email,
     subject: 'Ordrebekræftelse fra Mixed Energy',
-    text: generateEmailText(orderData), // Implement this function to generate plain text
-    html: generateEmailHTML(orderData), // Implement this function to generate HTML content
+    text: generateEmailText(orderData),
+    html: generateEmailHTML(orderData),
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log('Order confirmation email sent:', info.messageId);
+    return true;
   } catch (error) {
     console.error('Error sending order confirmation email:', error);
+    return false;
   }
 }
 
-// Helper function to generate plain text email content
+// Helper functions to generate email content
 function generateEmailText(orderData) {
   let itemsText = orderData.basketItems
     .map(
@@ -62,7 +62,6 @@ Mixed Energy
 `;
 }
 
-// Helper function to generate HTML email content
 function generateEmailHTML(orderData) {
   let itemsHTML = orderData.basketItems
     .map(

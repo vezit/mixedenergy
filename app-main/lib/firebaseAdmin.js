@@ -1,22 +1,21 @@
-// lib/firebaseAdmin.js
+// /lib/firebaseAdmin.js
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
-let privatekey; // Declare privatekey outside the if block for scope accessibility
+// Parse the JSON string from the environment variable
+const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
 
 if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
-  
-  // Extract private key
-  privatekey = serviceAccount.private_key;
-
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert({
+      projectId: serviceAccount.project_id,
+      clientEmail: serviceAccount.client_email,
+      privateKey: serviceAccount.private_key.replace(/\\n/g, '\n'),
+    }),
+    databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`,
   });
 }
 
-// Initialize Firestore
 const db = admin.firestore();
 
-// Export admin, db, and privatekey
-export { admin, db, privatekey };
+export { admin, db };

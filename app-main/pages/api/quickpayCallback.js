@@ -3,17 +3,23 @@
 import crypto from 'crypto';
 import { db } from '../../lib/firebaseAdmin';
 import { sendOrderConfirmation } from '../../lib/email';
+import safeCompare from 'safe-compare';  // Assuming safe-compare is installed
 
 export default async function handler(req, res) {
   const apiKey = process.env.QUICKPAY_API_KEY;
   const checksumHeader = req.headers['quickpay-checksum-sha256'];
-  const bodyAsString = JSON.stringify(req.body);
+  const bodyAsString = JSON.stringify(req.body, Object.keys(req.body).sort()); // Sort keys for consistency
+  const bodyBuffer = Buffer.from(bodyAsString, 'utf-8');
+
   const computedChecksum = crypto
     .createHmac('sha256', apiKey)
-    .update(bodyAsString)
+    .update(bodyBuffer)
     .digest('hex');
 
-  if (checksumHeader !== computedChecksum) {
+  console.log('Received checksum:', checksumHeader);
+  console.log('Computed checksum:', computedChecksum);
+
+  if (!safeCompare(checksumHeader, computedChecksum)) {
     console.error('Invalid Quickpay signature');
     return res.status(403).json({ message: 'Invalid signature' });
   }
@@ -38,14 +44,25 @@ export default async function handler(req, res) {
       status: payment.accepted ? 'paid' : 'failed',
       paymentDetails: payment,
       updatedAt: new Date(),
+      orderConfirmationSend: false,
+      orderConfirmationSendAt: null,
     };
-
-    await orderRef.set(updatedOrderData);
 
     // Send order confirmation if payment is accepted
     if (payment.accepted) {
-      await sendOrderConfirmation(orderData.customerDetails.email, updatedOrderData);
+      try {
+        const emailSent = await sendOrderConfirmation(orderData.customerDetails.email, updatedOrderData);
+        if (emailSent) {
+          updatedOrderData.orderConfirmationSend = true;
+          updatedOrderData.orderConfirmationSendAt = new Date();
+        }
+      } catch (emailError) {
+        console.error('Error sending order confirmation email:', emailError);
+      }
     }
+
+    // Update Firestore with the final order data
+    await orderRef.set(updatedOrderData);
 
     res.status(200).json({ message: 'Order updated successfully' });
   } catch (error) {
