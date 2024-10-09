@@ -4,7 +4,7 @@ import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
-import BannerSteps from '../components/BannerSteps';
+import BannerSteps from '../components/BannerSteps'; // Import the BannerSteps component
 
 export default function Basket() {
   const {
@@ -21,15 +21,12 @@ export default function Basket() {
   const [showPickupPoints, setShowPickupPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
 
-  // State for step management
+  // New state for step management
   const [currentStep, setCurrentStep] = useState(1);
 
-  // State for terms acceptance
+  // New state for terms acceptance
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState('');
-
-  // State for delivery option
-  const [deliveryOption, setDeliveryOption] = useState('pickup'); // 'pickup' or 'homeDelivery'
 
   useEffect(() => {
     if (basketItems.length === 0) {
@@ -69,12 +66,7 @@ export default function Basket() {
       )
         .then((res) => res.json())
         .then((data) => {
-          const points = data.servicePointInformationResponse?.servicePoints || [];
-          setPickupPoints(points);
-          // Set default selected pickup point
-          if (points.length > 0) {
-            setSelectedPoint(points[0].servicePointId);
-          }
+          setPickupPoints(data.servicePointInformationResponse?.servicePoints || []);
           setLoading(false);
         })
         .catch((error) => {
@@ -98,24 +90,17 @@ export default function Basket() {
       const updatedDetails = {
         ...customerDetails,
         streetNumber: data.dawaResponse.resultater[0].adresse.husnr,
-        address: data.dawaResponse.resultater[0].adresse.vejnavn,
-        postalCode: data.dawaResponse.resultater[0].adresse.postnr,
-        city: data.dawaResponse.resultater[0].adresse.postnrnavn,
       };
 
       updateCustomerDetails(updatedDetails);
-      if (deliveryOption === 'pickup') {
-        fetchPickupPoints(updatedDetails);
-      } else {
-        setLoading(false);
-      }
+      fetchPickupPoints(updatedDetails);
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
       setLoading(false);
     }
   };
 
-  const handleShowShippingOptions = () => {
+  const handleShowPickupPoints = () => {
     const newErrors = {};
     if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet';
     if (!customerDetails.mobileNumber) newErrors.mobileNumber = 'Mobilnummer er påkrævet';
@@ -139,12 +124,9 @@ export default function Basket() {
   };
 
   const handleProceedToConfirmation = () => {
-    // Ensure that the required data is available before proceeding to confirmation
-    if (deliveryOption === 'pickup') {
-      if (!selectedPoint) {
-        alert('Vælg venligst et afhentningssted.');
-        return;
-      }
+    if (!selectedPoint) {
+      alert('Vælg venligst et afhentningssted.');
+      return;
     }
 
     // Move to the next step
@@ -161,38 +143,24 @@ export default function Basket() {
 
     try {
       // Prepare deliveryAddress
-      let deliveryAddress = {};
-
-      if (deliveryOption === 'pickup') {
-        const selectedPickupPoint = pickupPoints.find(
-          (point) => point.servicePointId === selectedPoint
-        );
-        deliveryAddress = {
-          name: selectedPickupPoint.name,
-          attention: customerDetails.fullName,
-          streetName: selectedPickupPoint.visitingAddress.streetName,
-          streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
-          postalCode: selectedPickupPoint.visitingAddress.postalCode,
-          city: selectedPickupPoint.visitingAddress.city,
-          country: customerDetails.country,
-        };
-      } else if (deliveryOption === 'homeDelivery') {
-        // Use sanitized customer address
-        deliveryAddress = {
-          name: customerDetails.fullName,
-          streetName: customerDetails.address,
-          streetNumber: customerDetails.streetNumber,
-          postalCode: customerDetails.postalCode,
-          city: customerDetails.city,
-          country: customerDetails.country,
-        };
-      }
+      const selectedPickupPoint = pickupPoints.find(
+        (point) => point.servicePointId === selectedPoint
+      );
+      const deliveryAddress = {
+        name: selectedPickupPoint.name,
+        attention: customerDetails.fullName,
+        streetName: selectedPickupPoint.visitingAddress.streetName,
+        streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
+        postalCode: selectedPickupPoint.visitingAddress.postalCode,
+        city: selectedPickupPoint.visitingAddress.city,
+        country: customerDetails.country,
+      };
 
       // Step 1: Create Order
       const orderResponse = await fetch('/api/createOrder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ basketItems, customerDetails, deliveryAddress, deliveryOption }),
+        body: JSON.stringify({ basketItems, customerDetails, deliveryAddress }),
       });
 
       const { orderId, totalPrice } = await orderResponse.json();
@@ -220,27 +188,10 @@ export default function Basket() {
     }
   };
 
-  const handleStepChange = (step) => {
-    // Prevent users from accessing steps they shouldn't
-    if (step > currentStep) return;
-
-    // If moving back to step 2, reset steps 3 and 4
-    if (step <= 2) {
-      setDeliveryOption('pickup');
-      setSelectedPoint(null);
-      setShowPickupPoints(false);
-      setTermsAccepted(false);
-      setTermsError('');
-    }
-
-    setCurrentStep(step);
-  };
-
   const renderCustomerDetails = () => (
     <div>
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
 
-      {/* Customer Details Form */}
       <div className="mb-4">
         <label className="block mb-2">Fulde Navn *</label>
         <input
@@ -321,10 +272,10 @@ export default function Basket() {
       </div>
 
       <button
-        onClick={handleShowShippingOptions}
+        onClick={handleShowPickupPoints}
         className="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
       >
-        Fortsæt
+        Næste: Fragt og levering
       </button>
     </div>
   );
@@ -332,75 +283,44 @@ export default function Basket() {
   const renderShippingAndPayment = () => (
     <div>
       <h2 className="text-2xl font-bold mb-4">Fragt og levering</h2>
-      <div className="mb-4">
-        <p>Leveringsmuligheder Post Nord</p>
-        <label className="block">
-          <input
-            type="radio"
-            name="deliveryOption"
-            value="pickup"
-            checked={deliveryOption === 'pickup'}
-            onChange={() => setDeliveryOption('pickup')}
-          />
-          <span className="ml-2">
-            Privatpakke Collect uden omdeling - Vælg selv udleveringssted (39,00 kr.)
-          </span>
-        </label>
-        <label className="block">
-          <input
-            type="radio"
-            name="deliveryOption"
-            value="homeDelivery"
-            checked={deliveryOption === 'homeDelivery'}
-            onChange={() => setDeliveryOption('homeDelivery')}
-          />
-          <span className="ml-2">Privatpakke Home med omdeling (49,00 kr.)</span>
-        </label>
-      </div>
-
-      {deliveryOption === 'pickup' && (
-        <>
-          {showPickupPoints && (
-            <div className="mt-8">
-              {loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="flex flex-col items-center">
-                    <LoadingSpinner />
-                    <p className="mt-4 font-bold">Henter afhentningssteder</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
-                  <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
-                    <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
-                    <PickupPointsList
-                      pickupPoints={pickupPoints}
-                      selectedPoint={selectedPoint}
-                      setSelectedPoint={setSelectedPoint}
-                    />
-                  </div>
-                  <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
-                    <MapComponent
-                      pickupPoints={pickupPoints}
-                      selectedPoint={selectedPoint}
-                      setSelectedPoint={setSelectedPoint}
-                    />
-                  </div>
-                </div>
-              )}
+      {showPickupPoints && (
+        <div className="mt-8">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="flex flex-col items-center">
+                <LoadingSpinner />
+                <p className="mt-4 font-bold">Henter afhentningssteder</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+              <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
+                <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
+                <PickupPointsList
+                  pickupPoints={pickupPoints}
+                  selectedPoint={selectedPoint}
+                  setSelectedPoint={setSelectedPoint}
+                />
+              </div>
+              <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
+                <MapComponent
+                  pickupPoints={pickupPoints}
+                  selectedPoint={selectedPoint}
+                  setSelectedPoint={setSelectedPoint}
+                />
+              </div>
             </div>
           )}
-        </>
-      )}
-
-      {!loading && (
-        <div className="text-right mt-4">
-          <button
-            onClick={handleProceedToConfirmation}
-            className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
-          >
-            Næste: Godkend din ordre
-          </button>
+          {!loading && (
+            <div className="text-right mt-4">
+              <button
+                onClick={handleProceedToConfirmation}
+                className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+              >
+                Næste: Godkend din ordre
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -408,7 +328,7 @@ export default function Basket() {
 
   const renderOrderConfirmation = () => {
     const totalPrice = basketItems.reduce((total, item) => total + item.price * item.quantity, 0);
-    const shippingCost = deliveryOption === 'pickup' ? 3900 : 4900; // 39.00 or 49.00 DKK
+    const shippingCost = 3900; // Shipping cost in cents (e.g., 39 DKK)
     const totalPriceWithShipping = totalPrice + shippingCost;
     const vatAmount = totalPriceWithShipping * 0.25; // 25% VAT
 
@@ -420,28 +340,19 @@ ${customerDetails.country}
 ${customerDetails.email}`;
 
     // Prepare delivery address
-    let deliveryAddressText = '';
-    if (deliveryOption === 'pickup') {
-      const selectedPickupPoint = pickupPoints.find((point) => point.servicePointId === selectedPoint);
-      deliveryAddressText = selectedPickupPoint
-        ? `${selectedPickupPoint.name}
+    const selectedPickupPoint = pickupPoints.find((point) => point.servicePointId === selectedPoint);
+    const deliveryAddress = selectedPickupPoint
+      ? `${selectedPickupPoint.name}
 ${customerDetails.fullName}
 ${selectedPickupPoint.visitingAddress.streetName} ${selectedPickupPoint.visitingAddress.streetNumber}
 ${selectedPickupPoint.visitingAddress.postalCode} ${selectedPickupPoint.visitingAddress.city.toUpperCase()}
 ${customerDetails.country}`
-        : '';
-    } else if (deliveryOption === 'homeDelivery') {
-      deliveryAddressText = `${customerDetails.fullName}
-${customerDetails.address} ${customerDetails.streetNumber}
-${customerDetails.postalCode} ${customerDetails.city}
-${customerDetails.country}`;
-    }
+      : '';
 
     return (
       <div>
         <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
 
-        {/* Order Summary */}
         <div className="mb-4">
           <h3 className="font-bold">Fakturaadresse</h3>
           <pre>{invoiceAddress}</pre>
@@ -449,7 +360,7 @@ ${customerDetails.country}`;
 
         <div className="mb-4">
           <h3 className="font-bold">Leveringsadresse</h3>
-          <pre>{deliveryAddressText}</pre>
+          <pre>{deliveryAddress}</pre>
         </div>
 
         <div className="mb-4">
@@ -459,11 +370,7 @@ ${customerDetails.country}`;
 
         <div className="mb-4">
           <h3 className="font-bold">Leveringsmetode</h3>
-          {deliveryOption === 'pickup' ? (
-            <p>Privatpakke Collect uden omdeling - Vælg selv udleveringssted</p>
-          ) : (
-            <p>Privatpakke Home med omdeling</p>
-          )}
+          <p>Privatpakke Collect uden omdeling - Vælg selv udleveringssted</p>
         </div>
 
         <div className="mb-4">
@@ -526,7 +433,7 @@ ${customerDetails.country}`;
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       {/* Include the BannerSteps component */}
-      <BannerSteps currentStep={currentStep} onStepChange={handleStepChange} />
+      <BannerSteps currentStep={currentStep} setCurrentStep={setCurrentStep} />
 
       {basketItems.length === 0 ? (
         <p>Din kurv er tom. Du lander på siden om 5 sekunder</p>
@@ -587,37 +494,13 @@ ${customerDetails.country}`;
           )}
 
           {/* Step 2: Customer Details */}
-          {currentStep === 2 && (
-            <>
-              {basketItems.length > 0 ? (
-                renderCustomerDetails()
-              ) : (
-                <p>Du skal have mindst én vare i kurven.</p>
-              )}
-            </>
-          )}
+          {currentStep === 2 && <>{renderCustomerDetails()}</>}
 
           {/* Step 3: Shipping and Payment */}
-          {currentStep === 3 && (
-            <>
-              {customerDetails.fullName ? (
-                renderShippingAndPayment()
-              ) : (
-                <p>Du skal udfylde kundeoplysninger først.</p>
-              )}
-            </>
-          )}
+          {currentStep === 3 && <>{renderShippingAndPayment()}</>}
 
           {/* Step 4: Order Confirmation */}
-          {currentStep === 4 && (
-            <>
-              {deliveryOption === 'pickup' && !selectedPoint ? (
-                <p>Du skal vælge et afhentningssted.</p>
-              ) : (
-                renderOrderConfirmation()
-              )}
-            </>
-          )}
+          {currentStep === 4 && <>{renderOrderConfirmation()}</>}
         </>
       )}
     </div>

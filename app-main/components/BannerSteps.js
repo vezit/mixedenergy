@@ -1,8 +1,6 @@
-// components/BannerSteps.js
-
 import React from 'react';
 
-const BannerSteps = ({ currentStep, setCurrentStep }) => {
+const BannerSteps = ({ currentStep, onStepChange }) => {
   const steps = [
     { number: 1, label: 'Min Kurv' },
     { number: 2, label: 'Kundeoplysninger' },
@@ -15,8 +13,14 @@ const BannerSteps = ({ currentStep, setCurrentStep }) => {
       {steps.map((step) => (
         <div
           key={step.number}
-          className="flex items-center space-x-2 cursor-pointer"
-          onClick={() => setCurrentStep(step.number)}
+          className={`flex items-center space-x-2 cursor-pointer ${
+            currentStep >= step.number ? '' : 'opacity-50 cursor-not-allowed'
+          }`}
+          onClick={() => {
+            if (currentStep >= step.number) {
+              onStepChange(step.number);
+            }
+          }}
         >
           <div
             className={`w-8 h-8 flex items-center justify-center rounded-full border-2 ${
@@ -27,9 +31,7 @@ const BannerSteps = ({ currentStep, setCurrentStep }) => {
           >
             <span className="text-white">{step.number}</span>
           </div>
-          <div
-            className={`text-lg ${currentStep === step.number ? 'font-bold' : ''}`}
-          >
+          <div className={`text-lg ${currentStep === step.number ? 'font-bold' : ''}`}>
             {step.label}
           </div>
         </div>
