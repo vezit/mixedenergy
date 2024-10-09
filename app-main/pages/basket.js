@@ -275,7 +275,7 @@ export default function Basket() {
         onClick={handleShowPickupPoints}
         className="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
       >
-        Fortsæt
+        Næste: Fragt og levering
       </button>
     </div>
   );
