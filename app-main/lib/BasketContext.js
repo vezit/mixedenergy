@@ -103,14 +103,14 @@ export const BasketProvider = ({ children }) => {
 
     // New function to update item quantity
     const updateItemQuantity = (index, newQuantity) => {
-        if (newQuantity <= 0) {
-            removeItemFromBasket(index);
+        if (newQuantity < 1) {
+            return; // Do nothing if quantity is less than 1
         } else {
             const updatedBasket = basketItems.map((item, i) =>
                 i === index ? { ...item, quantity: newQuantity } : item
             );
             setBasketItems(updatedBasket);
-            updateBasketInFirestore(updatedBasket);
+            updateBasketInFirestore(updatedBasket); // Update Firestore
         }
     };
 
