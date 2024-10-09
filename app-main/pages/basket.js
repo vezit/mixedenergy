@@ -131,11 +131,25 @@ export default function Basket() {
 
   const handlePayment = async () => {
     try {
+      // Prepare deliveryAddress
+      const selectedPickupPoint = pickupPoints.find(
+        (point) => point.servicePointId === selectedPoint
+      );
+      const deliveryAddress = {
+        name: selectedPickupPoint.name,
+        attention: customerDetails.fullName,
+        streetName: selectedPickupPoint.visitingAddress.streetName,
+        streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
+        postalCode: selectedPickupPoint.visitingAddress.postalCode,
+        city: selectedPickupPoint.visitingAddress.city,
+        country: customerDetails.country,
+      };
+
       // Step 1: Create Order
       const orderResponse = await fetch('/api/createOrder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ basketItems, customerDetails, selectedPoint }),
+        body: JSON.stringify({ basketItems, customerDetails, deliveryAddress }),
       });
 
       const { orderId, totalPrice } = await orderResponse.json();
@@ -301,25 +315,83 @@ export default function Basket() {
     </div>
   );
 
-  const renderOrderConfirmation = () => (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
-      <div className="text-right text-xl font-bold">
-        Total:{' '}
-        {(
-          basketItems.reduce((total, item) => total + item.price * item.quantity, 0) /
-          100
-        ).toFixed(2)}{' '}
-        kr
+  const renderOrderConfirmation = () => {
+    const totalPrice = basketItems.reduce((total, item) => total + item.price * item.quantity, 0);
+    const shippingCost = 3900; // Shipping cost in cents (e.g., 39 DKK)
+    const totalPriceWithShipping = totalPrice + shippingCost;
+    const vatAmount = totalPriceWithShipping * 0.25; // 25% VAT
+
+    // Prepare invoice address
+    const invoiceAddress = `${customerDetails.fullName}
+${customerDetails.address}
+${customerDetails.postalCode} ${customerDetails.city}
+${customerDetails.country}
+${customerDetails.email}`;
+
+    // Prepare delivery address
+    const selectedPickupPoint = pickupPoints.find((point) => point.servicePointId === selectedPoint);
+    const deliveryAddress = selectedPickupPoint
+      ? `${selectedPickupPoint.name}
+${customerDetails.fullName}
+${selectedPickupPoint.visitingAddress.streetName} ${selectedPickupPoint.visitingAddress.streetNumber}
+${selectedPickupPoint.visitingAddress.postalCode} ${selectedPickupPoint.visitingAddress.city.toUpperCase()}
+${customerDetails.country}`
+      : '';
+
+    return (
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Fakturaadresse</h3>
+          <pre>{invoiceAddress}</pre>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Leveringsadresse</h3>
+          <pre>{deliveryAddress}</pre>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Betalingsmetode</h3>
+          <p>Kreditkort, Viabill, Apple Pay, Google Pay, Klarna eller MobilePay</p>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Leveringsmetode</h3>
+          <p>Privatpakke Collect uden omdeling - Vælg selv udleveringssted</p>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Produkter</h3>
+          {basketItems.map((item, index) => (
+            <div key={index} className="flex justify-between">
+              <p>
+                {item.quantity} × {item.title}
+              </p>
+              <p>{((item.price * item.quantity) / 100).toFixed(2)} kr.</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-4">
+          <p>Varer i alt: {(totalPrice / 100).toFixed(2)} kr.</p>
+          <p>Fragt: {(shippingCost / 100).toFixed(2)} kr.</p>
+          <p>Heraf moms 25%: {((vatAmount) / 100).toFixed(2)} kr.</p>
+          <p>
+            <strong>Total inkl. moms: {(totalPriceWithShipping / 100).toFixed(2)} kr.</strong>
+          </p>
+        </div>
+
+        <button
+          onClick={handlePayment}
+          className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition"
+        >
+          BETAL
+        </button>
       </div>
-      <button
-        onClick={handlePayment}
-        className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition"
-      >
-        BETAL
-      </button>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
@@ -348,20 +420,14 @@ export default function Basket() {
                     <h2 className="text-xl font-bold">{item.title}</h2>
                     <div className="flex items-center mt-2">
                       <button
-                        onClick={() =>
-                          updateItemQuantity(index, item.quantity - 1)
-                        }
+                        onClick={() => updateItemQuantity(index, item.quantity - 1)}
                         className="px-2 py-1 bg-gray-200 rounded-l"
                       >
                         -
                       </button>
-                      <span className="px-4 py-2 bg-gray-100">
-                        {item.quantity}
-                      </span>
+                      <span className="px-4 py-2 bg-gray-100">{item.quantity}</span>
                       <button
-                        onClick={() =>
-                          updateItemQuantity(index, item.quantity + 1)
-                        }
+                        onClick={() => updateItemQuantity(index, item.quantity + 1)}
                         className="px-2 py-1 bg-gray-200 rounded-r"
                       >
                         +
@@ -371,14 +437,10 @@ export default function Basket() {
                       Pris pr. pakke: {(item.price / 100).toFixed(2)} kr
                     </p>
                     <p className="text-gray-700 mt-2">
-                      Totalpris:{' '}
-                      {((item.price * item.quantity) / 100).toFixed(2)} kr
+                      Totalpris: {((item.price * item.quantity) / 100).toFixed(2)} kr
                     </p>
                   </div>
-                  <button
-                    onClick={() => removeItemFromBasket(index)}
-                    className="text-red-600"
-                  >
+                  <button onClick={() => removeItemFromBasket(index)} className="text-red-600">
                     Fjern
                   </button>
                 </div>
@@ -395,25 +457,13 @@ export default function Basket() {
           )}
 
           {/* Step 2: Customer Details */}
-          {currentStep === 2 && (
-            <>
-              {renderCustomerDetails()}
-            </>
-          )}
+          {currentStep === 2 && <>{renderCustomerDetails()}</>}
 
           {/* Step 3: Shipping and Payment */}
-          {currentStep === 3 && (
-            <>
-              {renderShippingAndPayment()}
-            </>
-          )}
+          {currentStep === 3 && <>{renderShippingAndPayment()}</>}
 
           {/* Step 4: Order Confirmation */}
-          {currentStep === 4 && (
-            <>
-              {renderOrderConfirmation()}
-            </>
-          )}
+          {currentStep === 4 && <>{renderOrderConfirmation()}</>}
         </>
       )}
     </div>

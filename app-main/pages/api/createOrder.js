@@ -1,5 +1,3 @@
-// pages/api/createOrder.js
-
 import { db } from '../../lib/firebaseAdmin';
 
 export default async function handler(req, res) {
@@ -8,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { basketItems, customerDetails } = req.body;
+  const { basketItems, customerDetails, deliveryAddress } = req.body;
 
   const generateOrderId = async () => {
     const generateRandomString = (length) => {
@@ -45,6 +43,7 @@ export default async function handler(req, res) {
       orderId,
       basketItems,
       customerDetails,
+      deliveryAddress,
       status: 'pending',
       createdAt: new Date(),
       orderConfirmationSend: false,
