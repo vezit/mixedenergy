@@ -5,14 +5,25 @@ import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BannerSteps from '../components/BannerSteps'; // Import the BannerSteps component
 
 export default function Basket() {
-  const { basketItems, removeItemFromBasket, customerDetails, updateCustomerDetails, updateItemQuantity } = useBasket();
+  const {
+    basketItems,
+    removeItemFromBasket,
+    customerDetails,
+    updateCustomerDetails,
+    updateItemQuantity,
+  } = useBasket();
+
   const [errors, setErrors] = useState({});
   const [pickupPoints, setPickupPoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPickupPoints, setShowPickupPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
+
+  // New state for step management
+  const [currentStep, setCurrentStep] = useState(1);
 
   useEffect(() => {
     if (basketItems.length === 0) {
@@ -103,6 +114,19 @@ export default function Basket() {
     setLoading(true);
     validateAddressWithDAWA();
     setShowPickupPoints(true);
+    // Move to the next step
+    setCurrentStep(2);
+  };
+
+  // Update handlePayment to move to the next step
+  const handleProceedToConfirmation = () => {
+    if (!selectedPoint) {
+      alert('Vælg venligst et afhentningssted.');
+      return;
+    }
+
+    // Move to the next step
+    setCurrentStep(3);
   };
 
 
@@ -283,38 +307,112 @@ export default function Basket() {
     </div>
   );
 
-  return (
+    return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
+
+      {/* Include the BannerSteps component */}
+      <BannerSteps currentStep={currentStep} />
 
       {basketItems.length === 0 ? (
         <p>Din kurv er tom. Du lander på siden om 5 sekunder</p>
       ) : (
         <>
-          {basketItems.map((item, index) => (
-            <div key={index} className="flex items-center justify-between mb-4 p-4 border rounded">
-              <img src={item.image} alt={item.title} className="w-24 h-24 object-cover rounded" />
-              <div className="flex-1 ml-4">
-                <h2 className="text-xl font-bold">{item.title}</h2>
-                <div className="flex items-center mt-2">
-                  <button onClick={() => updateItemQuantity(index, item.quantity - 1)} className="px-2 py-1 bg-gray-200 rounded-l">
-                    -
-                  </button>
-                  <span className="px-4 py-2 bg-gray-100">{item.quantity}</span>
-                  <button onClick={() => updateItemQuantity(index, item.quantity + 1)} className="px-2 py-1 bg-gray-200 rounded-r">
-                    +
+          {/* Step 1: Basket Items */}
+          {currentStep === 1 && (
+            <>
+              {basketItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between mb-4 p-4 border rounded"
+                >
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-24 h-24 object-cover rounded"
+                  />
+                  <div className="flex-1 ml-4">
+                    <h2 className="text-xl font-bold">{item.title}</h2>
+                    <div className="flex items-center mt-2">
+                      <button
+                        onClick={() =>
+                          updateItemQuantity(index, item.quantity - 1)
+                        }
+                        className="px-2 py-1 bg-gray-200 rounded-l"
+                      >
+                        -
+                      </button>
+                      <span className="px-4 py-2 bg-gray-100">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() =>
+                          updateItemQuantity(index, item.quantity + 1)
+                        }
+                        className="px-2 py-1 bg-gray-200 rounded-r"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className="text-gray-700 mt-2">
+                      Pris pr. pakke: {(item.price / 100).toFixed(2)} kr
+                    </p>
+                    <p className="text-gray-700 mt-2">
+                      Totalpris:{' '}
+                      {((item.price * item.quantity) / 100).toFixed(2)} kr
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => removeItemFromBasket(index)}
+                    className="text-red-600"
+                  >
+                    Fjern
                   </button>
                 </div>
-                <p className="text-gray-700 mt-2">Pris pr. pakke: {(item.price / 100).toFixed(2)} kr</p>
-                <p className="text-gray-700 mt-2">Totalpris: {((item.price * item.quantity) / 100).toFixed(2)} kr</p>
+              ))}
+              <div className="text-right mt-4">
+                <button
+                  onClick={() => setCurrentStep(2)}
+                  className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+                >
+                  Næste: Kundeoplysninger
+                </button>
               </div>
-              <button onClick={() => removeItemFromBasket(index)} className="text-red-600">Fjern</button>
-            </div>
-          ))}
+            </>
+          )}
 
-          {renderCustomerDetails()}
-          {renderShippingAndPayment()}
-          {renderOrderConfirmation()}
+          {/* Step 2: Customer Details */}
+          {currentStep === 2 && (
+            <>
+              {renderCustomerDetails()}
+              {/* Move to the next step after customer details are validated */}
+            </>
+          )}
+
+          {/* Step 3: Shipping and Payment */}
+          {currentStep === 3 && (
+            <>
+              {renderShippingAndPayment()}
+              {!loading && (
+                <div className="text-right mt-4">
+                  <button
+                    onClick={handleProceedToConfirmation}
+                    className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+                  >
+                    Næste: Godkend din ordre
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Step 4: Order Confirmation */}
+          {currentStep === 4 && (
+            <>
+              {renderOrderConfirmation()}
+              {/* Payment button is already included in renderOrderConfirmation */}
+            </>
+          )}
         </>
       )}
     </div>
