@@ -1,3 +1,5 @@
+// components/PickupPointCard.js
+
 import React from 'react';
 
 const PickupPointCard = ({ point, selectedPoint, handleSelectPoint }) => {

@@ -1,5 +1,6 @@
 // pages/basket.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import router from 'next/router';
 import { useBasket } from '../lib/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
@@ -12,6 +13,16 @@ export default function Basket() {
   const [loading, setLoading] = useState(false);
   const [showPickupPoints, setShowPickupPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
+
+  useEffect(() => {
+    if (basketItems.length === 0) {
+      const timer = setTimeout(() => {
+        router.push('/');
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [basketItems, router]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -103,9 +114,9 @@ export default function Basket() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ basketItems, customerDetails }),
       });
-      
+
       const { orderId, totalPrice } = await orderResponse.json();
-      
+
       // Step 2: Create Payment
       const paymentResponse = await fetch('/api/createPayment', {
         method: 'POST',
@@ -277,7 +288,7 @@ export default function Basket() {
       <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
 
       {basketItems.length === 0 ? (
-        <p>Din kurv er tom</p>
+        <p>Din kurv er tom. Du lander på siden om 5 sekunder</p>
       ) : (
         <>
           {basketItems.map((item, index) => (

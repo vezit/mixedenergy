@@ -1,3 +1,5 @@
+// components/PickupPointsList.js
+
 import React from 'react';
 import PickupPointCard from './PickupPointCard';
 
