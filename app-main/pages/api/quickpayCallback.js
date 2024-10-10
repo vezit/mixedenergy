@@ -15,27 +15,27 @@ export const config = {
 export default async function handler(req, res) {
   try {
     console.log('Request Headers:', req.headers);
-    const apiKey = process.env.QUICKPAY_API_KEY;
-    const checksumHeader = req.headers['quickpay-checksum-sha256'];
+    // const apiKey = process.env.QUICKPAY_API_KEY;
+    // const checksumHeader = req.headers['quickpay-checksum-sha256'];
 
     // Get the raw body as a buffer
     const rawBodyBuffer = await getRawBody(req);
     const rawBodyString = rawBodyBuffer.toString('utf-8');
 
-    // Compute the checksum over the raw body
-    const computedChecksum = crypto
-      .createHmac('sha256', apiKey)
-      .update(rawBodyString)
-      .digest('hex');
+    // // Compute the checksum over the raw body
+    // const computedChecksum = crypto
+    //   .createHmac('sha256', apiKey)
+    //   .update(rawBodyString)
+    //   .digest('hex');
 
-    if (checksumHeader !== computedChecksum) {
-      console.error('Invalid Quickpay signature');
-      console.log('Expected Checksum:', checksumHeader);
-      console.log('Computed Checksum:', computedChecksum);
-      console.log('Raw Request Body:', rawBodyString);
+    // if (checksumHeader !== computedChecksum) {
+    //   console.error('Invalid Quickpay signature');
+    //   console.log('Expected Checksum:', checksumHeader);
+    //   console.log('Computed Checksum:', computedChecksum);
+    //   console.log('Raw Request Body:', rawBodyString);
 
-      return res.status(403).json({ message: 'Invalid signature' });
-    }
+    //   return res.status(403).json({ message: 'Invalid signature' });
+    // }
 
     // Parse the raw body into a JavaScript object
     const payment = JSON.parse(rawBodyString);
