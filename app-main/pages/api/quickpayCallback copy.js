@@ -6,24 +6,19 @@ export const config = {
   api: {
     bodyParser: {
       sizeLimit: '1mb', // Adjust if necessary
-      verify: (req, res, buf, encoding) => {
-        req.rawBody = buf.toString(encoding || 'utf8');
+      verify: (req, res, buf) => {
+        req.rawBody = buf.toString('utf8');
       },
     },
   },
 };
 
 export default async function handler(req, res) {
-  const apiKey = process.env.QUICKPAY_PRIVATE_KEY; // Ensure this is your private key
+  const apiKey = process.env.QUICKPAY_API_KEY;
   const checksumHeader = req.headers['quickpay-checksum-sha256'];
 
   try {
-    // Check if req.rawBody is defined
-    if (!req.rawBody) {
-      console.error('req.rawBody is undefined');
-      return res.status(400).json({ message: 'Bad Request' });
-    }
-
+    // Access the raw body captured by the verify function
     const rawBodyString = req.rawBody;
 
     // Compute the checksum using the raw body string
@@ -36,7 +31,9 @@ export default async function handler(req, res) {
     console.log('Computed Checksum:', computedChecksum);
 
     if (checksumHeader !== computedChecksum) {
-      console.error(`Checksum mismatch. Expected ${checksumHeader}, but got ${computedChecksum}`);
+      console.error(
+        `Checksum mismatch. Expected ${checksumHeader}, but got ${computedChecksum}`
+      );
       return res.status(403).json({ message: 'Invalid signature' });
     }
 
@@ -44,7 +41,6 @@ export default async function handler(req, res) {
     const payment = req.body;
     const orderId = payment.order_id;
 
-    // Proceed with order handling...
     // Proceed with order handling...
     const orderRef = db.collection('orders').doc(orderId);
     const orderDoc = await orderRef.get();
@@ -85,7 +81,7 @@ export default async function handler(req, res) {
     // Update Firestore with the final order data
     await orderRef.set(updatedOrderData);
 
-
+    res.status(200).json({ message: 'Order updated successfully' });
   } catch (error) {
     console.error('Error processing callback:', error);
     res.status(500).json({ message: 'Internal Server Error' });
