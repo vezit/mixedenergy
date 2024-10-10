@@ -3,31 +3,41 @@
 import crypto from 'crypto';
 import { db } from '../../lib/firebaseAdmin';
 import { sendOrderConfirmation } from '../../lib/email';
-import safeCompare from 'safe-compare';  // Assuming safe-compare is installed
+import getRawBody from 'raw-body';
+
+export const config = {
+  api: {
+    bodyParser: false, // Disable automatic body parsing
+  },
+};
 
 export default async function handler(req, res) {
   const apiKey = process.env.QUICKPAY_API_KEY;
   const checksumHeader = req.headers['quickpay-checksum-sha256'];
-  const bodyAsString = JSON.stringify(req.body, Object.keys(req.body).sort()); // Sort keys for consistency
-  const bodyBuffer = Buffer.from(bodyAsString, 'utf-8');
-
-  const computedChecksum = crypto
-    .createHmac('sha256', apiKey)
-    .update(bodyBuffer)
-    .digest('hex');
-
-  console.log('Received checksum:', checksumHeader);
-  console.log('Computed checksum:', computedChecksum);
-
-  if (!safeCompare(checksumHeader, computedChecksum)) {
-    console.error('Invalid Quickpay signature');
-    return res.status(403).json({ message: 'Invalid signature' });
-  }
-
-  const payment = req.body;
-  const orderId = payment.order_id;
 
   try {
+    // Get the raw body as a buffer
+    const rawBody = await getRawBody(req);
+
+    // Compute the checksum on the raw body
+    const computedChecksum = crypto
+      .createHmac('sha256', apiKey)
+      .update(rawBody)
+      .digest('hex');
+
+    console.log('Received checksum:', checksumHeader);
+    console.log('Computed checksum:', computedChecksum);
+
+    if (checksumHeader !== computedChecksum) {
+      console.error('Invalid QuickPay signature');
+      return res.status(403).json({ message: 'Invalid signature' });
+    }
+
+    // Parse the raw body into a JSON object
+    const payment = JSON.parse(rawBody.toString('utf8'));
+    const orderId = payment.order_id;
+
+    // Rest of your code remains the same
     const orderRef = db.collection('orders').doc(orderId);
     const orderDoc = await orderRef.get();
 
@@ -51,7 +61,10 @@ export default async function handler(req, res) {
     // Send order confirmation if payment is accepted
     if (payment.accepted) {
       try {
-        const emailSent = await sendOrderConfirmation(orderData.customerDetails.email, updatedOrderData);
+        const emailSent = await sendOrderConfirmation(
+          orderData.customerDetails.email,
+          updatedOrderData
+        );
         if (emailSent) {
           updatedOrderData.orderConfirmationSend = true;
           updatedOrderData.orderConfirmationSendAt = new Date();
