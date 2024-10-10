@@ -6,15 +6,19 @@ export const config = {
   api: {
     bodyParser: {
       sizeLimit: '1mb', // Adjust if necessary
-      verify: (req, res, buf, encoding) => {
-        req.rawBody = buf.toString(encoding || 'utf8');
+      verify: (req, res, buf) => {
+        // Ensure buf is defined
+        if (buf && buf.length) {
+          // Save the raw body buffer as a string
+          req.rawBody = buf.toString('utf8');
+        }
       },
     },
   },
 };
 
 export default async function handler(req, res) {
-  const apiKey = process.env.QUICKPAY_PRIVATE_KEY; // Ensure this is your private key
+  const apiKey = process.env.QUICKPAY_API_KEY; // Ensure this is your private key
   const checksumHeader = req.headers['quickpay-checksum-sha256'];
 
   try {
@@ -36,7 +40,9 @@ export default async function handler(req, res) {
     console.log('Computed Checksum:', computedChecksum);
 
     if (checksumHeader !== computedChecksum) {
-      console.error(`Checksum mismatch. Expected ${checksumHeader}, but got ${computedChecksum}`);
+      console.error(
+        `Checksum mismatch. Expected ${checksumHeader}, but got ${computedChecksum}`
+      );
       return res.status(403).json({ message: 'Invalid signature' });
     }
 
