@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.QUICKPAY_API_KEY;
   const checksumHeader = req.headers['quickpay-checksum-sha256'];
   const bodyAsString = JSON.stringify(req.body, Object.keys(req.body).sort()); // Sort keys for consistency
-  const bodyBuffer = Buffer.from(bodyAsString, 'utf-8');
+  const bodyBuffer = Buffer.from(bodyAsString);
 
   const computedChecksum = crypto
     .createHmac('sha256', apiKey)
@@ -19,8 +19,11 @@ export default async function handler(req, res) {
   console.log('Received checksum:', checksumHeader);
   console.log('Computed checksum:', computedChecksum);
 
+
   if (!safeCompare(checksumHeader, computedChecksum)) {
     console.error('Invalid Quickpay signature');
+    console.log('Body as string:', bodyAsString);
+    console.log('Body buffer:', bodyBuffer.toString('utf-8'));
     return res.status(403).json({ message: 'Invalid signature' });
   }
 
