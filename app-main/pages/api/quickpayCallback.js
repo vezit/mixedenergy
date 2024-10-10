@@ -1,11 +1,15 @@
 import crypto from 'crypto';
-import getRawBody from 'raw-body';
 import { db } from '../../lib/firebaseAdmin';
 import { sendOrderConfirmation } from '../../lib/email';
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: {
+      sizeLimit: '1mb', // Adjust if necessary
+      verify: (req, res, buf) => {
+        req.rawBody = buf.toString('utf8');
+      },
+    },
   },
 };
 
@@ -14,26 +18,27 @@ export default async function handler(req, res) {
   const checksumHeader = req.headers['quickpay-checksum-sha256'];
 
   try {
-    // Get the raw body as a buffer
-    const rawBody = await getRawBody(req);
-    const rawBodyString = rawBody.toString('utf8');
+    // Access the raw body captured by the verify function
+    const rawBodyString = req.rawBody;
 
-    // Compute the checksum using the raw body
+    // Compute the checksum using the raw body string
     const computedChecksum = crypto
       .createHmac('sha256', apiKey)
-      .update(rawBody)
+      .update(rawBodyString)
       .digest('hex');
 
     console.log('Expected Checksum:', checksumHeader);
     console.log('Computed Checksum:', computedChecksum);
 
     if (checksumHeader !== computedChecksum) {
-      console.error(`Checksum mismatch. Expected ${checksumHeader}, but got ${computedChecksum}`);
+      console.error(
+        `Checksum mismatch. Expected ${checksumHeader}, but got ${computedChecksum}`
+      );
       return res.status(403).json({ message: 'Invalid signature' });
     }
 
-    // Parse the raw body to JSON
-    const payment = JSON.parse(rawBodyString);
+    // req.body is already parsed JSON
+    const payment = req.body;
     const orderId = payment.order_id;
 
     // Proceed with order handling...
