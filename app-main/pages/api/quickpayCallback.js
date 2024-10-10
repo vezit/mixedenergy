@@ -1,57 +1,46 @@
+// pages/api/quickpayCallback.js
+
 import crypto from 'crypto';
+import getRawBody from 'raw-body';
 import { db } from '../../lib/firebaseAdmin';
 import { sendOrderConfirmation } from '../../lib/email';
 
+// Disable Next.js's default body parsing
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '1mb', // Adjust if necessary
-      verify: (req, res, buf) => {
-        // Ensure buf is defined
-        if (buf && buf.length) {
-          // Save the raw body buffer as a string
-          req.rawBody = buf.toString('utf8');
-        }
-      },
-    },
+    bodyParser: false,
   },
 };
 
 export default async function handler(req, res) {
-  const apiKey = process.env.QUICKPAY_API_KEY; // Ensure this is your private key
-  const checksumHeader = req.headers['quickpay-checksum-sha256'];
-
   try {
-    // Check if req.rawBody is defined
-    if (!req.rawBody) {
-      console.error('req.rawBody is undefined');
-      return res.status(400).json({ message: 'Bad Request' });
-    }
+    const apiKey = process.env.QUICKPAY_API_KEY;
+    const checksumHeader = req.headers['quickpay-checksum-sha256'];
 
-    const rawBodyString = req.rawBody;
+    // Get the raw body as a buffer
+    const rawBodyBuffer = await getRawBody(req);
+    const rawBodyString = rawBodyBuffer.toString('utf-8');
 
-    // Compute the checksum using the raw body string
+    // Compute the checksum over the raw body
     const computedChecksum = crypto
       .createHmac('sha256', apiKey)
       .update(rawBodyString)
       .digest('hex');
 
-    console.log('Expected Checksum:', checksumHeader);
-    console.log('Computed Checksum:', computedChecksum);
-
     if (checksumHeader !== computedChecksum) {
-      console.error(
-        `Checksum mismatch. Expected ${checksumHeader}, but got ${computedChecksum}`
-      );
+      console.error('Invalid Quickpay signature');
+      console.log('Expected Checksum:', checksumHeader);
+      console.log('Computed Checksum:', computedChecksum);
+      console.log('Raw Request Body:', rawBodyString);
+
       return res.status(403).json({ message: 'Invalid signature' });
     }
 
-    // req.body is already parsed JSON
-    const payment = req.body;
+    // Parse the raw body into a JavaScript object
+    const payment = JSON.parse(rawBodyString);
     const orderId = payment.order_id;
 
-    // Proceed with order handling...
-    // Proceed with order handling...
+    // Rest of your code remains the same...
     const orderRef = db.collection('orders').doc(orderId);
     const orderDoc = await orderRef.get();
 
@@ -68,30 +57,16 @@ export default async function handler(req, res) {
       status: payment.accepted ? 'paid' : 'failed',
       paymentDetails: payment,
       updatedAt: new Date(),
-      orderConfirmationSent: false,
-      orderConfirmationSentAt: null,
     };
+
+    await orderRef.set(updatedOrderData);
 
     // Send order confirmation if payment is accepted
     if (payment.accepted) {
-      try {
-        const emailSent = await sendOrderConfirmation(
-          orderData.customerDetails.email,
-          updatedOrderData
-        );
-        if (emailSent) {
-          updatedOrderData.orderConfirmationSent = true;
-          updatedOrderData.orderConfirmationSentAt = new Date();
-        }
-      } catch (emailError) {
-        console.error('Error sending order confirmation email:', emailError);
-      }
+      await sendOrderConfirmation(orderData.customerDetails.email, updatedOrderData);
     }
 
-    // Update Firestore with the final order data
-    await orderRef.set(updatedOrderData);
-
-
+    res.status(200).json({ message: 'Order updated successfully' });
   } catch (error) {
     console.error('Error processing callback:', error);
     res.status(500).json({ message: 'Internal Server Error' });
