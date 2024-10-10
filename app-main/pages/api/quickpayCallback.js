@@ -14,6 +14,7 @@ export const config = {
 
 export default async function handler(req, res) {
   try {
+    console.log('Request Headers:', req.headers);
     const apiKey = process.env.QUICKPAY_API_KEY;
     const checksumHeader = req.headers['quickpay-checksum-sha256'];
 
