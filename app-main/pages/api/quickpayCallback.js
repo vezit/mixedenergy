@@ -21,9 +21,7 @@ export default async function handler(req, res) {
 
 
   if (!safeCompare(checksumHeader, computedChecksum)) {
-    console.error('Invalid Quickpay signature');
-    console.log('Body as string:', bodyAsString);
-    console.log('Body buffer:', bodyBuffer.toString('utf-8'));
+    console.error(`Expected ${checksumHeader}, but got ${computedChecksum}`);
     return res.status(403).json({ message: 'Invalid signature' });
   }
 
