@@ -1,34 +1,42 @@
-// pages/api/quickpayCallback.js
-
 import crypto from 'crypto';
+import getRawBody from 'raw-body';
 import { db } from '../../lib/firebaseAdmin';
 import { sendOrderConfirmation } from '../../lib/email';
-import safeCompare from 'safe-compare';  // Assuming safe-compare is installed
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 export default async function handler(req, res) {
   const apiKey = process.env.QUICKPAY_API_KEY;
   const checksumHeader = req.headers['quickpay-checksum-sha256'];
-  const bodyAsString = JSON.stringify(req.body, Object.keys(req.body).sort()); // Sort keys for consistency
-  const bodyBuffer = Buffer.from(bodyAsString);
-
-  const computedChecksum = crypto
-    .createHmac('sha256', apiKey)
-    .update(bodyBuffer)
-    .digest('hex');
-
-  console.log('Received checksum:', checksumHeader);
-  console.log('Computed checksum:', computedChecksum);
-
-
-  if (!safeCompare(checksumHeader, computedChecksum)) {
-    console.error(`Expected ${checksumHeader}, but got ${computedChecksum}`);
-    return res.status(403).json({ message: 'Invalid signature' });
-  }
-
-  const payment = req.body;
-  const orderId = payment.order_id;
 
   try {
+    // Get the raw body as a buffer
+    const rawBody = await getRawBody(req);
+    const rawBodyString = rawBody.toString('utf8');
+
+    // Compute the checksum using the raw body
+    const computedChecksum = crypto
+      .createHmac('sha256', apiKey)
+      .update(rawBody)
+      .digest('hex');
+
+    console.log('Expected Checksum:', checksumHeader);
+    console.log('Computed Checksum:', computedChecksum);
+
+    if (checksumHeader !== computedChecksum) {
+      console.error(`Checksum mismatch. Expected ${checksumHeader}, but got ${computedChecksum}`);
+      return res.status(403).json({ message: 'Invalid signature' });
+    }
+
+    // Parse the raw body to JSON
+    const payment = JSON.parse(rawBodyString);
+    const orderId = payment.order_id;
+
+    // Proceed with order handling...
     const orderRef = db.collection('orders').doc(orderId);
     const orderDoc = await orderRef.get();
 
@@ -45,17 +53,20 @@ export default async function handler(req, res) {
       status: payment.accepted ? 'paid' : 'failed',
       paymentDetails: payment,
       updatedAt: new Date(),
-      orderConfirmationSend: false,
-      orderConfirmationSendAt: null,
+      orderConfirmationSent: false,
+      orderConfirmationSentAt: null,
     };
 
     // Send order confirmation if payment is accepted
     if (payment.accepted) {
       try {
-        const emailSent = await sendOrderConfirmation(orderData.customerDetails.email, updatedOrderData);
+        const emailSent = await sendOrderConfirmation(
+          orderData.customerDetails.email,
+          updatedOrderData
+        );
         if (emailSent) {
-          updatedOrderData.orderConfirmationSend = true;
-          updatedOrderData.orderConfirmationSendAt = new Date();
+          updatedOrderData.orderConfirmationSent = true;
+          updatedOrderData.orderConfirmationSentAt = new Date();
         }
       } catch (emailError) {
         console.error('Error sending order confirmation email:', emailError);
