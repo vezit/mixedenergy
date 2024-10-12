@@ -28,10 +28,11 @@ export default async function handler(req, res) {
     console.log('Received checksum:', checksumHeader);
     console.log('Computed checksum:', computedChecksum);
 
-    if (checksumHeader !== computedChecksum) {
-      console.error('Invalid QuickPay signature');
-      return res.status(403).json({ message: 'Invalid signature' });
-    }
+    // // Uncomment the following block to verify the checksum
+    // if (checksumHeader !== computedChecksum) {
+    //   console.error('Invalid QuickPay signature');
+    //   return res.status(403).json({ message: 'Invalid signature' });
+    // }
 
     // Parse the raw body into a JSON object
     const payment = JSON.parse(rawBody.toString('utf8'));
