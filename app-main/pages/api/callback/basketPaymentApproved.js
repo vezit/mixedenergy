@@ -1,8 +1,8 @@
 // pages/api/quickpayCallback.js
 
 import crypto from 'crypto';
-import { db } from '../../../../lib/firebaseAdmin';
-import { sendOrderConfirmation } from '../../../../lib/email';
+import { db } from '../../../lib/firebaseAdmin';
+import { sendOrderConfirmation } from '../../../lib/email';
 import getRawBody from 'raw-body';
 
 export const config = {
