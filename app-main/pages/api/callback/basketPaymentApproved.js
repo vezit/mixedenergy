@@ -61,7 +61,6 @@ export default async function handler(req, res) {
         })),
         status: payment.accepted ? 'paid' : 'failed',
       },
-      paymentDetails: payment,
       updatedAt: new Date(),
       orderConfirmationSend: false,
       orderConfirmationSendAt: null,
