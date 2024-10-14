@@ -362,8 +362,36 @@ export default function AdminPage() {
     }
   };
 
+
+  // Inside your AdminPage component
+  const handleExportOrders = async () => {
+    try {
+      // Fetch orders collection
+      const ordersSnapshot = await getDocs(collection(db, 'orders'));
+      const ordersData = {};
+      ordersSnapshot.forEach((doc) => {
+        ordersData[doc.id] = doc.data();
+      });
+
+      const jsonString = JSON.stringify(ordersData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'orders.json';
+      link.click();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting orders:', error);
+      alert('Error exporting orders.');
+    }
+  };
+
+
   // Function to export data
-  const handleExportData = async () => {
+  const handleExportDrinksAndPackages = async () => {
     try {
       // Fetch the latest data
       const drinksPublicSnapshot = await getDocs(collection(db, 'drinks_public'));
@@ -616,12 +644,20 @@ export default function AdminPage() {
 
           <div className="mt-4">
             <button
-              onClick={handleExportData}
+              onClick={handleExportDrinksAndPackages}
               className="bg-blue-500 text-white px-4 py-2 rounded"
             >
-              Export Data
+              Export drinks and packages
             </button>
           </div>
+          <div className="mt-4">
+          <button
+            onClick={handleExportOrders}
+            className="bg-green-500 text-white px-4 py-2 rounded"
+          >
+            Export Orders
+          </button>
+        </div>
 
           {/* Confirmation Modal */}
           {showConfirmModal && (
