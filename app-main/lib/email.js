@@ -33,6 +33,38 @@ export async function sendInvoiceEmail(email, orderData, pdfBuffer) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
+    console.log('Invoice email sent:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending invoice email:', error);
+    return false;
+  }
+}
+
+export async function sendOrderConfirmation(email, orderData) {
+  const transporter = nodemailer.createTransport({
+    host: 'asmtp.dandomain.dk',
+    port: 587,
+    secure: false,
+    auth: {
+      user: 'info@mixedenergy.dk',
+      pass: process.env.SMTP_PASSWORD,
+    },
+    tls: {
+      ciphers: 'SSLv3',
+    },
+  });
+
+  const mailOptions = {
+    from: '"Mixed Energy" <info@mixedenergy.dk>',
+    to: email,
+    subject: 'Ordrebekræftelse fra Mixed Energy',
+    text: generateEmailText(orderData),
+    html: generateEmailHTML(orderData),
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
     console.log('Order confirmation email sent:', info.messageId);
     return true;
   } catch (error) {
