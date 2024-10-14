@@ -4,7 +4,7 @@ import Header from '../components/Header';                    // Import the Head
 import Footer from '../components/Footer';                    // Import the Footer component
 import { useModal } from '../lib/modals';                     // Import the useModal hook
 import CookieConsent from '../components/CookieConsent';      // Import the CookieConsent component
-import { BasketProvider } from '../lib/BasketContext';        // Import BasketProvider
+import { BasketProvider } from '../components/BasketContext';        // Import BasketProvider
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import * as gtag from '../lib/gtag';                          // Import Google Analytics tracking functions

@@ -1,7 +1,7 @@
 // /products/bland-selv-mix/[slug].js
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import { useBasket } from '../../../lib/BasketContext';
+import { useBasket } from '../../../components/BasketContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 

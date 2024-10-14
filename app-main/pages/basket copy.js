@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import router from 'next/router';
-import { useBasket } from '../lib/BasketContext';
+import { useBasket } from '../components/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';

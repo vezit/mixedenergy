@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { useBasket } from '../lib/BasketContext';
+import { useBasket } from '../components/BasketContext';
 import { useRouter } from 'next/router';
 import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Firebase Auth methods
 
