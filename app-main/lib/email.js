@@ -2,7 +2,7 @@
 
 import nodemailer from 'nodemailer';
 
-export async function sendOrderConfirmation(email, orderData) {
+export async function sendInvoiceEmail(email, orderData, pdfBuffer) {
   const transporter = nodemailer.createTransport({
     host: 'asmtp.dandomain.dk',
     port: 587,
@@ -19,9 +19,16 @@ export async function sendOrderConfirmation(email, orderData) {
   const mailOptions = {
     from: '"Mixed Energy" <info@mixedenergy.dk>',
     to: email,
-    subject: 'Ordrebekræftelse fra Mixed Energy',
+    subject: 'Din faktura fra Mixed Energy',
     text: generateEmailText(orderData),
     html: generateEmailHTML(orderData),
+    attachments: [
+      {
+        filename: 'Faktura.pdf',
+        content: pdfBuffer,
+        contentType: 'application/pdf',
+      },
+    ],
   };
 
   try {
