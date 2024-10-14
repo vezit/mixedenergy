@@ -1,8 +1,8 @@
 // pages/api/quickpayCallback.js
 
 import crypto from 'crypto';
-import { db } from '../../lib/firebaseAdmin';
-import { sendOrderConfirmation } from '../../lib/email';
+import { db } from '../../../lib/firebaseAdmin';
+import { sendOrderConfirmation } from '../../../lib/email';
 import getRawBody from 'raw-body';
 
 export const config = {
@@ -52,12 +52,21 @@ export default async function handler(req, res) {
     // Update order status based on payment acceptance
     const updatedOrderData = {
       ...orderData,
-      status: payment.accepted ? 'paid' : 'failed',
+      myPaymentDetails: {
+        operations: payment.operations.map(({ id, type, amount, aq_status_msg }) => ({
+          id,
+          type,
+          amount,
+          aq_status_msg,
+        })),
+        status: payment.accepted ? 'paid' : 'failed',
+      },
       paymentDetails: payment,
       updatedAt: new Date(),
       orderConfirmationSend: false,
       orderConfirmationSendAt: null,
     };
+    
 
     // Send order confirmation if payment is accepted
     if (payment.accepted) {

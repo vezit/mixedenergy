@@ -1,5 +1,3 @@
-// /pages/api/management/capturePayment.js
-
 import { db } from '../../../lib/firebaseAdmin';
 import axios from 'axios';
 
@@ -43,7 +41,7 @@ export default async function handler(req, res) {
             }
         );
 
-        // Capture was accepted (status 202) but not yet fully processed
+        // Handle pending capture
         if (response.status === 202 || (response.data && response.data.state === 'pending')) {
             console.warn('Capture request was accepted but not yet processed:', response.data);
             return res.status(202).json({ message: 'Payment capture is in progress' });
@@ -54,10 +52,23 @@ export default async function handler(req, res) {
             throw new Error(`Error capturing payment: ${response.data.error?.message || 'Unknown error'}`);
         }
 
-        // Update order status in Firestore
+        // Update order status in Firestore on successful capture
         await orderRef.update({
             status: 'captured',
             'paymentDetails.state': 'captured',
+            'paymentDetails.operations': [
+                ...paymentDetails.operations,
+                {
+                    id: response.data.operations[1].id,
+                    type: 'capture',
+                    amount: amount,
+                    pending: false,
+                    qp_status_code: response.data.operations[1].qp_status_code,
+                    qp_status_msg: response.data.operations[1].qp_status_msg,
+                    created_at: new Date().toISOString(),
+                    acquirer: response.data.acquirer
+                }
+            ],
             updatedAt: new Date(),
         });
 

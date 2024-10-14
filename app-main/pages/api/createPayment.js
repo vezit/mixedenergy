@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     formDataPaymentLink.append('amount', totalPrice); // Use the totalPrice from the request body
     formDataPaymentLink.append('continue_url', 'https://www.mixedenergy.dk/payment-success?orderId=' + orderId);
     formDataPaymentLink.append('cancel_url', 'https://www.mixedenergy.dk/basket');
-    formDataPaymentLink.append('callback_url', 'https://www.mixedenergy.dk/api/quickpayCallback');
+    formDataPaymentLink.append('callback_url', 'https://www.mixedenergy.dk/api/callback/basketPaymentApproved');
     
     const linkResponse = await fetch(`https://api.quickpay.net/payments/${paymentData.id}/link`, {
       method: 'PUT',
