@@ -43,22 +43,23 @@ export default function ViBlanderForDigProduct() {
           }
         }
         setDrinksData(drinksData);
-        setLoading(false);
+
+        // Generate the random package on load
+        generateRandomPackage(selectedSize, drinksData);
       } else {
         setProduct(null);
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchProduct();
   }, [slug]);
 
   useEffect(() => {
-    if (!loading && product && Object.keys(drinksData).length > 0) {
+    if (!loading && product) {
       generateRandomPackage(selectedSize);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, product, drinksData, sugarPreference, selectedSize]);
+  }, [sugarPreference]);
 
   const calculateTotalPrice = (selection) => {
     let totalPrice = 0;
@@ -79,15 +80,15 @@ export default function ViBlanderForDigProduct() {
   };
 
   // Function to generate a random package
-  const generateRandomPackage = (size) => {
-    if (!product || Object.keys(drinksData).length === 0) return;
+  const generateRandomPackage = (size, drinksDataParam = drinksData) => {
+    if (!product) return;
 
     const randomSelection = {};
     let remaining = parseInt(size);
 
     // Filter drinks based on sugar preference
     let drinksCopy = [...product.drinks].filter((drinkSlug) => {
-      const drink = drinksData[drinkSlug];
+      const drink = drinksDataParam[drinkSlug];
       if (!drink) return false;
       if (sugarPreference === 'uden_sukker' && !drink.isSugarFree) return false;
       if (sugarPreference === 'med_sukker' && drink.isSugarFree) return false;
@@ -99,10 +100,10 @@ export default function ViBlanderForDigProduct() {
       return;
     }
 
-    while (remaining > 0) {
+    while (remaining > 0 && drinksCopy.length > 0) {
       const randomIndex = Math.floor(Math.random() * drinksCopy.length);
       const drinkSlug = drinksCopy[randomIndex];
-      const drink = drinksData[drinkSlug];
+      const drink = drinksDataParam[drinkSlug];
       if (!drink) {
         drinksCopy.splice(randomIndex, 1);
         continue;
@@ -117,19 +118,16 @@ export default function ViBlanderForDigProduct() {
     // Calculate price
     const { totalPrice, discountedPrice, discount } = calculateTotalPrice(randomSelection);
     setOriginalPrice(totalPrice);
-    setPrice(roundToNearestHundred(discountedPrice));
+    setPrice(discountedPrice);
     setDiscount(discount);
   };
 
   // Function to handle package size change
   const handleSizeChange = (size) => {
     setSelectedSize(size);
+    generateRandomPackage(size);
   };
 
-  const roundToNearestHundred = (price) => {
-    return Math.round(price / 100) * 100;
-  };
-  
   // Function to add the random package to the basket
   const addToBasket = () => {
     const totalSelected = Object.values(randomSelection).reduce(
@@ -247,35 +245,29 @@ export default function ViBlanderForDigProduct() {
             {/* Mysterybox Toggle */}
             <div className="mt-4 flex items-center">
               <label className="mr-4">Mysterybox</label>
-              <label className="iphone-toggle">
+              <label className="switch">
                 <input
                   type="checkbox"
                   checked={isMysteryBox}
                   onChange={() => setIsMysteryBox(!isMysteryBox)}
                 />
-                <span className="slider"></span>
+                <span className="slider round"></span>
               </label>
             </div>
 
-            {/* Display Random Package or Mysterybox */}
-            <div className="mt-4 max-h-[200px] overflow-y-auto pr-4 flex flex-col items-center justify-center border border-gray-300 rounded">
-              <h2 className="text-xl font-bold">
-                {isMysteryBox ? 'Mysterybox enabled' : `Din Random ${product.title}`}
-              </h2>
-              {isMysteryBox ? (
-                // Display a question mark in the center
-                <div className="text-6xl text-gray-400 mt-4">?</div>
-              ) : (
-                // Display the list of drinks
-                <ul className="list-disc list-inside mt-4">
+            {/* Display Random Package */}
+            {!isMysteryBox && (
+              <div className="mt-4 max-h-[200px] overflow-y-auto pr-4">
+                <h2 className="text-xl font-bold">Din Random {product.title}</h2>
+                <ul className="list-disc list-inside">
                   {Object.entries(randomSelection).map(([drinkSlug, qty], index) => (
                     <li key={index}>
                       {drinksData[drinkSlug]?.name || drinkSlug} (x{qty})
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-8">
@@ -300,71 +292,19 @@ export default function ViBlanderForDigProduct() {
               {discount > 0 ? (
                 <>
                   <span className="line-through mr-2">
-                    {Math.round(originalPrice * quantity / 100)} kr
+                    {(originalPrice * quantity / 100).toFixed(2)} kr
                   </span>
                   <span>
-                    {price * quantity / 100} kr
+                    {(price * quantity / 100).toFixed(2)} kr
                   </span>
                 </>
               ) : (
-                <span>{price * quantity / 100} kr</span>
+                <span>{(price * quantity / 100).toFixed(2)} kr</span>
               )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Include CSS for iPhone-style toggle */}
-      <style jsx>{`
-        .iphone-toggle {
-          position: relative;
-          display: inline-block;
-          width: 50px;
-          height: 28px;
-        }
-
-        .iphone-toggle input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        .iphone-toggle .slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: #ccc;
-          border-radius: 34px;
-          transition: 0.4s;
-        }
-
-        .iphone-toggle .slider:before {
-          position: absolute;
-          content: '';
-          height: 22px;
-          width: 22px;
-          left: 3px;
-          bottom: 3px;
-          background-color: white;
-          border-radius: 50%;
-          transition: 0.4s;
-        }
-
-        .iphone-toggle input:checked + .slider {
-          background-color: #2196F3;
-        }
-
-        .iphone-toggle input:focus + .slider {
-          box-shadow: 0 0 1px #2196F3;
-        }
-
-        .iphone-toggle input:checked + .slider:before {
-          transform: translateX(22px);
-        }
-      `}</style>
     </div>
   );
 }

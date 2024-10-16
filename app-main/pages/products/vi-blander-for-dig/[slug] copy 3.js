@@ -43,7 +43,11 @@ export default function ViBlanderForDigProduct() {
           }
         }
         setDrinksData(drinksData);
-        setLoading(false);
+        setLoading(false); // Move setLoading here
+        // ensure 
+
+        // Generate the random package on load
+        generateRandomPackage(selectedSize, drinksData);
       } else {
         setProduct(null);
         setLoading(false);
@@ -54,11 +58,10 @@ export default function ViBlanderForDigProduct() {
   }, [slug]);
 
   useEffect(() => {
-    if (!loading && product && Object.keys(drinksData).length > 0) {
+    if (!loading && product) {
       generateRandomPackage(selectedSize);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, product, drinksData, sugarPreference, selectedSize]);
+  }, [sugarPreference, selectedSize, isMysteryBox]);
 
   const calculateTotalPrice = (selection) => {
     let totalPrice = 0;
@@ -79,15 +82,15 @@ export default function ViBlanderForDigProduct() {
   };
 
   // Function to generate a random package
-  const generateRandomPackage = (size) => {
-    if (!product || Object.keys(drinksData).length === 0) return;
+  const generateRandomPackage = (size, drinksDataParam = drinksData) => {
+    if (!product) return;
 
     const randomSelection = {};
     let remaining = parseInt(size);
 
     // Filter drinks based on sugar preference
     let drinksCopy = [...product.drinks].filter((drinkSlug) => {
-      const drink = drinksData[drinkSlug];
+      const drink = drinksDataParam[drinkSlug];
       if (!drink) return false;
       if (sugarPreference === 'uden_sukker' && !drink.isSugarFree) return false;
       if (sugarPreference === 'med_sukker' && drink.isSugarFree) return false;
@@ -102,7 +105,7 @@ export default function ViBlanderForDigProduct() {
     while (remaining > 0) {
       const randomIndex = Math.floor(Math.random() * drinksCopy.length);
       const drinkSlug = drinksCopy[randomIndex];
-      const drink = drinksData[drinkSlug];
+      const drink = drinksDataParam[drinkSlug];
       if (!drink) {
         drinksCopy.splice(randomIndex, 1);
         continue;
@@ -130,6 +133,7 @@ export default function ViBlanderForDigProduct() {
     return Math.round(price / 100) * 100;
   };
   
+
   // Function to add the random package to the basket
   const addToBasket = () => {
     const totalSelected = Object.values(randomSelection).reduce(
@@ -257,25 +261,19 @@ export default function ViBlanderForDigProduct() {
               </label>
             </div>
 
-            {/* Display Random Package or Mysterybox */}
-            <div className="mt-4 max-h-[200px] overflow-y-auto pr-4 flex flex-col items-center justify-center border border-gray-300 rounded">
-              <h2 className="text-xl font-bold">
-                {isMysteryBox ? 'Mysterybox enabled' : `Din Random ${product.title}`}
-              </h2>
-              {isMysteryBox ? (
-                // Display a question mark in the center
-                <div className="text-6xl text-gray-400 mt-4">?</div>
-              ) : (
-                // Display the list of drinks
-                <ul className="list-disc list-inside mt-4">
+            {/* Display Random Package */}
+            {!isMysteryBox && (
+              <div className="mt-4 max-h-[200px] overflow-y-auto pr-4">
+                <h2 className="text-xl font-bold">Din Random {product.title}</h2>
+                <ul className="list-disc list-inside">
                   {Object.entries(randomSelection).map(([drinkSlug, qty], index) => (
                     <li key={index}>
                       {drinksData[drinkSlug]?.name || drinkSlug} (x{qty})
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-8">
