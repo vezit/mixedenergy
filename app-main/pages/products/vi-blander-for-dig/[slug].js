@@ -189,6 +189,7 @@ export default function ViBlanderForDigProduct() {
           </div>
         </div>
 
+
         {/* Right Column: Random Package and Actions */}
         <div className="md:w-1/2 md:pl-8 flex flex-col justify-between h-full flex-1">
           <div>
@@ -257,17 +258,23 @@ export default function ViBlanderForDigProduct() {
               </label>
             </div>
 
-            {/* Display Random Package or Mysterybox */}
-            <div className="mt-4 max-h-[200px] overflow-y-auto pr-4 flex flex-col items-center justify-center border border-gray-300 rounded">
-              <h2 className="text-xl font-bold">
+{/* Display Random Package or Mysterybox */}
+<div
+              className={`mt-4 h-[30rem] pr-4 border border-gray-300 rounded ${
+                isMysteryBox ? 'overflow-hidden' : 'overflow-y-auto'
+              }`}
+            >
+              <h2 className="text-xl font-bold text-center mt-4">
                 {isMysteryBox ? 'Mysterybox enabled' : `Din Random ${product.title}`}
               </h2>
               {isMysteryBox ? (
                 // Display a question mark in the center
-                <div className="text-6xl text-gray-400 mt-4">?</div>
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-8xl text-gray-400 mt-4">?</div>
+                </div>
               ) : (
                 // Display the list of drinks
-                <ul className="list-disc list-inside mt-4">
+                <ul className="list-disc list-inside mt-4 px-4">
                   {Object.entries(randomSelection).map(([drinkSlug, qty], index) => (
                     <li key={index}>
                       {drinksData[drinkSlug]?.name || drinkSlug} (x{qty})
