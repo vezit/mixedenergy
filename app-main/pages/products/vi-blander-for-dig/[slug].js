@@ -23,6 +23,29 @@ export default function ViBlanderForDigProduct() {
 
   const { addItemToBasket } = useBasket();
 
+  // Function to calculate the total price with discounts
+const calculateTotalPrice = (selection) => {
+  let totalPrice = 0;
+  for (const [drinkSlug, qty] of Object.entries(selection)) {
+    const drink = drinksData[drinkSlug];
+    if (drink && drink.salePrice) {
+      totalPrice += parseInt(drink.salePrice) * qty;
+    }
+  }
+
+  // Apply discounts based on package size
+  let discount = 0;
+  if (parseInt(selectedSize) === 12) {
+    discount = 0.05; // 5% discount
+  } else if (parseInt(selectedSize) === 18) {
+    discount = 0.10; // 10% discount
+  }
+
+  const discountedPrice = totalPrice * (1 - discount);
+  return { totalPrice, discountedPrice, discount };
+};
+
+
   useEffect(() => {
     if (!slug) return;
 
@@ -60,23 +83,6 @@ export default function ViBlanderForDigProduct() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, product, drinksData, sugarPreference, selectedSize]);
 
-  const calculateTotalPrice = (selection) => {
-    let totalPrice = 0;
-    for (const [drinkSlug, qty] of Object.entries(selection)) {
-      const drink = drinksData[drinkSlug];
-      if (drink && drink.salePrice) {
-        totalPrice += parseInt(drink.salePrice) * qty;
-      }
-    }
-    let discount = 0;
-    if (parseInt(selectedSize) === 12) {
-      discount = 0.05; // 5% discount
-    } else if (parseInt(selectedSize) === 18) {
-      discount = 0.10; // 10% discount
-    }
-    const discountedPrice = totalPrice * (1 - discount);
-    return { totalPrice, discountedPrice, discount };
-  };
 
   // Function to generate a random package
   const generateRandomPackage = (size) => {
@@ -307,7 +313,7 @@ export default function ViBlanderForDigProduct() {
               {discount > 0 ? (
                 <>
                   <span className="line-through mr-2">
-                    {Math.round(originalPrice * quantity / 100)} kr
+                    {originalPrice * quantity / 100} kr
                   </span>
                   <span>
                     {price * quantity / 100} kr

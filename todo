@@ -1,13 +1,39 @@
-1 lav saa man kan skifte i mellem dansk og engelsk, og i øvrigt, gør saa alle sider er dansk som default.
+1 færdigør "bland selv" DONE
+    Bland selv skal ikke vælge automatisk naar man trykker paa den.
+    5 % paa 12 og 10 % paa 18
+
 2 gør saa naar man trykker paa tilføj til kurv at, kurven kommer op ligsom det billede jeg sendte til christrian, baade i en mobil- og web venlig udgave.
+
+
+
 3 lav en template som indenholder generel styling og grafik moduler som f.eks. "loading" samlet et sted, som alle sider bruger.
-4 færdigør "bland selv"
+
 5 gør saa kunden kan se hvilke drikke der er tilføjet i pakken.
 6 færdiggør basket saa den er magen til av cables og er mobil venlig.
 7 sørg for at brugeren ikke kan ændre i prisen.
+
+
 7 admin gør sa man loade billeder til drikke og pakker
 8 admin gør saa man kan trække i tabellen.
 9 admin gør fælter i taballen graa som man ikke bør ændre i.
 10 management skal snakken sammen med admin og basket, og opdatere lagerstatus.
 
+naar siden er helt færdig.
+1 lav saa man kan skifte i mellem dansk og engelsk, og i øvrigt, gør saa alle sider er dansk som default.
 
+
+
+
+
+
+
+
+
+If i sell drinks on my website, and i want to make a rounded number like 
+
+150kr or 175kr or 200kr while ensuring best price for customers and meeting "profit per drink". 
+
+The lowest package 150kroner is if the customer chooses only drinks that has a purchase price that gives room for each drinks "profit". for example if a redbull cost us 10 kroner and we want to make 75% then the sales price is 10 * 1.75 * 1.25(moms) is 22 kroner so a package of 8 is 175 kroner.
+
+"bland selv"
+150, 175, 200

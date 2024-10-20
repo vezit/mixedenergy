@@ -22,14 +22,14 @@ export default function BlandSelvMixProduct() {
 
   useEffect(() => {
     if (!slug) return;
-
+  
     const fetchProduct = async () => {
       const docRef = doc(db, 'packages_public', slug);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const productData = docSnap.data();
         setProduct({ id: docSnap.id, ...productData });
-
+  
         // Fetch drinks data
         const drinksData = {};
         for (const drinkSlug of productData.drinks) {
@@ -40,17 +40,16 @@ export default function BlandSelvMixProduct() {
           }
         }
         setDrinksData(drinksData);
-
-        // Generate a random selection
-        generateRandomSelection(selectedSize, drinksData);
+        // Remove automatic selection on load
       } else {
         setProduct(null);
       }
       setLoading(false);
     };
-
+  
     fetchProduct();
   }, [slug]);
+  
 
   // Update price and regenerate selection when package size changes
   useEffect(() => {
@@ -58,65 +57,81 @@ export default function BlandSelvMixProduct() {
   }, [selectedSize]);
 
   // Function to generate a random selection of drinks
-  const generateRandomSelection = (size, drinksDataParam = drinksData) => {
-    const randomSelection = {};
-    let remaining = parseInt(size);
-    const drinksCopy = Object.keys(drinksDataParam);
+ // Update generateRandomSelection to use the new price calculation
+const generateRandomSelection = (size, drinksDataParam = drinksData) => {
+  const randomSelection = {};
+  let remaining = parseInt(size);
+  const drinksCopy = Object.keys(drinksDataParam);
 
-    while (remaining > 0 && drinksCopy.length > 0) {
-      const randomIndex = Math.floor(Math.random() * drinksCopy.length);
-      const drinkSlug = drinksCopy[randomIndex];
-      const qty = 1; // Select one at a time
+  // Modify this part to not automatically select drinks
+  while (remaining > 0 && drinksCopy.length > 0) {
+    const randomIndex = Math.floor(Math.random() * drinksCopy.length);
+    const drinkSlug = drinksCopy[randomIndex];
+    const qty = 1; // Select one at a time
 
-      randomSelection[drinkSlug] = (randomSelection[drinkSlug] || 0) + qty;
-      remaining -= qty;
+    randomSelection[drinkSlug] = (randomSelection[drinkSlug] || 0) + qty;
+    remaining -= qty;
 
-      // Optionally remove the drink if we don't want duplicates
-      // drinksCopy.splice(randomIndex, 1);
+    // Optionally remove the drink if we don't want duplicates
+    // drinksCopy.splice(randomIndex, 1);
+  }
+
+  setSelectedProducts(randomSelection);
+
+  // Calculate price with discounts
+  const { totalPrice, discountedPrice } = calculateTotalPrice(randomSelection);
+  setPrice(discountedPrice); // Update the state with the discounted price
+};
+
+  // Function to calculate the total price with discounts
+const calculateTotalPrice = (selection) => {
+  let totalPrice = 0;
+  for (const [drinkSlug, qty] of Object.entries(selection)) {
+    const drink = drinksData[drinkSlug];
+    if (drink && drink.salePrice) {
+      // convert drink.salePrice
+      totalPrice += parseInt(drink.salePrice) * qty;
     }
+  }
 
-    setSelectedProducts(randomSelection);
+  // Apply discounts based on package size
+  let discount = 0;
+  if (parseInt(selectedSize) === 12) {
+    discount = 0.05; // 5% discount
+  } else if (parseInt(selectedSize) === 18) {
+    discount = 0.10; // 10% discount
+  }
 
-    // Calculate price
-    const totalPrice = calculateTotalPrice(randomSelection);
-    setPrice(totalPrice);
-  };
+  const discountedPrice = totalPrice * (1 - discount);
+  return { totalPrice, discountedPrice, discount };
+};
 
-  const calculateTotalPrice = (selection) => {
-    let totalPrice = 0;
-    for (const [drinkSlug, qty] of Object.entries(selection)) {
-      const drink = drinksData[drinkSlug];
-      if (drink && drink.salePrice) {
-        totalPrice += parseInt(drink.salePrice) * qty;
-      }
-    }
-    return totalPrice;
-  };
 
   // Function to handle quantity changes
   const handleProductQuantityChange = (drinkSlug, action) => {
     setSelectedProducts((prevSelected) => {
       const currentQty = prevSelected[drinkSlug] || 0;
       let newQty = currentQty;
-
+  
       if (action === 'increment' && getTotalSelected() < maxProducts) {
         newQty = currentQty + 1;
       } else if (action === 'decrement' && currentQty > 0) {
         newQty = currentQty - 1;
       }
-
+  
       const updatedSelected = { ...prevSelected, [drinkSlug]: newQty };
       if (newQty === 0) {
         delete updatedSelected[drinkSlug];
       }
-
+  
       // Recalculate price
-      const totalPrice = calculateTotalPrice(updatedSelected);
-      setPrice(totalPrice);
-
+      const { discountedPrice } = calculateTotalPrice(updatedSelected);
+      setPrice(discountedPrice); // Use discountedPrice, which is a number
+  
       return updatedSelected;
     });
   };
+  
 
   // Calculate the total number of selected drinks
   const getTotalSelected = () => {
