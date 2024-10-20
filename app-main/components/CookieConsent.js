@@ -23,7 +23,7 @@ export default function CookieConsent() {
       }
     }
 
-    const docRef = doc(db, 'sessions', consentId);
+    const docRef = doc(db, 'sessions_public', consentId);
 
     getDoc(docRef)
       .then((docSnap) => {
@@ -60,7 +60,7 @@ export default function CookieConsent() {
       return;
     }
 
-    const docRef = doc(db, 'sessions', consentId);
+    const docRef = doc(db, 'sessions_public', consentId);
 
     await setDoc(
       docRef,

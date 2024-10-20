@@ -46,7 +46,7 @@ function MyApp({ Component, pageProps }) {
   useEffect(() => {
     const consentId = getCookie('cookie_consent_id');
     if (consentId) {
-      const docRef = doc(db, 'sessions', consentId);
+      const docRef = doc(db, 'sessions_public', consentId);
 
       getDoc(docRef)
         .then((docSnap) => {

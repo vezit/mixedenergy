@@ -23,7 +23,7 @@ export default function CookiePolitik() {
     if (confirmAction) {
       const consentId = getCookie('cookie_consent_id');
       if (consentId) {
-        const docRef = doc(db, 'sessions', consentId); // Use the imported Firestore db instance directly
+        const docRef = doc(db, 'sessions_public', consentId); // Use the imported Firestore db instance directly
         await deleteDoc(docRef);
       }
       deleteAllCookies();

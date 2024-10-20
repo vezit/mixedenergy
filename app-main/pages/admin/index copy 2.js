@@ -18,8 +18,8 @@ import {
 } from 'firebase/firestore';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
-import DrinksTable from '../../components/DrinksTable';
-import PackagesTable from '../../components/PackagesTable';
+// import DrinksTable from '../../components/DrinksTable';
+// import PackagesTable from '../../components/PackagesTable';
 import Modal from '../../components/Modal';
 
 export default function AdminPage() {
@@ -595,7 +595,7 @@ export default function AdminPage() {
         <p>Loading...</p>
       ) : (
         <>
-          <DrinksTable
+          {/* <DrinksTable
             drinks={drinks}
             onDrinkChange={handleDrinkChange}
             onSaveDrink={saveDrink}
@@ -603,7 +603,7 @@ export default function AdminPage() {
             onAddDrink={addDrink}
           />
 
-          {/* <PackagesTable
+          <PackagesTable
             packages={packages}
             drinks={drinks}
             onPackageChange={handlePackageChange}

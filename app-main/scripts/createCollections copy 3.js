@@ -141,7 +141,7 @@ async function populateCollections() {
       }
     }
 
-    // Data Type Consistency and Field Consistency Check
+    // Data Type Consistency Check
     // Get the first document's field types
     const docIds = Object.keys(collectionData);
     if (docIds.length === 0) {
@@ -153,11 +153,10 @@ async function populateCollections() {
     const firstDocData = collectionData[firstDocId];
     const fieldTypes = {};
 
-    // Record the data types and fields of the first document's fields
+    // Record the data types of the first document's fields
     for (const [field, value] of Object.entries(firstDocData)) {
       fieldTypes[field] = typeof value;
     }
-    const firstDocFields = Object.keys(firstDocData);
 
     // Process each document in the collection
     for (const docId of docIds) {
@@ -174,78 +173,64 @@ async function populateCollections() {
         });
       }
 
-      // Ensure field consistency based on the first document
-      // Add missing fields
-      for (const field of firstDocFields) {
-        if (!(field in finalDocData)) {
-          console.warn(
-            `Warning: Field "${field}" is missing in document "${docId}" in collection "${collectionName}". Adding it with default value.`
-          );
-          finalDocData[field] = deepClone(firstDocData[field]);
-        }
-      }
-
-      // Remove extra fields
-      for (const field of Object.keys(finalDocData)) {
-        if (!firstDocFields.includes(field)) {
-          console.warn(
-            `Warning: Field "${field}" in document "${docId}" does not exist in the first document of collection "${collectionName}". Removing it.`
-          );
-          delete finalDocData[field];
-        }
-      }
-
       // Check and enforce data types
       for (const [field, value] of Object.entries(finalDocData)) {
-        const expectedType = fieldTypes[field];
-        const actualType = typeof value;
+        if (field in fieldTypes) {
+          const expectedType = fieldTypes[field];
+          const actualType = typeof value;
 
-        if (actualType !== expectedType) {
-          console.warn(
-            `Warning: In collection "${collectionName}", field "${field}" in document "${docId}" has type "${actualType}" but expected "${expectedType}". Attempting to convert.`
-          );
-          // Attempt to convert the value to the expected type
-          try {
-            let convertedValue;
-            switch (expectedType) {
-              case 'number':
-                convertedValue = Number(value);
-                if (isNaN(convertedValue)) {
-                  throw new Error(`Cannot convert "${value}" to Number.`);
-                }
-                break;
-              case 'string':
-                convertedValue = String(value);
-                break;
-              case 'boolean':
-                if (value === 'true' || value === true) {
-                  convertedValue = true;
-                } else if (value === 'false' || value === false) {
-                  convertedValue = false;
-                } else {
-                  throw new Error(`Cannot convert "${value}" to Boolean.`);
-                }
-                break;
-              case 'object':
-                if (typeof value === 'object' && value !== null) {
-                  convertedValue = value;
-                } else {
-                  throw new Error(`Cannot convert "${value}" to Object.`);
-                }
-                break;
-              default:
-                throw new Error(`Unsupported type "${expectedType}".`);
-            }
-            finalDocData[field] = convertedValue;
+          if (actualType !== expectedType) {
             console.warn(
-              `Converted field "${field}" in document "${docId}" to type "${expectedType}".`
+              `Warning: In collection "${collectionName}", field "${field}" in document "${docId}" has type "${actualType}" but expected "${expectedType}". Attempting to convert.`
             );
-          } catch (err) {
-            console.error(
-              `Error: Cannot convert field "${field}" in document "${docId}" to type "${expectedType}": ${err.message}`
-            );
-            process.exit(1);
+            // Attempt to convert the value to the expected type
+            try {
+              let convertedValue;
+              switch (expectedType) {
+                case 'number':
+                  convertedValue = Number(value);
+                  if (isNaN(convertedValue)) {
+                    throw new Error(`Cannot convert "${value}" to Number.`);
+                  }
+                  break;
+                case 'string':
+                  convertedValue = String(value);
+                  break;
+                case 'boolean':
+                  if (value === 'true' || value === true) {
+                    convertedValue = true;
+                  } else if (value === 'false' || value === false) {
+                    convertedValue = false;
+                  } else {
+                    throw new Error(`Cannot convert "${value}" to Boolean.`);
+                  }
+                  break;
+                case 'object':
+                  if (typeof value === 'object' && value !== null) {
+                    convertedValue = value;
+                  } else {
+                    throw new Error(`Cannot convert "${value}" to Object.`);
+                  }
+                  break;
+                default:
+                  throw new Error(`Unsupported type "${expectedType}".`);
+              }
+              finalDocData[field] = convertedValue;
+              console.warn(
+                `Converted field "${field}" in document "${docId}" to type "${expectedType}".`
+              );
+            } catch (err) {
+              console.error(
+                `Error: Cannot convert field "${field}" in document "${docId}" to type "${expectedType}": ${err.message}`
+              );
+              process.exit(1);
+            }
           }
+        } else {
+          // Field does not exist in the first document
+          console.warn(
+            `Warning: Field "${field}" in document "${docId}" does not exist in the first document of collection "${collectionName}".`
+          );
         }
       }
 
@@ -356,11 +341,6 @@ async function populateCollections() {
 
     console.log(`Collection "${collectionName}" has been populated.`);
   }
-}
-
-// Function to deep clone an object
-function deepClone(obj) {
-  return JSON.parse(JSON.stringify(obj));
 }
 
 // Function to get the counterpart collection name

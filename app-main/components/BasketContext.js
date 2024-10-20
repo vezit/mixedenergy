@@ -27,7 +27,7 @@ export const BasketProvider = ({ children }) => {
         setConsentId(consentIdFromCookie);
 
         if (consentIdFromCookie) {
-            const docRef = doc(db, 'sessions', consentIdFromCookie);
+            const docRef = doc(db, 'sessions_public', consentIdFromCookie);
             getDoc(docRef).then((docSnap) => {
                 if (docSnap.exists()) {
                     const sessionData = docSnap.data();
@@ -48,14 +48,14 @@ export const BasketProvider = ({ children }) => {
     const updateBasketInFirestore = async (updatedBasket) => {
         if (!consentId) return; // Ensure consentId is available
 
-        const docRef = doc(db, 'sessions', consentId);
+        const docRef = doc(db, 'sessions_public', consentId);
         await setDoc(docRef, { basketItems: updatedBasket }, { merge: true }); // Update Firestore
     };
 
     const updateCustomerDetailsInFirestore = async (updatedDetails) => {
         if (!consentId) return; // Ensure consentId is available
 
-        const docRef = doc(db, 'sessions', consentId);
+        const docRef = doc(db, 'sessions_public', consentId);
         await setDoc(
             docRef,
             { customerDetails: updatedDetails },

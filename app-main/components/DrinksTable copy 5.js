@@ -29,11 +29,11 @@ function DrinksTable({
 
   // Define the desired column order
   const columnOrder = [
+    'docId',
     'name',
     'stock',
     'size',
     'isSugarFree',
-    'salePrice',
     'image',
     '_purchasePrice',
     'nutrition',
@@ -80,7 +80,6 @@ function DrinksTable({
       stock: 0,
       size: '',
       isSugarFree: false,
-      salePrice: 0,
       image: '',
       _purchasePrice: 0,
       nutrition: {},
@@ -173,26 +172,7 @@ function DrinksTable({
                         }`}
                         style={cellStyle}
                       >
-                        {/* Custom rendering for 'image' field */}
-                        {key === 'image' ? (
-                          <div className="flex flex-col items-center">
-                            {typeof value === 'string' && value && (
-                              <img src={value} alt="Drink" className="h-16 w-auto mb-2" />
-                            )}
-                            {isEditing && (
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files[0]) {
-                                    const file = e.target.files[0];
-                                    onDrinkChange(drink.docId, [key], file);
-                                  }
-                                }}
-                              />
-                            )}
-                          </div>
-                        ) : isObject ? (
+                        {isObject ? (
                           <button
                             className="text-blue-500 underline"
                             onClick={() => handleCellClick(drink, key)}
@@ -276,26 +256,7 @@ function DrinksTable({
                   >
                     {key}
                   </label>
-                  {key === 'image' ? (
-                    <div className="flex flex-col items-center">
-                      {typeof value === 'string' && value && (
-                        <img src={value} alt="Drink" className="h-16 w-auto mb-2" />
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            const file = e.target.files[0];
-                            setNewDrink({
-                              ...newDrink,
-                              [key]: file,
-                            });
-                          }
-                        }}
-                      />
-                    </div>
-                  ) : isObject ? (
+                  {isObject ? (
                     <button
                       className="text-blue-500 underline"
                       onClick={() => {

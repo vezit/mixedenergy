@@ -15,6 +15,8 @@ import {
   deleteDoc,
   setDoc,
   getDoc,
+  query,
+  where,
 } from 'firebase/firestore';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
@@ -94,46 +96,12 @@ export default function AdminPage() {
     setDrinks(mergedDrinks);
 
     // Fetch packages_public collection
-    const packagesPublicSnapshot = await getDocs(collection(db, 'packages_public'));
-    const packagesPublic = packagesPublicSnapshot.docs.map((doc) => ({
+    const packagesSnapshot = await getDocs(collection(db, 'packages_public'));
+    const packagesData = packagesSnapshot.docs.map((doc) => ({
       ...doc.data(),
       docId: doc.id,
     }));
-
-    // Fetch packages_private collection
-    const packagesPrivateSnapshot = await getDocs(collection(db, 'packages_private'));
-    const packagesPrivate = packagesPrivateSnapshot.docs.map((doc) => ({
-      ...doc.data(),
-      docId: doc.id,
-    }));
-
-    // Merge public and private data for packages
-    const packagesMap = {};
-    packagesPublic.forEach((pkg) => {
-      packagesMap[pkg.docId] = { ...pkg };
-    });
-
-    packagesPrivate.forEach((pkg) => {
-      if (packagesMap[pkg.docId]) {
-        // Merge private fields into the package object, prefixing private fields with '_'
-        Object.keys(pkg).forEach((key) => {
-          if (key !== 'docId') {
-            packagesMap[pkg.docId][`_${key}`] = pkg[key];
-          }
-        });
-      } else {
-        // Private data without public data
-        packagesMap[pkg.docId] = { docId: pkg.docId };
-        Object.keys(pkg).forEach((key) => {
-          if (key !== 'docId') {
-            packagesMap[pkg.docId][`_${key}`] = pkg[key];
-          }
-        });
-      }
-    });
-
-    const mergedPackages = Object.values(packagesMap);
-    setPackages(mergedPackages);
+    setPackages(packagesData);
   };
 
   useEffect(() => {
@@ -188,8 +156,8 @@ export default function AdminPage() {
     const drinkPrivateRef = doc(db, 'drinks_private', docId);
 
     try {
-      await setDoc(drinkPublicRef, publicFields);
-      await setDoc(drinkPrivateRef, privateFields);
+      await updateDoc(drinkPublicRef, publicFields);
+      await updateDoc(drinkPrivateRef, privateFields);
       alert('Drink saved successfully');
     } catch (error) {
       console.error('Error saving drink:', error);
@@ -210,11 +178,8 @@ export default function AdminPage() {
         // Also remove the drink from any packages where it appears
         const updatedPackages = packages.map((pkg) => {
           const updatedPackage = { ...pkg };
-          if (
-            updatedPackage.collection_drinks_public &&
-            Array.isArray(updatedPackage.collection_drinks_public)
-          ) {
-            updatedPackage.collection_drinks_public = updatedPackage.collection_drinks_public.filter(
+          if (updatedPackage.drinks && Array.isArray(updatedPackage.drinks)) {
+            updatedPackage.drinks = updatedPackage.drinks.filter(
               (id) => id !== drinkDocId
             );
           }
@@ -224,25 +189,8 @@ export default function AdminPage() {
 
         // Save the updated packages to Firestore
         updatedPackages.forEach(async (pkg) => {
-          const packagePublicRef = doc(db, 'packages_public', pkg.docId);
-          const packagePrivateRef = doc(db, 'packages_private', pkg.docId);
-
-          // Separate public and private fields
-          const publicFields = {};
-          const privateFields = {};
-
-          Object.keys(pkg).forEach((key) => {
-            if (key === 'docId') return;
-            if (key.startsWith('_')) {
-              // Private field
-              privateFields[key.substring(1)] = pkg[key];
-            } else {
-              publicFields[key] = pkg[key];
-            }
-          });
-
-          await setDoc(packagePublicRef, publicFields);
-          await setDoc(packagePrivateRef, privateFields);
+          const packageRef = doc(db, 'packages_public', pkg.docId);
+          await updateDoc(packageRef, { drinks: pkg.drinks });
         });
 
         alert('Drink deleted successfully.');
@@ -257,8 +205,10 @@ export default function AdminPage() {
   const addDrink = async (newDrink) => {
     try {
       // Validate the drink object
-      if (!newDrink || !newDrink.name || !newDrink._purchasePrice) {
-        alert('Please provide all necessary fields: name and _purchasePrice.');
+      if (!newDrink || !newDrink.name || !newDrink._salePrice || !newDrink._purchasePrice) {
+        alert(
+          'Please provide all necessary fields: name, _salePrice, and _purchasePrice.'
+        );
         return;
       }
 
@@ -288,6 +238,26 @@ export default function AdminPage() {
         alert(`docID: ${docId} already exists. Please choose a different name.`);
         return;
       }
+
+      // Ensure all existing IDs are numbers
+      const existingIds = drinks
+        .map((drink) => Number(drink.id))
+        .filter((id) => !isNaN(id));
+
+      const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+      const newId = maxId + 1;
+
+      // Check if 'id' already exists in the database
+      const idQuery = query(collection(db, 'drinks_public'), where('id', '==', newId));
+      const idQuerySnapshot = await getDocs(idQuery);
+
+      if (!idQuerySnapshot.empty) {
+        alert(`id: ${newId} already exists. Please try again.`);
+        return;
+      }
+
+      // Assign new id to the drink
+      newDrink.id = newId;
 
       // Split the drink data into public and private fields
       const publicData = {};
@@ -327,29 +297,10 @@ export default function AdminPage() {
     setPackages(updatedPackages);
   };
 
-  const savePackage = async (pkg) => {
-    const { docId } = pkg;
-
-    // Separate public and private fields
-    const publicFields = {};
-    const privateFields = {};
-
-    Object.keys(pkg).forEach((key) => {
-      if (key === 'docId') return;
-      if (key.startsWith('_')) {
-        // Private field
-        privateFields[key.substring(1)] = pkg[key];
-      } else {
-        publicFields[key] = pkg[key];
-      }
-    });
-
-    const packagePublicRef = doc(db, 'packages_public', docId);
-    const packagePrivateRef = doc(db, 'packages_private', docId);
-
+  const onSavePackage = async (pkg) => {
+    const packageRef = doc(db, 'packages_public', pkg.docId);
     try {
-      await setDoc(packagePublicRef, publicFields);
-      await setDoc(packagePrivateRef, privateFields);
+      await updateDoc(packageRef, pkg); // Save the entire package object
       alert('Package saved successfully');
     } catch (error) {
       console.error('Error saving package:', error);
@@ -361,8 +312,8 @@ export default function AdminPage() {
   const addPackage = async (newPackage) => {
     try {
       // Validate the package object
-      if (!newPackage || !newPackage.title || !newPackage.slug) {
-        alert('Please provide all necessary fields: title and slug.');
+      if (!newPackage || !newPackage.title || !newPackage.slug || !newPackage.packages) {
+        alert('Please provide all necessary fields: title, slug, and packages.');
         return;
       }
 
@@ -370,30 +321,16 @@ export default function AdminPage() {
       const docId = newPackage.slug;
 
       // Check if a package with the same docId already exists
-      const packagePublicRef = doc(db, 'packages_public', docId);
-      const packagePrivateRef = doc(db, 'packages_private', docId);
-      const packagePublicSnap = await getDoc(packagePublicRef);
-      const packagePrivateSnap = await getDoc(packagePrivateRef);
+      const packageRef = doc(db, 'packages_public', docId);
+      const packageSnap = await getDoc(packageRef);
 
-      if (packagePublicSnap.exists() || packagePrivateSnap.exists()) {
+      if (packageSnap.exists()) {
         alert(`docID: ${docId} already exists. Please choose a different slug.`);
         return;
       }
 
-      // Split the package data into public and private fields
-      const publicData = {};
-      const privateData = {};
-      Object.keys(newPackage).forEach((key) => {
-        if (key.startsWith('_')) {
-          privateData[key.substring(1)] = newPackage[key];
-        } else {
-          publicData[key] = newPackage[key];
-        }
-      });
-
       // Add the new package to Firestore using docId
-      await setDoc(packagePublicRef, publicData);
-      await setDoc(packagePrivateRef, privateData);
+      await setDoc(packageRef, newPackage);
 
       // Update local state to include the new package
       setPackages([...packages, { ...newPackage, docId }]);
@@ -407,13 +344,10 @@ export default function AdminPage() {
   const deletePackage = async (packageDocId) => {
     if (confirm('Are you sure you want to delete this package?')) {
       try {
-        // Delete the package document from both collections
+        // Delete the package document
         await deleteDoc(doc(db, 'packages_public', packageDocId));
-        await deleteDoc(doc(db, 'packages_private', packageDocId));
-
         // Remove the package from the local state
         setPackages(packages.filter((pkg) => pkg.docId !== packageDocId));
-
         alert('Package deleted successfully.');
       } catch (error) {
         console.error('Error deleting package:', error);
@@ -422,27 +356,68 @@ export default function AdminPage() {
     }
   };
 
+
+  // Inside your AdminPage component
+  const handleExportOrders = async () => {
+    try {
+      // Fetch orders collection
+      const ordersSnapshot = await getDocs(collection(db, 'orders'));
+      const ordersData = {};
+      ordersSnapshot.forEach((doc) => {
+        ordersData[doc.id] = doc.data();
+      });
+
+      const jsonString = JSON.stringify(ordersData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'orders.json';
+      link.click();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting orders:', error);
+      alert('Error exporting orders.');
+    }
+  };
+
+
   // Function to export data
-  const handleExportData = async () => {
+  const handleExportDrinksAndPackages = async () => {
     try {
       // Fetch the latest data
-      const collectionsToExport = [
-        'drinks_public',
-        'drinks_private',
-        'packages_public',
-        'packages_private',
-      ];
+      const drinksPublicSnapshot = await getDocs(collection(db, 'drinks_public'));
+      const drinksPrivateSnapshot = await getDocs(collection(db, 'drinks_private'));
+      const packagesSnapshot = await getDocs(collection(db, 'packages_public'));
 
-      const dataToExport = {};
+      // Create drinks_public and drinks_private objects
+      const drinksPublic = {};
+      drinksPublicSnapshot.forEach((doc) => {
+        drinksPublic[doc.id] = doc.data();
+      });
 
-      for (const collectionName of collectionsToExport) {
-        const collectionSnapshot = await getDocs(collection(db, collectionName));
-        const collectionData = {};
-        collectionSnapshot.forEach((doc) => {
-          collectionData[doc.id] = doc.data();
+      const drinksPrivate = {};
+      drinksPrivateSnapshot.forEach((doc) => {
+        const privateData = {};
+        Object.keys(doc.data()).forEach((key) => {
+          privateData[`_${key}`] = doc.data()[key];
         });
-        dataToExport[collectionName] = collectionData;
-      }
+        drinksPrivate[doc.id] = privateData;
+      });
+
+      // Create packages_public object
+      const packagesPublic = {};
+      packagesSnapshot.forEach((doc) => {
+        packagesPublic[doc.id] = doc.data();
+      });
+
+      const dataToExport = {
+        drinks_private: drinksPrivate,
+        drinks_public: drinksPublic,
+        packages_public: packagesPublic,
+      };
 
       const jsonString = JSON.stringify(dataToExport, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
@@ -450,7 +425,7 @@ export default function AdminPage() {
 
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'firebase_collections_structure.json';
+      link.download = 'privat_public_drinks_and_collections.json';
       link.click();
 
       URL.revokeObjectURL(url);
@@ -496,26 +471,40 @@ export default function AdminPage() {
       return 'Invalid data format. Expected an object.';
     }
 
-    // Validate that for each *_public collection, there is a *_private collection, and vice versa
-    const collectionNames = Object.keys(data);
-    const publicCollections = collectionNames.filter((name) =>
-      name.endsWith('_public')
-    );
-    const privateCollections = collectionNames.filter((name) =>
-      name.endsWith('_private')
-    );
+    if (!data.drinks_public || typeof data.drinks_public !== 'object') {
+      return 'Data must contain a "drinks_public" object.';
+    }
 
-    for (const pubCol of publicCollections) {
-      const counterpart = pubCol.replace('_public', '_private');
-      if (!collectionNames.includes(counterpart)) {
-        return `Missing counterpart collection for "${pubCol}". Expected "${counterpart}".`;
+    if (!data.drinks_private || typeof data.drinks_private !== 'object') {
+      return 'Data must contain a "drinks_private" object.';
+    }
+
+    if (!data.packages_public || typeof data.packages_public !== 'object') {
+      return 'Data must contain a "packages_public" object.';
+    }
+
+    // Validate that drinks_public and drinks_private have matching keys
+    const publicDrinkKeys = Object.keys(data.drinks_public);
+    const privateDrinkKeys = Object.keys(data.drinks_private);
+
+    const allDrinkKeys = new Set([...publicDrinkKeys, ...privateDrinkKeys]);
+
+    // Validate docIDs format in drinks
+    for (const docId of allDrinkKeys) {
+      // Check that docId is in correct format
+      const docIdPattern = /^[a-z0-9-]+$/;
+      if (!docIdPattern.test(docId)) {
+        return `Invalid docID format in drinks: "${docId}". Expected lowercase letters, numbers, and hyphens only.`;
       }
     }
 
-    for (const privCol of privateCollections) {
-      const counterpart = privCol.replace('_private', '_public');
-      if (!collectionNames.includes(counterpart)) {
-        return `Missing counterpart collection for "${privCol}". Expected "${counterpart}".`;
+    // Similar validation for packages_public
+    const packageDocIds = Object.keys(data.packages_public);
+
+    for (const docId of packageDocIds) {
+      const docIdPattern = /^[a-z0-9-]+$/;
+      if (!docIdPattern.test(docId)) {
+        return `Invalid docID format in packages: "${docId}". Expected lowercase letters, numbers, and hyphens only.`;
       }
     }
 
@@ -531,28 +520,58 @@ export default function AdminPage() {
     setShowConfirmModal(false);
 
     try {
-      // Delete existing collections
-      const collectionsToDelete = [
-        'drinks_public',
-        'drinks_private',
-        'packages_public',
-        'packages_private',
-      ];
+      // Delete existing drinks in both collections
+      const drinksPublicSnapshot = await getDocs(collection(db, 'drinks_public'));
+      const drinksPublicDeletionPromises = drinksPublicSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
+      await Promise.all(drinksPublicDeletionPromises);
 
-      for (const collectionName of collectionsToDelete) {
-        const collectionSnapshot = await getDocs(collection(db, collectionName));
-        const deletionPromises = collectionSnapshot.docs.map((doc) =>
-          deleteDoc(doc.ref)
-        );
-        await Promise.all(deletionPromises);
+      const drinksPrivateSnapshot = await getDocs(collection(db, 'drinks_private'));
+      const drinksPrivateDeletionPromises = drinksPrivateSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
+      await Promise.all(drinksPrivateDeletionPromises);
+
+      // Delete existing packages
+      const packagesSnapshot = await getDocs(collection(db, 'packages_public'));
+      const packagesDeletionPromises = packagesSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
+      await Promise.all(packagesDeletionPromises);
+
+      // Now, add new drinks
+      const drinksPublicData = uploadedData.drinks_public;
+      const drinksPrivateData = uploadedData.drinks_private;
+
+      for (const docId of new Set([...Object.keys(drinksPublicData), ...Object.keys(drinksPrivateData)])) {
+        const publicData = drinksPublicData[docId] || {};
+        const privateData = {};
+
+        const privateDataRaw = drinksPrivateData[docId] || {};
+        // Remove underscores from private field keys
+        Object.keys(privateDataRaw).forEach((key) => {
+          if (key.startsWith('_')) {
+            privateData[key.substring(1)] = privateDataRaw[key];
+          } else {
+            privateData[key] = privateDataRaw[key];
+          }
+        });
+
+        // Save public data to drinks_public collection
+        const drinkPublicRef = doc(db, 'drinks_public', docId);
+        await setDoc(drinkPublicRef, publicData);
+
+        // Save private data to drinks_private collection
+        const drinkPrivateRef = doc(db, 'drinks_private', docId);
+        await setDoc(drinkPrivateRef, privateData);
       }
 
-      // Now, add new data
-      for (const [collectionName, collectionData] of Object.entries(uploadedData)) {
-        for (const [docId, docData] of Object.entries(collectionData)) {
-          const docRef = doc(db, collectionName, docId);
-          await setDoc(docRef, docData);
-        }
+      // Add new packages
+      const packagesData = uploadedData.packages_public;
+      for (const [docId, packageData] of Object.entries(packagesData)) {
+        const packageRef = doc(db, 'packages_public', docId);
+        await setDoc(packageRef, packageData);
       }
 
       alert('Data replaced successfully.');
@@ -603,26 +622,34 @@ export default function AdminPage() {
             onAddDrink={addDrink}
           />
 
-          {/* <PackagesTable
+          <PackagesTable
             packages={packages}
             drinks={drinks}
             onPackageChange={handlePackageChange}
-            onSavePackage={savePackage}
+            onSavePackage={onSavePackage}
             onDeletePackage={deletePackage}
             onAddPackage={addPackage}
-          /> */}
+          />
 
           <div className="mt-8">
-            <h2 className="text-xl font-bold mb-2">Upload Data JSON</h2>
+            <h2 className="text-xl font-bold mb-2">Upload Packages and Drinks JSON</h2>
             <input type="file" accept=".json" onChange={handleFileUpload} />
           </div>
 
           <div className="mt-4">
             <button
-              onClick={handleExportData}
+              onClick={handleExportDrinksAndPackages}
               className="bg-blue-500 text-white px-4 py-2 rounded"
             >
-              Export Data
+              Export drinks and packages
+            </button>
+          </div>
+          <div className="mt-4">
+            <button
+              onClick={handleExportOrders}
+              className="bg-green-500 text-white px-4 py-2 rounded"
+            >
+              Export Orders
             </button>
           </div>
 
@@ -634,7 +661,8 @@ export default function AdminPage() {
               title="Confirm Delete and Replace"
             >
               <p className="mb-4">
-                Warning: You are about to delete existing data and replace it with the uploaded data. This action cannot be undone.
+                Warning: You are about to delete existing packages and drinks data and
+                replace it with the uploaded data. This action cannot be undone.
               </p>
               <p className="mb-4">
                 Please type <strong>delete</strong> to confirm:

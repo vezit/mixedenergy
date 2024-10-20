@@ -29,13 +29,15 @@ function DrinksTable({
 
   // Define the desired column order
   const columnOrder = [
+    'docId',
+    'id',
     'name',
-    'stock',
-    'size',
-    'isSugarFree',
-    'salePrice',
-    'image',
     '_purchasePrice',
+    '_salePrice',
+    'stock',
+    'isSugarFree',
+    'size',
+    'image',
     'nutrition',
   ];
 
@@ -76,14 +78,25 @@ function DrinksTable({
   // Handle adding a new drink
   const handleAddDrink = () => {
     setNewDrink({
-      name: '',
-      stock: 0,
-      size: '',
+      image: '/images/path/to/image.png',
+      stock: 100,
+      name: 'New Drink Name',
+      size: '0.5 l',
       isSugarFree: false,
-      salePrice: 0,
-      image: '',
-      _purchasePrice: 0,
-      nutrition: {},
+      salePrice: 2500,
+      _purchasePrice: 1250,
+      _packageQuantity: 24,
+      nutrition: {
+        per100ml: {
+          energy: '',
+          fat: '',
+          saturatedFat: '',
+          carbohydrates: '',
+          sugar: '',
+          protein: '',
+          salt: '',
+        },
+      },
     });
     setShowAddModal(true);
   };
@@ -162,7 +175,7 @@ function DrinksTable({
                     // Adjust cell width based on content
                     const cellStyle = {
                       whiteSpace: 'nowrap',
-                      maxWidth: '200px',
+                      maxWidth: '200px', // You can adjust this value
                     };
 
                     return (
@@ -173,26 +186,7 @@ function DrinksTable({
                         }`}
                         style={cellStyle}
                       >
-                        {/* Custom rendering for 'image' field */}
-                        {key === 'image' ? (
-                          <div className="flex flex-col items-center">
-                            {typeof value === 'string' && value && (
-                              <img src={value} alt="Drink" className="h-16 w-auto mb-2" />
-                            )}
-                            {isEditing && (
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files[0]) {
-                                    const file = e.target.files[0];
-                                    onDrinkChange(drink.docId, [key], file);
-                                  }
-                                }}
-                              />
-                            )}
-                          </div>
-                        ) : isObject ? (
+                        {isObject ? (
                           <button
                             className="text-blue-500 underline"
                             onClick={() => handleCellClick(drink, key)}
@@ -215,11 +209,11 @@ function DrinksTable({
                                 e.target.type === 'checkbox'
                                   ? e.target.checked
                                   : e.target.value;
-                              if (key !== 'docId') {
+                              if (key !== 'id' && key !== 'docId') {
                                 onDrinkChange(drink.docId, [key], newValue);
                               }
                             }}
-                            disabled={!isEditing || key === 'docId'}
+                            disabled={!isEditing || key === 'id' || key === 'docId'}
                             className={`border p-1 w-full ${
                               isPrivate ? 'text-red-500' : ''
                             }`}
@@ -262,7 +256,7 @@ function DrinksTable({
         >
           <div className="space-y-4">
             {columnOrder.map((key) => {
-              if (key === 'docId') return null;
+              if (key === 'id' || key === 'docId') return null;
               const value = newDrink[key];
               const isObject = typeof value === 'object' && value !== null;
               const isPrivate = key.startsWith('_');
@@ -276,26 +270,7 @@ function DrinksTable({
                   >
                     {key}
                   </label>
-                  {key === 'image' ? (
-                    <div className="flex flex-col items-center">
-                      {typeof value === 'string' && value && (
-                        <img src={value} alt="Drink" className="h-16 w-auto mb-2" />
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            const file = e.target.files[0];
-                            setNewDrink({
-                              ...newDrink,
-                              [key]: file,
-                            });
-                          }
-                        }}
-                      />
-                    </div>
-                  ) : isObject ? (
+                  {isObject ? (
                     <button
                       className="text-blue-500 underline"
                       onClick={() => {
