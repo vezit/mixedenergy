@@ -33,7 +33,8 @@ function DrinksTable({
     'id',
     'name',
     '_purchasePrice',
-    '_salePrice',
+    '_packageQuantity',
+    'salePrice',
     'stock',
     'isSugarFree',
     'size',
@@ -133,119 +134,109 @@ function DrinksTable({
       >
         Add New Drink
       </button>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse">
-          <thead className="sticky top-0 bg-white">
-            <tr>
-              <th className="border px-4 py-2">Edit</th>
-              {columnOrder.map((key) => (
-                <th
-                  key={key}
-                  className="border px-4 py-2 cursor-pointer"
-                  onClick={() => requestSort(key)}
-                >
-                  {key}
-                  {sortConfig.key === key ? (
-                    sortConfig.direction === 'ascending' ? ' 🔼' : ' 🔽'
-                  ) : null}
-                </th>
-              ))}
-              <th className="border px-4 py-2">Save</th>
-              <th className="border px-4 py-2">Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedDrinks.map((drink) => {
-              const isEditing = editingRows[drink.docId] || false;
-              return (
-                <tr key={drink.docId} className="border-b">
-                  <td className="border px-4 py-2 text-center whitespace-nowrap">
-                    <button
-                      className="bg-blue-500 text-white px-2 py-1 rounded"
-                      onClick={() => toggleEditing(drink.docId)}
+      <table className="min-w-full border-collapse">
+        <thead>
+          <tr>
+            <th className="border px-4 py-2">Edit</th>
+            {columnOrder.map((key) => (
+              <th
+                key={key}
+                className="border px-4 py-2 cursor-pointer"
+                onClick={() => requestSort(key)}
+              >
+                {key}
+                {sortConfig.key === key ? (
+                  sortConfig.direction === 'ascending' ? ' 🔼' : ' 🔽'
+                ) : null}
+              </th>
+            ))}
+            <th className="border px-4 py-2">Save</th>
+            <th className="border px-4 py-2">Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedDrinks.map((drink) => {
+            const isEditing = editingRows[drink.docId] || false;
+            return (
+              <tr key={drink.docId} className="border-b">
+                <td className="border px-4 py-2 text-center">
+                  <button
+                    className="bg-blue-500 text-white px-2 py-1 rounded"
+                    onClick={() => toggleEditing(drink.docId)}
+                  >
+                    {isEditing ? 'Lock' : 'Edit'}
+                  </button>
+                </td>
+                {columnOrder.map((key) => {
+                  const value = drink[key];
+                  const isObject = typeof value === 'object' && value !== null;
+                  const isPrivate = key.startsWith('_');
+                  return (
+                    <td
+                      key={key}
+                      className={`border px-4 py-2 ${
+                        isPrivate ? 'text-red-500' : ''
+                      }`}
                     >
-                      {isEditing ? 'Lock' : 'Edit'}
-                    </button>
-                  </td>
-                  {columnOrder.map((key) => {
-                    const value = drink[key];
-                    const isObject = typeof value === 'object' && value !== null;
-                    const isPrivate = key.startsWith('_');
-
-                    // Adjust cell width based on content
-                    const cellStyle = {
-                      whiteSpace: 'nowrap',
-                      maxWidth: '200px', // You can adjust this value
-                    };
-
-                    return (
-                      <td
-                        key={key}
-                        className={`border px-4 py-2 ${
-                          isPrivate ? 'text-red-500' : ''
-                        }`}
-                        style={cellStyle}
-                      >
-                        {isObject ? (
-                          <button
-                            className="text-blue-500 underline"
-                            onClick={() => handleCellClick(drink, key)}
-                          >
-                            Edit {key}
-                          </button>
-                        ) : (
-                          <input
-                            type={
-                              typeof value === 'number'
-                                ? 'number'
-                                : key === 'isSugarFree'
-                                ? 'checkbox'
-                                : 'text'
+                      {isObject ? (
+                        <button
+                          className="text-blue-500 underline"
+                          onClick={() => handleCellClick(drink, key)}
+                        >
+                          Edit {key}
+                        </button>
+                      ) : (
+                        <input
+                          type={
+                            typeof value === 'number'
+                              ? 'number'
+                              : key === 'isSugarFree'
+                              ? 'checkbox'
+                              : 'text'
+                          }
+                          value={key === 'isSugarFree' ? undefined : value || ''}
+                          checked={key === 'isSugarFree' ? value || false : undefined}
+                          onChange={(e) => {
+                            const newValue =
+                              e.target.type === 'checkbox'
+                                ? e.target.checked
+                                : e.target.value;
+                            if (key !== 'id' && key !== 'docId') {
+                              onDrinkChange(drink.docId, [key], newValue);
                             }
-                            value={key === 'isSugarFree' ? undefined : value || ''}
-                            checked={key === 'isSugarFree' ? value || false : undefined}
-                            onChange={(e) => {
-                              const newValue =
-                                e.target.type === 'checkbox'
-                                  ? e.target.checked
-                                  : e.target.value;
-                              if (key !== 'id' && key !== 'docId') {
-                                onDrinkChange(drink.docId, [key], newValue);
-                              }
-                            }}
-                            disabled={!isEditing || key === 'id' || key === 'docId'}
-                            className={`border p-1 w-full ${
-                              isPrivate ? 'text-red-500' : ''
-                            }`}
-                          />
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td className="border px-4 py-2 text-center whitespace-nowrap">
-                    {isEditing && (
-                      <button
-                        className="bg-green-500 text-white px-2 py-1 rounded"
-                        onClick={() => onSaveDrink(drink)}
-                      >
-                        Save
-                      </button>
-                    )}
-                  </td>
-                  <td className="border px-4 py-2 text-center whitespace-nowrap">
+                          }}
+                          disabled={!isEditing || key === 'id' || key === 'docId'}
+                          className={`border p-1 w-full ${
+                            isPrivate ? 'text-red-500' : ''
+                          }`}
+                        />
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="border px-4 py-2 text-center">
+                  {isEditing && (
                     <button
-                      className="bg-red-500 text-white px-2 py-1 rounded"
-                      onClick={() => onDeleteDrink(drink.docId)}
+                      className="bg-green-500 text-white px-2 py-1 rounded"
+                      onClick={() => onSaveDrink(drink)}
                     >
-                      Delete
+                      Save
                     </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  )}
+                </td>
+                <td className="border px-4 py-2 text-center">
+                  <button
+                    className="bg-red-500 text-white px-2 py-1 rounded"
+                    onClick={() => onDeleteDrink(drink.docId)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
 
       {/* Add New Drink Modal */}
       {showAddModal && (

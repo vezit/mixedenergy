@@ -28,6 +28,14 @@ function PackagesTable({
     }));
   };
 
+  // Get all keys from packages data
+  const allKeys = packages.reduce((keys, pkg) => {
+    Object.keys(pkg).forEach((key) => {
+      if (!keys.includes(key)) keys.push(key);
+    });
+    return keys;
+  }, []);
+
   // Define the desired column order
   const columnOrder = ['docId', 'title', 'slug', 'description', 'category', 'image', 'drinks', 'packages'];
 
@@ -106,100 +114,91 @@ function PackagesTable({
       >
         Add New Package
       </button>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse">
-          <thead className="sticky top-0 bg-white">
-            <tr>
-              <th className="border px-4 py-2">Edit</th>
-              {columnOrder.map((key) => (
-                <th
-                  key={key}
-                  className="border px-4 py-2 cursor-pointer"
-                  onClick={() => requestSort(key)}
-                >
-                  {key}
-                  {sortConfig.key === key ? (
-                    sortConfig.direction === 'ascending' ? ' 🔼' : ' 🔽'
-                  ) : null}
-                </th>
-              ))}
-              <th className="border px-4 py-2">Save</th>
-              <th className="border px-4 py-2">Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedPackages.map((pkg) => {
-              const isEditing = editingRows[pkg.docId] || false;
-              return (
-                <tr key={pkg.docId} className="border-b">
-                  <td className="border px-4 py-2 text-center whitespace-nowrap">
+      <table className="min-w-full border-collapse">
+        <thead>
+          <tr>
+            <th className="border px-4 py-2">Edit</th>
+            {columnOrder.map((key) => (
+              <th
+                key={key}
+                className="border px-4 py-2 cursor-pointer"
+                onClick={() => requestSort(key)}
+              >
+                {key}
+                {sortConfig.key === key ? (
+                  sortConfig.direction === 'ascending' ? ' 🔼' : ' 🔽'
+                ) : null}
+              </th>
+            ))}
+            <th className="border px-4 py-2">Save</th>
+            <th className="border px-4 py-2">Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedPackages.map((pkg) => {
+            const isEditing = editingRows[pkg.docId] || false;
+            return (
+              <tr key={pkg.docId} className="border-b">
+                <td className="border px-4 py-2 text-center">
+                  <button
+                    className="bg-blue-500 text-white px-2 py-1 rounded"
+                    onClick={() => toggleEditing(pkg.docId)}
+                  >
+                    {isEditing ? 'Lock' : 'Edit'}
+                  </button>
+                </td>
+                {columnOrder.map((key) => {
+                  const value = pkg[key];
+                  const isObject = typeof value === 'object' && value !== null;
+                  return (
+                    <td key={key} className="border px-4 py-2">
+                      {key === 'drinks' || key === 'packages' ? (
+                        <button
+                          className="text-blue-500 underline"
+                          onClick={() => handleCellClick(pkg, key)}
+                        >
+                          {key === 'drinks' ? 'Manage Drinks' : 'Edit Packages'}
+                        </button>
+                      ) : isObject ? (
+                        <span>{JSON.stringify(value)}</span>
+                      ) : (
+                        <input
+                          type={typeof value === 'number' ? 'number' : 'text'}
+                          value={value || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            onPackageChange(pkg.docId, [key], newValue);
+                          }}
+                          disabled={!isEditing || key === 'docId'}
+                          className="border p-1 w-full"
+                        />
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="border px-4 py-2 text-center">
+                  {isEditing && (
                     <button
-                      className="bg-blue-500 text-white px-2 py-1 rounded"
-                      onClick={() => toggleEditing(pkg.docId)}
+                      className="bg-green-500 text-white px-2 py-1 rounded"
+                      onClick={() => onSavePackage(pkg)}
                     >
-                      {isEditing ? 'Lock' : 'Edit'}
+                      Save
                     </button>
-                  </td>
-                  {columnOrder.map((key) => {
-                    const value = pkg[key];
-                    const isObject = typeof value === 'object' && value !== null;
-
-                    // Adjust cell width based on content
-                    const cellStyle = {
-                      whiteSpace: 'nowrap',
-                      maxWidth: '200px', // Adjust as needed
-                    };
-
-                    return (
-                      <td key={key} className="border px-4 py-2" style={cellStyle}>
-                        {key === 'drinks' || key === 'packages' ? (
-                          <button
-                            className="text-blue-500 underline"
-                            onClick={() => handleCellClick(pkg, key)}
-                          >
-                            {key === 'drinks' ? 'Manage Drinks' : 'Edit Packages'}
-                          </button>
-                        ) : isObject ? (
-                          <span>{JSON.stringify(value)}</span>
-                        ) : (
-                          <input
-                            type={typeof value === 'number' ? 'number' : 'text'}
-                            value={value || ''}
-                            onChange={(e) => {
-                              const newValue = e.target.value;
-                              onPackageChange(pkg.docId, [key], newValue);
-                            }}
-                            disabled={!isEditing || key === 'docId'}
-                            className="border p-1 w-full"
-                          />
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td className="border px-4 py-2 text-center whitespace-nowrap">
-                    {isEditing && (
-                      <button
-                        className="bg-green-500 text-white px-2 py-1 rounded"
-                        onClick={() => onSavePackage(pkg)}
-                      >
-                        Save
-                      </button>
-                    )}
-                  </td>
-                  <td className="border px-4 py-2 text-center whitespace-nowrap">
-                    <button
-                      className="bg-red-500 text-white px-2 py-1 rounded"
-                      onClick={() => onDeletePackage(pkg.docId)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  )}
+                </td>
+                <td className="border px-4 py-2 text-center">
+                  <button
+                    className="bg-red-500 text-white px-2 py-1 rounded"
+                    onClick={() => onDeletePackage(pkg.docId)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
 
       {/* Add New Package Modal */}
       {showAddModal && (
@@ -312,7 +311,9 @@ function PackagesTable({
                 </ul>
               </div>
               <button
-                onClick={() => setSelectedDrinks(drinks.map((drink) => drink.docId))}
+                onClick={() =>
+                  setSelectedDrinks(drinks.map((drink) => drink.docId))
+                }
                 className="mt-2 bg-blue-500 text-white px-2 py-1 rounded"
               >
                 Choose All

@@ -205,15 +205,9 @@ export default function AdminPage() {
   const addDrink = async (newDrink) => {
     try {
       // Validate the drink object
-      if (
-        !newDrink ||
-        !newDrink.name ||
-        !newDrink.salePrice ||
-        !newDrink._purchasePrice ||
-        !newDrink._packageQuantity
-      ) {
+      if (!newDrink || !newDrink.name || !newDrink._salePrice || !newDrink._purchasePrice) {
         alert(
-          'Please provide all necessary fields: name, salePrice, _purchasePrice, and _packageQuantity.'
+          'Please provide all necessary fields: name, _salePrice, and _purchasePrice.'
         );
         return;
       }
@@ -651,13 +645,13 @@ export default function AdminPage() {
             </button>
           </div>
           <div className="mt-4">
-          <button
-            onClick={handleExportOrders}
-            className="bg-green-500 text-white px-4 py-2 rounded"
-          >
-            Export Orders
-          </button>
-        </div>
+            <button
+              onClick={handleExportOrders}
+              className="bg-green-500 text-white px-4 py-2 rounded"
+            >
+              Export Orders
+            </button>
+          </div>
 
           {/* Confirmation Modal */}
           {showConfirmModal && (
