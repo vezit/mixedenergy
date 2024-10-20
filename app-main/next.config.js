@@ -1,10 +1,14 @@
-// next.config.mjs
+// next.config.js
+
 export default {
-    webpack(config, { dev }) {
-      if (dev) {
-        config.devtool = 'cheap-module-source-map';
-      }
-      return config;
+  images: {
+    domains: ['firebasestorage.googleapis.com'],
+  },
+  webpack(config, { dev }) {
+    if (dev) {
+      config.devtool = 'cheap-module-source-map';
     }
-  };
-  
+    return config;
+  },
+  // ...other configurations
+};
