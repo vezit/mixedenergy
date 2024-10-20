@@ -36,7 +36,8 @@ function PackagesTable({
     'category',
     'image',
     '_salePrice', // Private field
-    'collection_drinks_public'
+    'collection_drinks_public',
+    'packages',
   ];
 
   // Function to handle sorting

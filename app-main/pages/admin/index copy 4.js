@@ -19,12 +19,16 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
 import DrinksTable from '../../components/DrinksTable';
-import PackagesTable from '../../components/PackagesTable';
+// import PackagesTable from '../../components/PackagesTable'; // Uncomment if needed
+import Modal from '../../components/Modal';
 
 export default function AdminPage() {
   const [drinks, setDrinks] = useState([]);
-  const [packages, setPackages] = useState([]);
+  // const [packages, setPackages] = useState([]); // Uncomment if needed
   const [loading, setLoading] = useState(true);
+  const [uploadedData, setUploadedData] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
   const [userEmail, setUserEmail] = useState('');
 
   const router = useRouter();
@@ -41,7 +45,6 @@ export default function AdminPage() {
       } else {
         setUserEmail(user.email);
         setLoading(false); // User is authenticated and is admin
-        fetchData();
       }
     });
 
@@ -63,7 +66,7 @@ export default function AdminPage() {
       docId: doc.id,
     }));
 
-    // Merge public and private data for drinks
+    // Merge public and private data
     const drinksMap = {};
     drinksPublic.forEach((drink) => {
       drinksMap[drink.docId] = { ...drink };
@@ -91,6 +94,8 @@ export default function AdminPage() {
     const mergedDrinks = Object.values(drinksMap);
     setDrinks(mergedDrinks);
 
+    // Fetch packages if needed
+    /*
     // Fetch packages_public collection
     const packagesPublicSnapshot = await getDocs(collection(db, 'packages_public'));
     const packagesPublic = packagesPublicSnapshot.docs.map((doc) => ({
@@ -132,18 +137,14 @@ export default function AdminPage() {
 
     const mergedPackages = Object.values(packagesMap);
     setPackages(mergedPackages);
+    */
   };
 
-  // Recursive function to update nested data
-  const updateNestedData = (obj, pathArray, value) => {
-    if (pathArray.length === 1) {
-      obj[pathArray[0]] = value;
-    } else {
-      const key = pathArray[0];
-      if (!obj[key]) obj[key] = {};
-      updateNestedData(obj[key], pathArray.slice(1), value);
+  useEffect(() => {
+    if (!loading) {
+      fetchData();
     }
-  };
+  }, [db, loading]);
 
   // Handle changes in drinks data
   const handleDrinkChange = (drinkDocId, path, value) => {
@@ -157,6 +158,17 @@ export default function AdminPage() {
       }
     });
     setDrinks(updatedDrinks);
+  };
+
+  // Recursive function to update nested data
+  const updateNestedData = (obj, pathArray, value) => {
+    if (pathArray.length === 1) {
+      obj[pathArray[0]] = value;
+    } else {
+      const key = pathArray[0];
+      if (!obj[key]) obj[key] = {};
+      updateNestedData(obj[key], pathArray.slice(1), value);
+    }
   };
 
   const saveDrink = async (drink) => {
@@ -295,192 +307,14 @@ export default function AdminPage() {
     }
   };
 
-  // Handle changes in packages data
-  const handlePackageChange = (packageDocId, path, value) => {
-    const updatedPackages = packages.map((pkg) => {
-      if (pkg.docId === packageDocId) {
-        const updatedPackage = { ...pkg };
-        updateNestedData(updatedPackage, path, value);
-        return updatedPackage;
-      } else {
-        return pkg;
-      }
-    });
-    setPackages(updatedPackages);
+  // Handle file upload for data import (optional)
+  const handleFileUpload = (e) => {
+    // ... (implementation)
   };
 
-  const savePackage = async (pkg) => {
-    const { docId } = pkg;
-
-    // Separate public and private fields
-    const publicFields = {};
-    const privateFields = {};
-
-    // Handle image upload if the image field is a File object
-    if (pkg.image instanceof File) {
-      try {
-        const storageRef = ref(storage, `packages_public/${docId}.png`);
-        await uploadBytes(storageRef, pkg.image);
-        const downloadURL = await getDownloadURL(storageRef);
-        pkg.image = downloadURL; // Replace the File object with the download URL
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        alert('Error uploading image.');
-        return;
-      }
-    }
-
-    Object.keys(pkg).forEach((key) => {
-      if (key === 'docId') return;
-      if (key.startsWith('_')) {
-        // Private field
-        privateFields[key.substring(1)] = pkg[key];
-      } else {
-        publicFields[key] = pkg[key];
-      }
-    });
-
-    const packagePublicRef = doc(db, 'packages_public', docId);
-    const packagePrivateRef = doc(db, 'packages_private', docId);
-
-    try {
-      await setDoc(packagePublicRef, publicFields);
-      await setDoc(packagePrivateRef, privateFields);
-      alert('Package saved successfully');
-    } catch (error) {
-      console.error('Error saving package:', error);
-      alert('Error saving package.');
-    }
-  };
-
-  const deletePackage = async (packageDocId) => {
-    if (confirm('Are you sure you want to delete this package?')) {
-      try {
-        // Delete the package document from both collections
-        await deleteDoc(doc(db, 'packages_public', packageDocId));
-        await deleteDoc(doc(db, 'packages_private', packageDocId));
-
-        // Remove the package from the local state
-        setPackages(packages.filter((pkg) => pkg.docId !== packageDocId));
-
-        alert('Package deleted successfully.');
-      } catch (error) {
-        console.error('Error deleting package:', error);
-        alert('Error deleting package.');
-      }
-    }
-  };
-
-  // Function to add a new package
-  const addPackage = async (newPackage) => {
-    try {
-      // Validate the package object
-      if (!newPackage || !newPackage.slug || !newPackage.title) {
-        alert('Please provide all necessary fields: slug and title.');
-        return;
-      }
-
-      const docId = newPackage.slug;
-
-      // Check if a package with the same docId already exists
-      const packagePublicRef = doc(db, 'packages_public', docId);
-      const packagePrivateRef = doc(db, 'packages_private', docId);
-      const packagePublicSnap = await getDoc(packagePublicRef);
-      const packagePrivateSnap = await getDoc(packagePrivateRef);
-
-      if (packagePublicSnap.exists() || packagePrivateSnap.exists()) {
-        alert(`docID: ${docId} already exists. Please choose a different slug.`);
-        return;
-      }
-
-      // Handle image upload if the image field is a File object
-      if (newPackage.image instanceof File) {
-        try {
-          const storageRef = ref(storage, `packages_public/${docId}.png`);
-          await uploadBytes(storageRef, newPackage.image);
-          const downloadURL = await getDownloadURL(storageRef);
-          newPackage.image = downloadURL; // Replace the File object with the download URL
-        } catch (error) {
-          console.error('Error uploading image:', error);
-          alert('Error uploading image.');
-          return;
-        }
-      }
-
-      // Split the package data into public and private fields
-      const publicData = {};
-      const privateData = {};
-      Object.keys(newPackage).forEach((key) => {
-        if (key.startsWith('_')) {
-          privateData[key.substring(1)] = newPackage[key];
-        } else {
-          publicData[key] = newPackage[key];
-        }
-      });
-
-      // Add the new package to Firestore using docId
-      await setDoc(packagePublicRef, publicData);
-      await setDoc(packagePrivateRef, privateData);
-
-      // Update local state to include the new package
-      setPackages([...packages, { ...newPackage, docId }]);
-      alert('New package added successfully.');
-    } catch (error) {
-      console.error('Error adding new package:', error);
-      alert('Error adding new package. See console for details.');
-    }
-  };
-
-  // Function to export collections
-  const exportCollections = async () => {
-    try {
-      const data = {};
-
-      // Fetch collections and assemble data
-      const collectionsToExport = [
-        'drinks_public',
-        'drinks_private',
-        'packages_public',
-        'packages_private',
-        // Add other collections if needed
-      ];
-
-      for (const collectionName of collectionsToExport) {
-        const collectionRef = collection(db, collectionName);
-        const snapshot = await getDocs(collectionRef);
-        const docsData = {};
-
-        snapshot.forEach((doc) => {
-          docsData[doc.id] = doc.data();
-        });
-
-        data[collectionName] = docsData;
-      }
-
-      // Convert data to JSON string
-      const jsonData = JSON.stringify(data, null, 2);
-
-      // Trigger download
-      const blob = new Blob([jsonData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `firebase_collections_structure_${timestamp}.json`;
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-
-      document.body.appendChild(link);
-      link.click();
-
-      // Clean up
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error exporting collections:', error);
-      alert('Error exporting collections. See console for details.');
-    }
+  // Handle data export (optional)
+  const handleExportData = async () => {
+    // ... (implementation)
   };
 
   // Handle logout
@@ -509,15 +343,6 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
-
-      {/* Export Collections Button */}
-      <button
-        onClick={exportCollections}
-        className="mb-4 bg-blue-500 text-white px-4 py-2 rounded"
-      >
-        Export Collections
-      </button>
-
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -530,6 +355,7 @@ export default function AdminPage() {
             onAddDrink={addDrink}
           />
 
+          {/* Uncomment if using PackagesTable
           <PackagesTable
             packages={packages}
             drinks={drinks}
@@ -537,7 +363,33 @@ export default function AdminPage() {
             onSavePackage={savePackage}
             onDeletePackage={deletePackage}
             onAddPackage={addPackage}
-          />
+          /> */}
+
+          {/* Optional: File upload and export buttons */}
+          {/* <div className="mt-8">
+            <h2 className="text-xl font-bold mb-2">Upload Data JSON</h2>
+            <input type="file" accept=".json" onChange={handleFileUpload} />
+          </div>
+
+          <div className="mt-4">
+            <button
+              onClick={handleExportData}
+              className="bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Export Data
+            </button>
+          </div> */}
+
+          {/* Confirmation Modal for data overwrite (if implementing data import) */}
+          {/* {showConfirmModal && (
+            <Modal
+              isOpen={showConfirmModal}
+              onClose={() => setShowConfirmModal(false)}
+              title="Confirm Delete and Replace"
+            >
+              // ... (modal content)
+            </Modal>
+          )} */}
         </>
       )}
     </div>

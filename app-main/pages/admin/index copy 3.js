@@ -10,27 +10,30 @@ import {
   getFirestore,
   collection,
   getDocs,
+  updateDoc,
   doc,
   deleteDoc,
   setDoc,
   getDoc,
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
 import DrinksTable from '../../components/DrinksTable';
 import PackagesTable from '../../components/PackagesTable';
+import Modal from '../../components/Modal';
 
 export default function AdminPage() {
   const [drinks, setDrinks] = useState([]);
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploadedData, setUploadedData] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
   const [userEmail, setUserEmail] = useState('');
 
   const router = useRouter();
   const auth = getAuth(firebaseApp);
   const db = getFirestore(firebaseApp);
-  const storage = getStorage(firebaseApp);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -41,7 +44,6 @@ export default function AdminPage() {
       } else {
         setUserEmail(user.email);
         setLoading(false); // User is authenticated and is admin
-        fetchData();
       }
     });
 
@@ -63,7 +65,7 @@ export default function AdminPage() {
       docId: doc.id,
     }));
 
-    // Merge public and private data for drinks
+    // Merge public and private data
     const drinksMap = {};
     drinksPublic.forEach((drink) => {
       drinksMap[drink.docId] = { ...drink };
@@ -134,16 +136,11 @@ export default function AdminPage() {
     setPackages(mergedPackages);
   };
 
-  // Recursive function to update nested data
-  const updateNestedData = (obj, pathArray, value) => {
-    if (pathArray.length === 1) {
-      obj[pathArray[0]] = value;
-    } else {
-      const key = pathArray[0];
-      if (!obj[key]) obj[key] = {};
-      updateNestedData(obj[key], pathArray.slice(1), value);
+  useEffect(() => {
+    if (!loading) {
+      fetchData();
     }
-  };
+  }, [db, loading]);
 
   // Handle changes in drinks data
   const handleDrinkChange = (drinkDocId, path, value) => {
@@ -159,26 +156,23 @@ export default function AdminPage() {
     setDrinks(updatedDrinks);
   };
 
+  // Recursive function to update nested data
+  const updateNestedData = (obj, pathArray, value) => {
+    if (pathArray.length === 1) {
+      obj[pathArray[0]] = value;
+    } else {
+      const key = pathArray[0];
+      if (!obj[key]) obj[key] = {};
+      updateNestedData(obj[key], pathArray.slice(1), value);
+    }
+  };
+
   const saveDrink = async (drink) => {
     const { docId } = drink;
 
     // Separate public and private fields
     const publicFields = {};
     const privateFields = {};
-
-    // Handle image upload if the image field is a File object
-    if (drink.image instanceof File) {
-      try {
-        const storageRef = ref(storage, `drinks_public/${docId}.png`);
-        await uploadBytes(storageRef, drink.image);
-        const downloadURL = await getDownloadURL(storageRef);
-        drink.image = downloadURL; // Replace the File object with the download URL
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        alert('Error uploading image.');
-        return;
-      }
-    }
 
     Object.keys(drink).forEach((key) => {
       if (key === 'docId') return;
@@ -212,6 +206,44 @@ export default function AdminPage() {
 
         // Remove the drink from the local state
         setDrinks(drinks.filter((drink) => drink.docId !== drinkDocId));
+
+        // Also remove the drink from any packages where it appears
+        const updatedPackages = packages.map((pkg) => {
+          const updatedPackage = { ...pkg };
+          if (
+            updatedPackage.collection_drinks_public &&
+            Array.isArray(updatedPackage.collection_drinks_public)
+          ) {
+            updatedPackage.collection_drinks_public = updatedPackage.collection_drinks_public.filter(
+              (id) => id !== drinkDocId
+            );
+          }
+          return updatedPackage;
+        });
+        setPackages(updatedPackages);
+
+        // Save the updated packages to Firestore
+        updatedPackages.forEach(async (pkg) => {
+          const packagePublicRef = doc(db, 'packages_public', pkg.docId);
+          const packagePrivateRef = doc(db, 'packages_private', pkg.docId);
+
+          // Separate public and private fields
+          const publicFields = {};
+          const privateFields = {};
+
+          Object.keys(pkg).forEach((key) => {
+            if (key === 'docId') return;
+            if (key.startsWith('_')) {
+              // Private field
+              privateFields[key.substring(1)] = pkg[key];
+            } else {
+              publicFields[key] = pkg[key];
+            }
+          });
+
+          await setDoc(packagePublicRef, publicFields);
+          await setDoc(packagePrivateRef, privateFields);
+        });
 
         alert('Drink deleted successfully.');
       } catch (error) {
@@ -257,20 +289,6 @@ export default function AdminPage() {
         return;
       }
 
-      // Handle image upload if the image field is a File object
-      if (newDrink.image instanceof File) {
-        try {
-          const storageRef = ref(storage, `drinks_public/${docId}.png`);
-          await uploadBytes(storageRef, newDrink.image);
-          const downloadURL = await getDownloadURL(storageRef);
-          newDrink.image = downloadURL; // Replace the File object with the download URL
-        } catch (error) {
-          console.error('Error uploading image:', error);
-          alert('Error uploading image.');
-          return;
-        }
-      }
-
       // Split the drink data into public and private fields
       const publicData = {};
       const privateData = {};
@@ -296,9 +314,9 @@ export default function AdminPage() {
   };
 
   // Handle changes in packages data
-  const handlePackageChange = (packageDocId, path, value) => {
+  const handlePackageChange = (pkgDocId, path, value) => {
     const updatedPackages = packages.map((pkg) => {
-      if (pkg.docId === packageDocId) {
+      if (pkg.docId === pkgDocId) {
         const updatedPackage = { ...pkg };
         updateNestedData(updatedPackage, path, value);
         return updatedPackage;
@@ -315,20 +333,6 @@ export default function AdminPage() {
     // Separate public and private fields
     const publicFields = {};
     const privateFields = {};
-
-    // Handle image upload if the image field is a File object
-    if (pkg.image instanceof File) {
-      try {
-        const storageRef = ref(storage, `packages_public/${docId}.png`);
-        await uploadBytes(storageRef, pkg.image);
-        const downloadURL = await getDownloadURL(storageRef);
-        pkg.image = downloadURL; // Replace the File object with the download URL
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        alert('Error uploading image.');
-        return;
-      }
-    }
 
     Object.keys(pkg).forEach((key) => {
       if (key === 'docId') return;
@@ -353,33 +357,16 @@ export default function AdminPage() {
     }
   };
 
-  const deletePackage = async (packageDocId) => {
-    if (confirm('Are you sure you want to delete this package?')) {
-      try {
-        // Delete the package document from both collections
-        await deleteDoc(doc(db, 'packages_public', packageDocId));
-        await deleteDoc(doc(db, 'packages_private', packageDocId));
-
-        // Remove the package from the local state
-        setPackages(packages.filter((pkg) => pkg.docId !== packageDocId));
-
-        alert('Package deleted successfully.');
-      } catch (error) {
-        console.error('Error deleting package:', error);
-        alert('Error deleting package.');
-      }
-    }
-  };
-
   // Function to add a new package
   const addPackage = async (newPackage) => {
     try {
       // Validate the package object
-      if (!newPackage || !newPackage.slug || !newPackage.title) {
-        alert('Please provide all necessary fields: slug and title.');
+      if (!newPackage || !newPackage.title || !newPackage.slug) {
+        alert('Please provide all necessary fields: title and slug.');
         return;
       }
 
+      // Generate the docId based on the slug
       const docId = newPackage.slug;
 
       // Check if a package with the same docId already exists
@@ -391,20 +378,6 @@ export default function AdminPage() {
       if (packagePublicSnap.exists() || packagePrivateSnap.exists()) {
         alert(`docID: ${docId} already exists. Please choose a different slug.`);
         return;
-      }
-
-      // Handle image upload if the image field is a File object
-      if (newPackage.image instanceof File) {
-        try {
-          const storageRef = ref(storage, `packages_public/${docId}.png`);
-          await uploadBytes(storageRef, newPackage.image);
-          const downloadURL = await getDownloadURL(storageRef);
-          newPackage.image = downloadURL; // Replace the File object with the download URL
-        } catch (error) {
-          console.error('Error uploading image:', error);
-          alert('Error uploading image.');
-          return;
-        }
       }
 
       // Split the package data into public and private fields
@@ -431,59 +404,168 @@ export default function AdminPage() {
     }
   };
 
-  // Function to export collections
-  const exportCollections = async () => {
-    try {
-      const data = {};
+  const deletePackage = async (packageDocId) => {
+    if (confirm('Are you sure you want to delete this package?')) {
+      try {
+        // Delete the package document from both collections
+        await deleteDoc(doc(db, 'packages_public', packageDocId));
+        await deleteDoc(doc(db, 'packages_private', packageDocId));
 
-      // Fetch collections and assemble data
+        // Remove the package from the local state
+        setPackages(packages.filter((pkg) => pkg.docId !== packageDocId));
+
+        alert('Package deleted successfully.');
+      } catch (error) {
+        console.error('Error deleting package:', error);
+        alert('Error deleting package.');
+      }
+    }
+  };
+
+  // Function to export data
+  const handleExportData = async () => {
+    try {
+      // Fetch the latest data
       const collectionsToExport = [
         'drinks_public',
         'drinks_private',
         'packages_public',
         'packages_private',
-        // Add other collections if needed
       ];
 
+      const dataToExport = {};
+
       for (const collectionName of collectionsToExport) {
-        const collectionRef = collection(db, collectionName);
-        const snapshot = await getDocs(collectionRef);
-        const docsData = {};
-
-        snapshot.forEach((doc) => {
-          docsData[doc.id] = doc.data();
+        const collectionSnapshot = await getDocs(collection(db, collectionName));
+        const collectionData = {};
+        collectionSnapshot.forEach((doc) => {
+          collectionData[doc.id] = doc.data();
         });
-
-        data[collectionName] = docsData;
+        dataToExport[collectionName] = collectionData;
       }
 
-      // Convert data to JSON string
-      const jsonData = JSON.stringify(data, null, 2);
-
-      // Trigger download
-      const blob = new Blob([jsonData], { type: 'application/json' });
+      const jsonString = JSON.stringify(dataToExport, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `firebase_collections_structure_${timestamp}.json`;
 
       const link = document.createElement('a');
       link.href = url;
-      link.download = fileName;
-
-      document.body.appendChild(link);
+      link.download = 'firebase_collections_structure.json';
       link.click();
 
-      // Clean up
-      document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting collections:', error);
-      alert('Error exporting collections. See console for details.');
+      console.error('Error exporting data:', error);
+      alert('Error exporting data.');
     }
   };
 
-  // Handle logout
+  // Handle file upload
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      alert('No file selected');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        // Validate the data structure
+        const validationError = validateDataStructure(data);
+        if (validationError) {
+          alert(validationError);
+          return;
+        }
+
+        setUploadedData(data);
+        setShowConfirmModal(true);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        alert('Invalid JSON file.');
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  // Validate data structure
+  const validateDataStructure = (data) => {
+    if (!data || typeof data !== 'object') {
+      return 'Invalid data format. Expected an object.';
+    }
+
+    // Validate that for each *_public collection, there is a *_private collection, and vice versa
+    const collectionNames = Object.keys(data);
+    const publicCollections = collectionNames.filter((name) =>
+      name.endsWith('_public')
+    );
+    const privateCollections = collectionNames.filter((name) =>
+      name.endsWith('_private')
+    );
+
+    for (const pubCol of publicCollections) {
+      const counterpart = pubCol.replace('_public', '_private');
+      if (!collectionNames.includes(counterpart)) {
+        return `Missing counterpart collection for "${pubCol}". Expected "${counterpart}".`;
+      }
+    }
+
+    for (const privCol of privateCollections) {
+      const counterpart = privCol.replace('_private', '_public');
+      if (!collectionNames.includes(counterpart)) {
+        return `Missing counterpart collection for "${privCol}". Expected "${counterpart}".`;
+      }
+    }
+
+    return null; // No error
+  };
+
+  const handleConfirmOverwrite = async () => {
+    if (deleteInput !== 'delete') {
+      alert('Please type "delete" to confirm.');
+      return;
+    }
+
+    setShowConfirmModal(false);
+
+    try {
+      // Delete existing collections
+      const collectionsToDelete = [
+        'drinks_public',
+        'drinks_private',
+        'packages_public',
+        'packages_private',
+      ];
+
+      for (const collectionName of collectionsToDelete) {
+        const collectionSnapshot = await getDocs(collection(db, collectionName));
+        const deletionPromises = collectionSnapshot.docs.map((doc) =>
+          deleteDoc(doc.ref)
+        );
+        await Promise.all(deletionPromises);
+      }
+
+      // Now, add new data
+      for (const [collectionName, collectionData] of Object.entries(uploadedData)) {
+        for (const [docId, docData] of Object.entries(collectionData)) {
+          const docRef = doc(db, collectionName, docId);
+          await setDoc(docRef, docData);
+        }
+      }
+
+      alert('Data replaced successfully.');
+      // Refresh data
+      fetchData();
+    } catch (error) {
+      console.error('Error replacing data:', error);
+      alert('Error replacing data.');
+    } finally {
+      setDeleteInput('');
+    }
+  };
+
   const handleLogout = () => {
     signOut(auth)
       .then(() => {
@@ -509,15 +591,6 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
-
-      {/* Export Collections Button */}
-      <button
-        onClick={exportCollections}
-        className="mb-4 bg-blue-500 text-white px-4 py-2 rounded"
-      >
-        Export Collections
-      </button>
-
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -530,14 +603,64 @@ export default function AdminPage() {
             onAddDrink={addDrink}
           />
 
-          <PackagesTable
+          {/* <PackagesTable
             packages={packages}
             drinks={drinks}
             onPackageChange={handlePackageChange}
             onSavePackage={savePackage}
             onDeletePackage={deletePackage}
             onAddPackage={addPackage}
-          />
+          /> */}
+
+          <div className="mt-8">
+            <h2 className="text-xl font-bold mb-2">Upload Data JSON</h2>
+            <input type="file" accept=".json" onChange={handleFileUpload} />
+          </div>
+
+          <div className="mt-4">
+            <button
+              onClick={handleExportData}
+              className="bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Export Data
+            </button>
+          </div>
+
+          {/* Confirmation Modal */}
+          {showConfirmModal && (
+            <Modal
+              isOpen={showConfirmModal}
+              onClose={() => setShowConfirmModal(false)}
+              title="Confirm Delete and Replace"
+            >
+              <p className="mb-4">
+                Warning: You are about to delete existing data and replace it with the uploaded data. This action cannot be undone.
+              </p>
+              <p className="mb-4">
+                Please type <strong>delete</strong> to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteInput}
+                onChange={(e) => setDeleteInput(e.target.value)}
+                className="border p-2 mb-4 w-full"
+              />
+              <div className="flex justify-end">
+                <button
+                  onClick={handleConfirmOverwrite}
+                  className="bg-red-500 text-white py-2 px-4 rounded mr-2"
+                >
+                  Yes, Delete and Replace
+                </button>
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="bg-gray-300 py-2 px-4 rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </Modal>
+          )}
         </>
       )}
     </div>

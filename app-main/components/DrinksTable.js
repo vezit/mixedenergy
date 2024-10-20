@@ -33,8 +33,8 @@ function DrinksTable({
     'stock',
     'size',
     'isSugarFree',
-    'salePrice',
     'image',
+    '_salePrice', // Prefix with '_'
     '_purchasePrice',
     'nutrition',
   ];
@@ -80,8 +80,8 @@ function DrinksTable({
       stock: 0,
       size: '',
       isSugarFree: false,
-      salePrice: 0,
       image: '',
+      _salePrice: 0,
       _purchasePrice: 0,
       nutrition: {},
     });
@@ -131,7 +131,7 @@ function DrinksTable({
                   className="border px-4 py-2 cursor-pointer"
                   onClick={() => requestSort(key)}
                 >
-                  {key}
+                  {key.startsWith('_') ? key.substring(1) : key}
                   {sortConfig.key === key ? (
                     sortConfig.direction === 'ascending' ? ' 🔼' : ' 🔽'
                   ) : null}
@@ -274,7 +274,7 @@ function DrinksTable({
                       isPrivate ? 'text-red-500' : 'text-gray-700'
                     }`}
                   >
-                    {key}
+                    {key.startsWith('_') ? key.substring(1) : key}
                   </label>
                   {key === 'image' ? (
                     <div className="flex flex-col items-center">
