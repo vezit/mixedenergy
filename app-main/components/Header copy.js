@@ -1,4 +1,3 @@
-// components/Header.js
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../components/BasketContext';
@@ -6,7 +5,7 @@ import { useRouter } from 'next/router';
 import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Firebase Auth methods
 
 const Header = () => {
-    const { basketItems, isNewItemAdded } = useBasket();
+    const { basketItems, isNewItemAdded, setIsNewItemAdded } = useBasket();
     const [showEmptyMessage, setShowEmptyMessage] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false); // state to track if user is logged in
     const [authLoading, setAuthLoading] = useState(true); // state to track if auth state is loading
@@ -30,6 +29,13 @@ const Header = () => {
         return () => unsubscribe(); // Clean up the listener on unmount
     }, []);
 
+    // useEffect(() => {
+    //     if (isNewItemAdded) {
+    //         const timer = setTimeout(() => setIsNewItemAdded(false), 2400);
+    //         return () => clearTimeout(timer);
+    //     }
+    // }, [isNewItemAdded, setIsNewItemAdded]);
+
     const handleMouseEnter = () => {
         if (basketItems.length === 0) {
             setShowEmptyMessage(true);
@@ -51,17 +57,12 @@ const Header = () => {
         await fetch('/api/sessionLogout', { method: 'POST' });
         await auth.signOut(); // Sign out of Firebase Auth
         router.push('/'); // Redirect to login after logout
-    };
+      };
+      
 
     if (authLoading) {
         return null; // Don't render the header until auth state is determined
     }
-
-    // **Calculate the total number of items in the basket**
-    const totalItemsInBasket = basketItems.reduce(
-        (total, item) => total + item.quantity,
-        0
-    );
 
     return (
         <header className="flex justify-between items-center p-4 shadow" style={{ backgroundColor: '#fab93d' }}>
@@ -85,12 +86,10 @@ const Header = () => {
                         />
                         {basketItems.length > 0 && (
                             <div
-                                className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold ${
+                                className={`absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 flex items-center justify-center ${
                                     isNewItemAdded ? 'animate-custom-pulse' : ''
                                 }`}
-                            >
-                                {totalItemsInBasket}
-                            </div>
+                            />
                         )}
                     </a>
                     {showEmptyMessage && (

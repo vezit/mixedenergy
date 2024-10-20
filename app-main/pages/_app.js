@@ -10,7 +10,7 @@ import { useRouter } from 'next/router';
 import * as gtag from '../lib/gtag';                          // Import Google Analytics tracking functions
 import { db } from '../lib/firebase';                         // Import db directly
 import { doc, getDoc, setDoc } from 'firebase/firestore';      // Import necessary Firestore functions
-// import DomainModal from '../components/DomainModal'; // Import the new DomainModal
+import AddToBasketPopup from '../components/AddToBasketPopup';
 
 
 function MyApp({ Component, pageProps }) {
@@ -75,7 +75,7 @@ function MyApp({ Component, pageProps }) {
         {/* Main Content */}
         <main className="flex-grow flex flex-col items-center justify-center bg-gray-100">
           <Component {...pageProps} />
-          
+          <AddToBasketPopup />
         </main>
 
         {/* Footer */}
