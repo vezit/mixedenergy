@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import minimist from 'minimist';
 import { Storage } from '@google-cloud/storage'; // Import Storage from '@google-cloud/storage'
 
+
 // Load environment variables
 dotenv.config({ path: '.env.local' });
 
@@ -291,20 +292,10 @@ async function populateCollections() {
             // Define the destination path in Firebase Storage
             const storageFilePath = `${collectionName}/${docId}.png`;
 
-            // Delete existing file if it exists
-            const file = bucket.file(storageFilePath);
-            const [exists] = await file.exists();
-            if (exists) {
-              await file.delete();
-              console.log(
-                `Deleted existing image "${storageFilePath}" in Firebase Storage.`
-              );
-            }
-
             // Upload the image to Firebase Storage
             await bucket.upload(localImagePath, {
               destination: storageFilePath,
-              predefinedAcl: 'publicRead', // Make the file publicly readable
+              predefinedAcl: 'publicRead', // Add this line to make the file publicly readable
               metadata: {
                 contentType: 'image/png',
                 cacheControl: 'public, max-age=31536000',
@@ -312,6 +303,9 @@ async function populateCollections() {
             });
 
             // Get the public URL of the uploaded image
+            const file = bucket.file(storageFilePath);
+            // Make the file publicly readable
+            await file.makePublic();
             const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURIComponent(
               storageFilePath
             )}`;
