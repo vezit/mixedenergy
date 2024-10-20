@@ -171,8 +171,13 @@ export default function AdminPage() {
       try {
         const storageRef = ref(storage, `drinks_public/${docId}.png`);
         await uploadBytes(storageRef, drink.image);
-        const downloadURL = await getDownloadURL(storageRef);
-        drink.image = downloadURL; // Replace the File object with the download URL
+    
+        // Manually construct the download URL without the token
+        const bucketName = storage.app.options.storageBucket;
+        const encodedPath = encodeURIComponent(`drinks_public/${docId}.png`);
+        const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
+    
+        drink.image = downloadURL; // Replace the File object with the download URL without token
       } catch (error) {
         console.error('Error uploading image:', error);
         alert('Error uploading image.');

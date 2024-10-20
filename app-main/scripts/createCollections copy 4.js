@@ -6,7 +6,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
-import minimist from 'minimist'; // Ensure correct import for ES Modules
+import minimist from 'minimist';
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -17,12 +17,11 @@ const __dirname = path.dirname(__filename);
 
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2), {
-  boolean: ['force', 'force-dogecry-overwrite'],
+  boolean: ['force'],
   alias: { f: 'force' },
 });
 
 const forceFlag = argv.force;
-const forceDogecryOverwrite = argv['force-dogecry-overwrite'];
 
 // Initialize Firebase Admin
 const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
@@ -301,16 +300,13 @@ async function populateCollections() {
           `${docId}.png`
         );
 
-        const storageFilePath = `${collectionName}/${docId}.png`;
-        const file = bucket.file(storageFilePath);
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURIComponent(
-          storageFilePath
-        )}`;
-
-        if (forceDogecryOverwrite) {
-          // Delete existing image and upload local image
+        if (fs.existsSync(localImagePath)) {
           try {
+            // Define the destination path in Firebase Storage
+            const storageFilePath = `${collectionName}/${docId}.png`;
+
             // Delete existing file if it exists
+            const file = bucket.file(storageFilePath);
             const [exists] = await file.exists();
             if (exists) {
               await file.delete();
@@ -319,28 +315,27 @@ async function populateCollections() {
               );
             }
 
-            if (fs.existsSync(localImagePath)) {
-              // Upload the image to Firebase Storage
-              await bucket.upload(localImagePath, {
-                destination: storageFilePath,
-                predefinedAcl: 'publicRead', // Make the file publicly readable
-                metadata: {
-                  contentType: 'image/png',
-                  cacheControl: 'public, max-age=31536000',
-                },
-              });
+            // Upload the image to Firebase Storage
+            await bucket.upload(localImagePath, {
+              destination: storageFilePath,
+              predefinedAcl: 'publicRead', // Make the file publicly readable
+              metadata: {
+                contentType: 'image/png',
+                cacheControl: 'public, max-age=31536000',
+              },
+            });
 
-              // Update the 'image' field in the document data
-              finalDocData.image = publicUrl;
+            // Get the public URL of the uploaded image
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURIComponent(
+              storageFilePath
+            )}`;
 
-              console.log(
-                `Uploaded image for document "${docId}" in collection "${collectionName}".`
-              );
-            } else {
-              console.warn(
-                `Warning: Local image file does not exist for document "${docId}" in collection "${collectionName}" at path "${localImagePath}".`
-              );
-            }
+            // Update the 'image' field in the document data
+            finalDocData.image = publicUrl;
+
+            console.log(
+              `Uploaded image for document "${docId}" in collection "${collectionName}".`
+            );
           } catch (err) {
             console.error(
               `Error uploading image for document "${docId}" in collection "${collectionName}": ${err.message}`
@@ -348,49 +343,9 @@ async function populateCollections() {
             process.exit(1);
           }
         } else {
-          // Do not overwrite images
-          try {
-            // Check if image exists in storage
-            const [exists] = await file.exists();
-            if (exists) {
-              // Image exists in storage
-              // Update the 'image' field in the document data
-              finalDocData.image = publicUrl;
-              console.log(
-                `Using existing image for document "${docId}" in collection "${collectionName}".`
-              );
-            } else {
-              // Image does not exist in storage
-              // Check if local image exists
-              if (fs.existsSync(localImagePath)) {
-                // Upload local image without deleting any existing image
-                await bucket.upload(localImagePath, {
-                  destination: storageFilePath,
-                  predefinedAcl: 'publicRead', // Make the file publicly readable
-                  metadata: {
-                    contentType: 'image/png',
-                    cacheControl: 'public, max-age=31536000',
-                  },
-                });
-
-                // Update the 'image' field in the document data
-                finalDocData.image = publicUrl;
-
-                console.log(
-                  `Uploaded image for document "${docId}" in collection "${collectionName}".`
-                );
-              } else {
-                console.warn(
-                  `Warning: Local image file does not exist for document "${docId}" in collection "${collectionName}" at path "${localImagePath}". Cannot upload image.`
-                );
-              }
-            }
-          } catch (err) {
-            console.error(
-              `Error handling image for document "${docId}" in collection "${collectionName}": ${err.message}`
-            );
-            process.exit(1);
-          }
+          console.warn(
+            `Warning: Image file does not exist for document "${docId}" in collection "${collectionName}" at path "${localImagePath}".`
+          );
         }
       }
 
