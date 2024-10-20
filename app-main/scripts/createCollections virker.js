@@ -7,8 +7,6 @@ import dotenv from 'dotenv';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
 import minimist from 'minimist';
-import { Storage } from '@google-cloud/storage'; // Import Storage from '@google-cloud/storage'
-
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -29,11 +27,9 @@ const forceFlag = argv.force;
 const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'mixedenergy-dk.appspot.com', // Use your storage bucket
 });
 
 const db = admin.firestore();
-const bucket = admin.storage().bucket();
 
 // Helper function to delete an entire collection
 async function deleteCollection(collectionName) {
@@ -236,6 +232,7 @@ async function populateCollections() {
         }
       }
 
+      // **Add this block for validating collection references**
       // Validate collection references in 'collection_<collection>' fields
       const fieldNames = Object.keys(finalDocData);
 
@@ -274,61 +271,6 @@ async function populateCollections() {
         }
       }
 
-      // Upload images to Firebase Storage and update 'image' field
-      if (
-        (collectionName === 'drinks_public' ||
-          collectionName === 'packages_public') &&
-        finalDocData.image
-      ) {
-        const localImagePath = path.join(
-          __dirname,
-          '../data/base/images',
-          collectionName,
-          `${docId}.png`
-        );
-
-        if (fs.existsSync(localImagePath)) {
-          try {
-            // Define the destination path in Firebase Storage
-            const storageFilePath = `${collectionName}/${docId}.png`;
-
-            // Upload the image to Firebase Storage
-            await bucket.upload(localImagePath, {
-              destination: storageFilePath,
-              predefinedAcl: 'publicRead', // Add this line to make the file publicly readable
-              metadata: {
-                contentType: 'image/png',
-                cacheControl: 'public, max-age=31536000',
-              },
-            });
-
-            // Get the public URL of the uploaded image
-            const file = bucket.file(storageFilePath);
-            // Make the file publicly readable
-            await file.makePublic();
-            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURIComponent(
-              storageFilePath
-            )}`;
-
-            // Update the 'image' field in the document data
-            finalDocData.image = publicUrl;
-
-            console.log(
-              `Uploaded image for document "${docId}" in collection "${collectionName}".`
-            );
-          } catch (err) {
-            console.error(
-              `Error uploading image for document "${docId}" in collection "${collectionName}": ${err.message}`
-            );
-            process.exit(1);
-          }
-        } else {
-          console.warn(
-            `Warning: Image file does not exist for document "${docId}" in collection "${collectionName}" at path "${localImagePath}".`
-          );
-        }
-      }
-
       // Save the document to Firestore
       const docRef = db.collection(collectionName).doc(docId);
       await docRef.set(finalDocData);
@@ -357,12 +299,8 @@ function validateDataStructure(data) {
 
   // Validate that for each *_public collection, there is a *_private collection, and vice versa
   const collectionNames = Object.keys(data);
-  const publicCollections = collectionNames.filter((name) =>
-    name.endsWith('_public')
-  );
-  const privateCollections = collectionNames.filter((name) =>
-    name.endsWith('_private')
-  );
+  const publicCollections = collectionNames.filter((name) => name.endsWith('_public'));
+  const privateCollections = collectionNames.filter((name) => name.endsWith('_private'));
 
   for (const pubCol of publicCollections) {
     const counterpart = pubCol.replace('_public', '_private');
