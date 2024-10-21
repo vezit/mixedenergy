@@ -183,7 +183,7 @@ function DrinksTable({
                             {isEditing && (
                               <input
                                 type="file"
-                                accept=".png"
+                                accept="image/*.png"
                                 onChange={(e) => {
                                   if (e.target.files && e.target.files[0]) {
                                     const file = e.target.files[0];
@@ -284,7 +284,7 @@ function DrinksTable({
                       )}
                       <input
                         type="file"
-                        accept=".png"
+                        accept="image/*"
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             const file = e.target.files[0];

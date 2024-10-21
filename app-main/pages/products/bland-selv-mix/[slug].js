@@ -33,7 +33,7 @@ export default function BlandSelvMixProduct() {
   
         // Fetch drinks data
         const drinksData = {};
-        for (const drinkSlug of productData.drinks) {
+        for (const drinkSlug of productData.collection_drinks_public) {
           const drinkDocRef = doc(db, 'drinks_public', drinkSlug);
           const drinkDocSnap = await getDoc(drinkDocRef);
           if (drinkDocSnap.exists()) {
@@ -52,37 +52,6 @@ export default function BlandSelvMixProduct() {
   }, [slug]);
   
 
-  // Update price and regenerate selection when package size changes
-  useEffect(() => {
-    generateRandomSelection(selectedSize);
-  }, [selectedSize]);
-
-  // Function to generate a random selection of drinks
- // Update generateRandomSelection to use the new price calculation
-const generateRandomSelection = (size, drinksDataParam = drinksData) => {
-  const randomSelection = {};
-  let remaining = parseInt(size);
-  const drinksCopy = Object.keys(drinksDataParam);
-
-  // Modify this part to not automatically select drinks
-  while (remaining > 0 && drinksCopy.length > 0) {
-    const randomIndex = Math.floor(Math.random() * drinksCopy.length);
-    const drinkSlug = drinksCopy[randomIndex];
-    const qty = 1; // Select one at a time
-
-    randomSelection[drinkSlug] = (randomSelection[drinkSlug] || 0) + qty;
-    remaining -= qty;
-
-    // Optionally remove the drink if we don't want duplicates
-    // drinksCopy.splice(randomIndex, 1);
-  }
-
-  setSelectedProducts(randomSelection);
-
-  // Calculate price with discounts
-  const { totalPrice, discountedPrice } = calculateTotalPrice(randomSelection);
-  setPrice(discountedPrice); // Update the state with the discounted price
-};
 
   // Function to calculate the total price with discounts
 const calculateTotalPrice = (selection) => {
@@ -207,10 +176,11 @@ const calculateTotalPrice = (selection) => {
           </div>
 
           {/* Scrollable Drinks Selection */}
-          <div className="mt-4 max-h-[500px] overflow-y-auto pr-4">
+          <div className="mt-4 overflow-y-auto pr-4">
             <p>Select drinks (exactly {maxProducts}):</p>
             {Object.keys(drinksData).map((drinkSlug, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
+                <img src={drinksData[drinkSlug]?.image} alt={drinksData[drinkSlug]?.name || drinkSlug} className="w-12 h-12 object-cover mr-4" />
                 <span>{drinksData[drinkSlug]?.name || drinkSlug}</span>
                 <div className="flex items-center">
                   <button

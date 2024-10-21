@@ -59,7 +59,7 @@ const calculateTotalPrice = (selection) => {
 
         // Fetch drinks data
         const drinksData = {};
-        for (const drinkSlug of productData.drinks) {
+        for (const drinkSlug of productData.collection_drinks_public) {
           const drinkDocRef = doc(db, 'drinks_public', drinkSlug);
           const drinkDocSnap = await getDoc(drinkDocRef);
           if (drinkDocSnap.exists()) {
@@ -93,7 +93,7 @@ const calculateTotalPrice = (selection) => {
     let remaining = parseInt(size);
 
     // Filter drinks based on sugar preference
-    let drinksCopy = [...product.drinks].filter((drinkSlug) => {
+    let drinksCopy = [...product.collection_drinks_public].filter((drinkSlug) => {
       const drink = drinksData[drinkSlug];
       if (!drink) return false;
       if (sugarPreference === 'uden_sukker' && !drink.isSugarFree) return false;
