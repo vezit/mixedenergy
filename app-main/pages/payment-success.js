@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import Loading from '/components/Loading';
 
 export default function PaymentSuccess() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function PaymentSuccess() {
     }
   }, [orderId]);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <Loading />;
   if (error) return <p>{error}</p>;
 
   return (

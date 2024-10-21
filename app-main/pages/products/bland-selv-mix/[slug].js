@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useBasket } from '../../../components/BasketContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
+import Loading from '/components/Loading';
 
 export default function BlandSelvMixProduct() {
   const router = useRouter();
@@ -162,7 +163,7 @@ const calculateTotalPrice = (selection) => {
   };
 
   if (loading) {
-    return <p>Loading...</p>;
+    return  <Loading />;
   }
 
   if (!product) {

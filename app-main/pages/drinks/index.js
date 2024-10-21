@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase'; // Your Firebase config
+import Loading from '/components/Loading';
 
 export default function DrinksList() {
   const [drinks, setDrinks] = useState([]);
@@ -23,7 +24,7 @@ export default function DrinksList() {
   }, []);
 
   if (loading) {
-    return <p>Loading...</p>;
+    return  <Loading />;
   }
 
   return (

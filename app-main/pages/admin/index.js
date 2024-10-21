@@ -20,6 +20,7 @@ import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
 import DrinksTable from '../../components/DrinksTable';
 import PackagesTable from '../../components/PackagesTable';
+import Loading from '/components/Loading';
 
 export default function AdminPage() {
   const [drinks, setDrinks] = useState([]);
@@ -524,7 +525,7 @@ export default function AdminPage() {
       </button>
 
       {loading ? (
-        <p>Loading...</p>
+        <Loading />
       ) : (
         <>
           <DrinksTable

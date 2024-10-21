@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase'; // Your Firebase config
+import Loading from '/components/Loading';
 
 export default function DrinkDetail() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function DrinkDetail() {
   }, [slug]);
 
   if (loading) {
-    return <p>Loading...</p>;
+    return  <Loading />;
   }
 
   if (!drink) {

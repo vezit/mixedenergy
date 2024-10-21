@@ -6,7 +6,7 @@ import { getFirestore, collection, getDocs, query, orderBy, limit, startAfter } 
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
 import OrderItem from '../../components/OrderItem';
-
+import Loading from '/components/Loading';
 
 export default function ManagementPage() {
   const [loading, setLoading] = useState(true);
@@ -75,7 +75,7 @@ export default function ManagementPage() {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Order Management</h1>
       {loading ? (
-        <p>Loading...</p>
+        <Loading />
       ) : (
         <>
           {orders.map((order) => (
