@@ -23,14 +23,14 @@ export default function BlandSelvMixProduct() {
 
   useEffect(() => {
     if (!slug) return;
-  
+
     const fetchProduct = async () => {
       const docRef = doc(db, 'packages_public', slug);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const productData = docSnap.data();
         setProduct({ id: docSnap.id, ...productData });
-  
+
         // Fetch drinks data
         const drinksData = {};
         for (const drinkSlug of productData.collection_drinks_public) {
@@ -47,34 +47,34 @@ export default function BlandSelvMixProduct() {
       }
       setLoading(false);
     };
-  
+
     fetchProduct();
   }, [slug]);
-  
+
 
 
   // Function to calculate the total price with discounts
-const calculateTotalPrice = (selection) => {
-  let totalPrice = 0;
-  for (const [drinkSlug, qty] of Object.entries(selection)) {
-    const drink = drinksData[drinkSlug];
-    if (drink && drink.salePrice) {
-      // convert drink.salePrice
-      totalPrice += parseInt(drink.salePrice) * qty;
+  const calculateTotalPrice = (selection) => {
+    let totalPrice = 0;
+    for (const [drinkSlug, qty] of Object.entries(selection)) {
+      const drink = drinksData[drinkSlug];
+      if (drink && drink.salePrice) {
+        // convert drink.salePrice
+        totalPrice += parseInt(drink.salePrice) * qty;
+      }
     }
-  }
 
-  // Apply discounts based on package size
-  let discount = 0;
-  if (parseInt(selectedSize) === 12) {
-    discount = 0.05; // 5% discount
-  } else if (parseInt(selectedSize) === 18) {
-    discount = 0.10; // 10% discount
-  }
+    // Apply discounts based on package size
+    let discount = 0;
+    if (parseInt(selectedSize) === 12) {
+      discount = 0.05; // 5% discount
+    } else if (parseInt(selectedSize) === 18) {
+      discount = 0.10; // 10% discount
+    }
 
-  const discountedPrice = totalPrice * (1 - discount);
-  return { totalPrice, discountedPrice, discount };
-};
+    const discountedPrice = totalPrice * (1 - discount);
+    return { totalPrice, discountedPrice, discount };
+  };
 
 
   // Function to handle quantity changes
@@ -82,26 +82,26 @@ const calculateTotalPrice = (selection) => {
     setSelectedProducts((prevSelected) => {
       const currentQty = prevSelected[drinkSlug] || 0;
       let newQty = currentQty;
-  
+
       if (action === 'increment' && getTotalSelected() < maxProducts) {
         newQty = currentQty + 1;
       } else if (action === 'decrement' && currentQty > 0) {
         newQty = currentQty - 1;
       }
-  
+
       const updatedSelected = { ...prevSelected, [drinkSlug]: newQty };
       if (newQty === 0) {
         delete updatedSelected[drinkSlug];
       }
-  
+
       // Recalculate price
       const { discountedPrice } = calculateTotalPrice(updatedSelected);
       setPrice(discountedPrice); // Use discountedPrice, which is a number
-  
+
       return updatedSelected;
     });
   };
-  
+
 
   // Calculate the total number of selected drinks
   const getTotalSelected = () => {
@@ -132,7 +132,7 @@ const calculateTotalPrice = (selection) => {
   };
 
   if (loading) {
-    return  <Loading />;
+    return <Loading />;
   }
 
   if (!product) {
@@ -180,8 +180,11 @@ const calculateTotalPrice = (selection) => {
             <p>Select drinks (exactly {maxProducts}):</p>
             {Object.keys(drinksData).map((drinkSlug, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
-                <img src={drinksData[drinkSlug]?.image} alt={drinksData[drinkSlug]?.name || drinkSlug} className="w-12 h-12 object-cover mr-4" />
-                <span>{drinksData[drinkSlug]?.name || drinkSlug}</span>
+
+                <a href={`/drinks/${drinkSlug}`} className="flex items-center">
+                  <img src={drinksData[drinkSlug]?.image} alt={drinksData[drinkSlug]?.name || drinkSlug} className="w-12 h-12 object-cover mr-4" />
+                  <span>{drinksData[drinkSlug]?.name || drinkSlug}</span>
+                </a>
                 <div className="flex items-center">
                   <button
                     onClick={() => handleProductQuantityChange(drinkSlug, 'decrement')}
