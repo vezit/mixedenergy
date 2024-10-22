@@ -27,3 +27,7 @@ export const setCookie = (name, value, days) => {
     return false;
   }
 };
+
+export function deleteCookie(name) {
+  document.cookie = name + '=; Max-Age=0; path=/; domain=' + window.location.hostname;
+}

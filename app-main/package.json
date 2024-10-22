@@ -17,6 +17,7 @@
         "@react-google-maps/api": "^2.19.3",
         "axios": "^1.7.2",
         "body-parser": "^1.20.3",
+        "cookie": "^1.0.1",
         "cookies-next": "^4.2.1",
         "date-fns": "^4.1.0",
         "dotenv": "^16.4.5",

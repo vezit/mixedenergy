@@ -1,20 +1,9 @@
 import React from 'react';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase'; // Import the Firestore instance
-import { getCookie } from '../lib/cookies'; // Importing from cookies.js
+import { getCookie, deleteCookie } from '../lib/cookies'; // Import deleteCookie function
+
 
 export default function CookiePolitik() {
   
-  function deleteAllCookies() {
-    document.cookie.split(';').forEach((c) => {
-      document.cookie = c
-        .replace(/^ +/, '')
-        .replace(
-          /=.*/,
-          '=;expires=' + new Date().toUTCString() + ';path=/'
-        );
-    });
-  }
 
   const handleDeleteCookies = async () => {
     const confirmAction = window.confirm(
@@ -23,10 +12,15 @@ export default function CookiePolitik() {
     if (confirmAction) {
       const consentId = getCookie('cookie_consent_id');
       if (consentId) {
-        const docRef = doc(db, 'sessions_public', consentId); // Use the imported Firestore db instance directly
-        await deleteDoc(docRef);
+        // Call API to delete session document
+        try {
+          await axios.post('/api/deleteSession', { consentId });
+        } catch (error) {
+          console.error('Error deleting session:', error);
+        }
+        // Delete the cookie
+        deleteCookie('cookie_consent_id');
       }
-      deleteAllCookies();
       window.location.href = '/';
     }
   };

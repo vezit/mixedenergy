@@ -1,15 +1,16 @@
+// components/CookieConsent.js
+
 import { useState, useEffect } from 'react';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { getCookie, setCookie } from '../lib/cookies';
-import { v4 as uuidv4 } from 'uuid'; // Use a UUID library
+import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
   const [cookieError, setCookieError] = useState(false);
 
   const generateConsentId = () => {
-    return uuidv4(); // Generate a secure UUID
+    return uuidv4();
   };
 
   useEffect(() => {
@@ -21,60 +22,50 @@ export default function CookieConsent() {
         setCookieError(true);
         return;
       }
-    }
 
-    const docRef = doc(db, 'sessions_public', consentId);
-
-    getDoc(docRef)
-      .then((docSnap) => {
-        if (docSnap.exists()) {
-          const sessionData = docSnap.data();
-          if (!sessionData.allowCookies) {
+      // Create session via API
+      axios
+        .post('/api/createSession')
+        .then(() => {
+          setShow(true); // Show banner since cookies aren't allowed yet
+        })
+        .catch((error) => {
+          console.error('Error creating session:', error);
+        });
+    } else {
+      // Fetch session data via API
+      axios
+        .get('/api/getSession')
+        .then((response) => {
+          if (!response.data.session.allowCookies) {
             setShow(true); // Show banner if cookies aren't allowed yet
           }
-        } else {
-          // Create session document if it doesn't exist
-          setDoc(docRef, {
-            consentId: consentId, // Ensure consentId matches document ID
-            allowCookies: false, // Initially set to false
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-            .then(() => {
-              setShow(true); // Show banner since cookies aren't allowed yet
-            })
-            .catch((error) => {
-              console.error('Error creating session document:', error);
-            });
-        }
-      })
-      .catch((error) => {
-        console.error('Error getting session document:', error);
-      });
+        })
+        .catch((error) => {
+          if (error.response && error.response.status === 404) {
+            // Session does not exist, create it
+            axios
+              .post('/api/createSession')
+              .then(() => {
+                setShow(true);
+              })
+              .catch((err) => {
+                console.error('Error creating session:', err);
+              });
+          } else {
+            console.error('Error fetching session:', error);
+          }
+        });
+    }
   }, []);
 
   const acceptCookies = async () => {
-    const consentId = getCookie('cookie_consent_id');
-    if (!consentId) {
-      console.error('No consentId found in cookies');
-      return;
+    try {
+      await axios.post('/api/acceptCookies');
+      setShow(false); // Hide banner after accepting cookies
+    } catch (error) {
+      console.error('Error updating cookie consent:', error);
     }
-
-    const docRef = doc(db, 'sessions_public', consentId);
-
-    await setDoc(
-      docRef,
-      {
-        consentId: consentId, // Ensure consentId matches document ID
-        allowCookies: true,
-        updatedAt: new Date(),
-      },
-      { merge: true }
-    ).catch((error) => {
-      console.error('Error updating session document:', error);
-    });
-
-    setShow(false); // Hide banner after accepting cookies
   };
 
   if (cookieError) {
@@ -82,7 +73,8 @@ export default function CookieConsent() {
       <div className="fixed top-0 left-0 right-0 p-4 bg-red-500 text-white text-center">
         <p>
           For at kunne bruge denne hjemmeside, skal du tillade cookies.
-          Venligst slå cookies til i din browserindstillinger, før du fortsætter.
+          Venligst slå cookies til i din browserindstillinger, før du
+          fortsætter.
         </p>
       </div>
     );
@@ -93,8 +85,12 @@ export default function CookieConsent() {
   return (
     <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-800 text-white flex justify-between items-center">
       <p className="text-sm">
-        Vi bruger cookies for at forbedre din oplevelse. Ved at fortsætte accepterer du vores brug af cookies.
-        <a href="/cookiepolitik" className="underline ml-2">Læs mere</a>.
+        Vi bruger cookies for at forbedre din oplevelse. Ved at fortsætte
+        accepterer du vores brug af cookies.
+        <a href="/cookiepolitik" className="underline ml-2">
+          Læs mere
+        </a>
+        .
       </p>
       <div>
         <button

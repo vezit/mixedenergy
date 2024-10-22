@@ -1,7 +1,6 @@
-// pages/api/createSession.js
+// pages/api/getSession.js
 
 import admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
 import cookie from 'cookie';
 
 if (!admin.apps.length) {
@@ -9,10 +8,12 @@ if (!admin.apps.length) {
     credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
   });
 }
+
 const db = admin.firestore();
 
-export default async (req, res) => {
+export default async function handler(req, res) {
   try {
+    // Parse cookies from the request headers
     const cookies = cookie.parse(req.headers.cookie || '');
     const consentId = cookies.cookie_consent_id;
 
@@ -21,21 +22,18 @@ export default async (req, res) => {
     }
 
     const docRef = db.collection('sessions').doc(consentId);
+    const docSnap = await docRef.get();
 
-    await docRef.set(
-      {
-        consentId,
-        allowCookies: false,
-        basketItems: [],
-        customerDetails: {},
-        createdAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
 
-    res.status(200).json({ success: true });
+    const data = docSnap.data();
+
+    // Return the session data
+    res.status(200).json({ session: data });
   } catch (error) {
-    console.error('Error creating session:', error);
+    console.error('Error fetching session:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-};
+}
