@@ -1,26 +1,23 @@
 import React from 'react';
-import { getCookie, deleteCookie } from '../lib/cookies'; // Import deleteCookie function
+import axios from 'axios';
+import { deleteAllCookies } from '../lib/cookies'; // Import deleteAllCookies function if you have one
 
 
 export default function CookiePolitik() {
-  
-
   const handleDeleteCookies = async () => {
     const confirmAction = window.confirm(
       'Advarsel: Dit indhold i kurven vil gå tabt hvis du forsætter.'
     );
     if (confirmAction) {
-      const consentId = getCookie('cookie_consent_id');
-      if (consentId) {
+      try {
         // Call API to delete session document
-        try {
-          await axios.post('/api/deleteSession', { consentId });
-        } catch (error) {
-          console.error('Error deleting session:', error);
-        }
-        // Delete the cookie
-        deleteCookie('cookie_consent_id');
+        await axios.post('/api/deleteSession');
+      } catch (error) {
+        console.error('Error deleting session:', error);
       }
+
+      // Delete all cookies
+      deleteAllCookies(); // Ensure this function is defined in your code
       window.location.href = '/';
     }
   };

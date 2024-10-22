@@ -29,25 +29,23 @@ function MyApp({ Component, pageProps }) {
     };
   }, [router.events]);
 
-  // Check for session cookie and initialize session via API
-  useEffect(() => {
-    const consentId = getCookie('cookie_consent_id');
-    if (consentId) {
-      // Ensure session exists via API
-      axios
-        .get('/api/getBasket', { params: { consentId } })
-        .catch((error) => {
-          if (error.response && error.response.status === 404) {
-            // Session does not exist, create it
-            axios.post('/api/createSession', { consentId }).catch((err) => {
-              console.error('Error creating session:', err);
-            });
-          } else {
-            console.error('Error checking session:', error);
-          }
-        });
-    }
-  }, []);
+  // // Check for session cookie and initialize session via API
+  // useEffect(() => {
+  //   // Ensure session exists via API
+  //   axios
+  //     .get('/api/getSession')
+  //     .catch((error) => {
+  //       if (error.response && error.response.status === 404) {
+  //         // Session does not exist, create it
+  //         axios.post('/api/createSession').catch((err) => {
+  //           console.error('Error creating session:', err);
+  //         });
+  //       } else {
+  //         console.error('Error checking session:', error);
+  //       }
+  //     });
+  // }, []);
+
 
   return (
     <BasketProvider>

@@ -1,55 +1,72 @@
-// /pages/api/getPackagePrice.js
-import { db } from '../../lib/firebaseAdmin'; // Use firebaseAdmin to access Firestore securely
-import { doc, getDoc } from 'firebase-admin/firestore';
+// pages/api/getPackagePrice.js
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed. Use POST.' });
-  }
+import admin from 'firebase-admin';
 
-  const { selectedProducts, selectedSize } = req.body;
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(
+      JSON.parse(process.env.FIREBASE_ADMIN_KEY)
+    ),
+  });
+}
+const db = admin.firestore();
 
-  if (!selectedProducts || !selectedSize) {
-    return res.status(400).json({ error: 'Missing required parameters.' });
-  }
-
+export default async (req, res) => {
   try {
-    let totalPrice = 0;
+    const { selectedProducts, selectedSize, slug } = req.body;
 
-    // Fetch salePrice for each drink from drinks_private
-    for (const [drinkSlug, qty] of Object.entries(selectedProducts)) {
-      const drinkDocRef = db.collection('drinks_private').doc(drinkSlug);
-      const drinkDocSnap = await drinkDocRef.get();
+    // Fetch the package data
+    const packageRef = db.collection('packages_public').doc(slug);
+    const packageDoc = await packageRef.get();
 
-      if (!drinkDocSnap.exists) {
-        return res.status(400).json({ error: `Drink ${drinkSlug} not found.` });
-      }
-
-      const drinkData = drinkDocSnap.data();
-
-      if (!drinkData.salePrice) {
-        return res.status(400).json({ error: `salePrice not found for ${drinkSlug}.` });
-      }
-
-      totalPrice += parseInt(drinkData.salePrice) * qty;
+    if (!packageDoc.exists) {
+      return res.status(404).json({ error: 'Package not found' });
     }
 
-    // Apply discounts based on package size
-    let discount = 0;
-    if (parseInt(selectedSize) === 12) {
-      discount = 0.05; // 5% discount
-    } else if (parseInt(selectedSize) === 18) {
-      discount = 0.10; // 10% discount
+    const packageData = packageDoc.data();
+    const packageDetails = packageData.packages.find(
+      (pkg) => pkg.size === selectedSize
+    );
+
+    if (!packageDetails) {
+      return res.status(400).json({ error: 'Invalid package size selected' });
     }
 
-    let discountedPrice = totalPrice * (1 - discount);
+    const { minPrice, priceJump, discount } = packageDetails;
 
-    // Round up to the nearest number ending with 0
-    let roundedPrice = Math.ceil(discountedPrice / 10) * 10;
+    // Fetch drinks data
+    const drinkSlugs = Object.keys(selectedProducts);
+    const drinksSnapshot = await Promise.all(
+      drinkSlugs.map((slug) => db.collection('drinks').doc(slug).get())
+    );
 
-    return res.status(200).json({ price: roundedPrice, discount });
+    let totalCost = 0;
+
+    drinksSnapshot.forEach((doc) => {
+      if (doc.exists) {
+        const drinkData = doc.data();
+        const qty = selectedProducts[doc.id];
+        const salePrice = drinkData.salePrice;
+        totalCost += salePrice * qty;
+      }
+    });
+
+    // Apply priceJump (if applicable)
+    if (priceJump) {
+      totalCost += priceJump * selectedSize;
+    }
+
+    // Apply discount (if applicable)
+    if (discount) {
+      totalCost = totalCost * discount;
+    }
+
+    // Ensure totalCost is not less than minPrice
+    const finalPrice = Math.max(totalCost, minPrice);
+
+    res.status(200).json({ price: Math.round(finalPrice) });
   } catch (error) {
     console.error('Error calculating package price:', error);
-    return res.status(500).json({ error: 'Internal server error.' });
+    res.status(500).json({ error: 'Internal server error' });
   }
-}
+};

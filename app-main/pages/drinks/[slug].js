@@ -1,9 +1,9 @@
-// /pages/drinks/[slug].js
+// pages/drinks/[slug].js
+
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase'; // Your Firebase config
+import axios from 'axios';
 import Loading from '/components/Loading';
 
 export default function DrinkDetail() {
@@ -18,30 +18,29 @@ export default function DrinkDetail() {
     if (!slug) return;
 
     const fetchDrink = async () => {
-      const docRef = doc(db, 'drinks_public', slug);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setDrink({ id: docSnap.id, ...docSnap.data() });
-      } else {
+      try {
+        const response = await axios.get(`/api/drinks/${slug}`);
+        setDrink(response.data.drink);
+      } catch (error) {
+        console.error('Error fetching drink:', error);
         setDrink(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchDrink();
   }, [slug]);
 
   if (loading) {
-    return  <Loading />;
+    return <Loading />;
   }
 
   if (!drink) {
     return <p>Drink not found.</p>;
   }
 
-  const imageUrl = imageError
-    ? '/images/default-drink.png' // Use fallback image if an error occurs
-    : `https://firebasestorage.googleapis.com/v0/b/mixedenergy-dk.appspot.com/o/drinks_public%2F${slug}.png?alt=media&token=44912f2b-7d35-4e80-93e8-166fd56b0e82`;
+  const imageUrl = imageError ? '/images/default-drink.png' : drink.image;
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-8">

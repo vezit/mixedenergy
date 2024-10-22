@@ -22,25 +22,21 @@ export const BasketProvider = ({ children }) => {
   const [isNewItemAdded, setIsNewItemAdded] = useState(false);
 
   useEffect(() => {
-    const consentId = getCookie('cookie_consent_id');
-
-    if (consentId) {
-      // Fetch basket data from API
-      axios
-        .get('/api/getBasket', { params: { consentId } })
-        .then((response) => {
-          const { basketItems, customerDetails } = response.data;
-          if (basketItems) {
-            setBasketItems(basketItems);
-          }
-          if (customerDetails) {
-            setCustomerDetails(customerDetails);
-          }
-        })
-        .catch((error) => {
-          console.error('Error fetching basket:', error);
-        });
-    }
+    // Fetch session data from API
+    axios
+      .get('/api/getSession')
+      .then((response) => {
+        const { basketItems, customerDetails } = response.data.session;
+        if (basketItems) {
+          setBasketItems(basketItems);
+        }
+        if (customerDetails) {
+          setCustomerDetails(customerDetails);
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching session:', error);
+      });
   }, []);
 
   // Helper function to compare selected products

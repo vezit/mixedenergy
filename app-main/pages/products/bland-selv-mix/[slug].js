@@ -1,9 +1,8 @@
-// /products/bland-selv-mix/[slug].js
+// pages/products/bland-selv-mix/[slug].js
+
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../components/BasketContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
 import axios from 'axios';
 import Loading from '/components/Loading';
 
@@ -16,45 +15,56 @@ export default function BlandSelvMixProduct() {
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState({});
   const [price, setPrice] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(8); // Default package size
+  const [selectedSize, setSelectedSize] = useState(null); // Will be set after fetching product
   const [quantity, setQuantity] = useState(1);
-  const maxProducts = parseInt(selectedSize);
+  const [maxProducts, setMaxProducts] = useState(0);
 
   const { addItemToBasket } = useBasket();
 
   useEffect(() => {
     if (!slug) return;
 
-    const fetchProduct = async () => {
-      const docRef = doc(db, 'packages_public', slug);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const productData = docSnap.data();
-        setProduct({ id: docSnap.id, ...productData });
+    const fetchProductAndDrinks = async () => {
+      try {
+        // Fetch product data
+        const productResponse = await axios.get(`/api/packages/${slug}`);
+        const productData = productResponse.data.package;
+        setProduct(productData);
+
+        // Set default selected size
+        if (productData.packages && productData.packages.length > 0) {
+          setSelectedSize(productData.packages[0].size);
+        }
 
         // Fetch drinks data
-        const drinksData = {};
-        for (const drinkSlug of productData.collection_drinks_public) {
-          const drinkDocRef = doc(db, 'drinks_public', drinkSlug);
-          const drinkDocSnap = await getDoc(drinkDocRef);
-          if (drinkDocSnap.exists()) {
-            drinksData[drinkSlug] = drinkDocSnap.data();
-          }
-        }
-        setDrinksData(drinksData);
-      } else {
+        const drinksResponse = await axios.post('/api/getDrinksBySlugs', {
+          slugs: productData.collections_drinks,
+        });
+        setDrinksData(drinksResponse.data.drinks);
+      } catch (error) {
+        console.error('Error fetching product or drinks:', error);
         setProduct(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    fetchProduct();
+    fetchProductAndDrinks();
   }, [slug]);
+
+  // Update maxProducts whenever selectedSize changes
+  useEffect(() => {
+    if (selectedSize) {
+      setMaxProducts(parseInt(selectedSize));
+      // Reset selected products when size changes
+      setSelectedProducts({});
+    }
+  }, [selectedSize]);
 
   // Fetch price whenever selectedProducts or selectedSize changes
   useEffect(() => {
     const fetchPrice = async () => {
-      if (Object.keys(selectedProducts).length === 0) {
+      if (Object.keys(selectedProducts).length === 0 || !selectedSize) {
         setPrice(0);
         return;
       }
@@ -63,6 +73,7 @@ export default function BlandSelvMixProduct() {
         const response = await axios.post('/api/getPackagePrice', {
           selectedProducts,
           selectedSize,
+          slug,
         });
 
         if (response.data.price) {
@@ -76,7 +87,7 @@ export default function BlandSelvMixProduct() {
     };
 
     fetchPrice();
-  }, [selectedProducts, selectedSize]);
+  }, [selectedProducts, selectedSize, slug]);
 
   // Function to handle quantity changes
   const handleProductQuantityChange = (drinkSlug, action) => {
@@ -112,7 +123,7 @@ export default function BlandSelvMixProduct() {
     }
 
     const mixedProduct = {
-      slug: product.id,
+      slug: product.slug,
       title: `${product.title} - ${selectedSize} pcs`,
       description: `A mix of: ${Object.entries(selectedProducts)
         .map(
@@ -160,22 +171,26 @@ export default function BlandSelvMixProduct() {
           {/* Package Size Selection */}
           <div className="mt-4">
             <p>Select Package Size:</p>
-            {product.packages.map((pkg) => (
-              <label key={pkg.size} className="mr-4">
-                <input
-                  type="radio"
-                  name="size"
-                  value={pkg.size}
-                  checked={selectedSize === pkg.size}
-                  onChange={() => setSelectedSize(pkg.size)}
-                />
-                {pkg.size}
-              </label>
-            ))}
+            {product.packages ? (
+              product.packages.map((pkg) => (
+                <label key={pkg.size} className="mr-4">
+                  <input
+                    type="radio"
+                    name="size"
+                    value={pkg.size}
+                    checked={selectedSize === pkg.size}
+                    onChange={() => setSelectedSize(pkg.size)}
+                  />
+                  {pkg.size} pcs
+                </label>
+              ))
+            ) : (
+              <p>No package sizes available.</p>
+            )}
           </div>
 
           {/* Scrollable Drinks Selection */}
-          <div className="mt-4 overflow-y-auto pr-4">
+          <div className="mt-4 overflow-y-auto pr-4" style={{ maxHeight: '400px' }}>
             <p>Select drinks (exactly {maxProducts}):</p>
             {Object.keys(drinksData).map((drinkSlug, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
@@ -222,7 +237,7 @@ export default function BlandSelvMixProduct() {
           </button>
 
           {/* Price */}
-          <p className="text-2xl font-bold mt-4">{(price * quantity / 100).toFixed(2)} kr</p>
+          <p className="text-2xl font-bold mt-4">{(price / 100).toFixed(2)} kr</p>
         </div>
       </div>
     </div>

@@ -1,12 +1,13 @@
 // pages/api/updateBasket.js
 
 import admin from 'firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
 import cookie from 'cookie';
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
+    credential: admin.credential.cert(
+      JSON.parse(process.env.FIREBASE_ADMIN_KEY)
+    ),
   });
 }
 const db = admin.firestore();
@@ -22,22 +23,8 @@ export default async (req, res) => {
 
     const { basketItems } = req.body;
 
-    if (!basketItems) {
-      return res.status(400).json({ error: 'Missing basketItems' });
-    }
-
-    // Recalculate prices server-side to prevent manipulation
-    // TODO: Implement price recalculation logic here
-
-    const docRef = db.collection('sessions').doc(consentId);
-
-    await docRef.set(
-      {
-        basketItems,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    // Update the session document
+    await db.collection('sessions').doc(consentId).update({ basketItems });
 
     res.status(200).json({ success: true });
   } catch (error) {

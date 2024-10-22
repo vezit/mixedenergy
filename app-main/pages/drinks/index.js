@@ -1,7 +1,8 @@
+// pages/drinks/index.js
+
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase'; // Your Firebase config
+import axios from 'axios';
 import Loading from '/components/Loading';
 
 export default function DrinksList() {
@@ -10,21 +11,25 @@ export default function DrinksList() {
 
   useEffect(() => {
     const fetchDrinks = async () => {
-      const drinksRef = collection(db, 'drinks_public');
-      const snapshot = await getDocs(drinksRef);
-      const drinksData = snapshot.docs.map(doc => ({
-        docID: doc.id, // Use Firestore's document ID, which will be the slug (e.g., "faxe-kondi-booster-original")
-        ...doc.data(),
-      }));
-      setDrinks(drinksData);
-      setLoading(false);
+      try {
+        const response = await axios.get('/api/getDrinks');
+        const drinksData = Object.keys(response.data.drinks).map((docID) => ({
+          docID,
+          ...response.data.drinks[docID],
+        }));
+        setDrinks(drinksData);
+      } catch (error) {
+        console.error('Error fetching drinks:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchDrinks();
   }, []);
 
   if (loading) {
-    return  <Loading />;
+    return <Loading />;
   }
 
   return (

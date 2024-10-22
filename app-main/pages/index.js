@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
-import Loading from '../components/Loading'; // Corrected the import path
+import Loading from '../components/Loading';
 
 export default function Home() {
   const [blandSelvMixProducts, setBlandSelvMixProducts] = useState([]);
@@ -15,7 +15,7 @@ export default function Home() {
     const fetchProducts = async () => {
       try {
         const response = await axios.get('/api/getPackages');
-        const packagesData = response.data.packages;
+        const packagesData = response.data.packages; // Now an array
 
         // Separate products by category
         const blandSelvMix = packagesData.filter(

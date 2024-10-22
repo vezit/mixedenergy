@@ -1,18 +1,19 @@
 // pages/api/deleteSession.js
 
 import admin from 'firebase-admin';
-import cookie from 'cookie'; // Import cookie module
+import cookie from 'cookie';
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
+    credential: admin.credential.cert(
+      JSON.parse(process.env.FIREBASE_ADMIN_KEY)
+    ),
   });
 }
 const db = admin.firestore();
 
 export default async (req, res) => {
   try {
-    // Parse cookies from the request headers
     const cookies = cookie.parse(req.headers.cookie || '');
     const consentId = cookies.cookie_consent_id;
 

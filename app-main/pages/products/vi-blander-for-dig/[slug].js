@@ -1,9 +1,8 @@
-// /products/vi-blander-for-dig/[slug].js
+// pages/products/vi-blander-for-dig/[slug].js
+
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useBasket } from '../../../components/BasketContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
 import axios from 'axios';
 import Loading from '/components/Loading';
 
@@ -16,7 +15,7 @@ export default function ViBlanderForDigProduct() {
   const [loading, setLoading] = useState(true);
   const [randomSelection, setRandomSelection] = useState({});
   const [price, setPrice] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(8);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [sugarPreference, setSugarPreference] = useState('alle');
   const [isMysteryBox, setIsMysteryBox] = useState(false);
@@ -26,35 +25,36 @@ export default function ViBlanderForDigProduct() {
   useEffect(() => {
     if (!slug) return;
 
-    const fetchProduct = async () => {
-      const docRef = doc(db, 'packages_public', slug);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const productData = docSnap.data();
-        setProduct({ id: docSnap.id, ...productData });
+    const fetchProductAndDrinks = async () => {
+      try {
+        // Fetch product data
+        const productResponse = await axios.get(`/api/packages/${slug}`);
+        const productData = productResponse.data.package;
+        setProduct(productData);
+
+        // Set default selected size
+        if (productData.packages && productData.packages.length > 0) {
+          setSelectedSize(productData.packages[0].size);
+        }
 
         // Fetch drinks data
-        const drinksData = {};
-        for (const drinkSlug of productData.collection_drinks_public) {
-          const drinkDocRef = doc(db, 'drinks_public', drinkSlug);
-          const drinkDocSnap = await getDoc(drinkDocRef);
-          if (drinkDocSnap.exists()) {
-            drinksData[drinkSlug] = drinkDocSnap.data();
-          }
-        }
-        setDrinksData(drinksData);
-        setLoading(false);
-      } else {
+        const drinksResponse = await axios.post('/api/getDrinksBySlugs', {
+          slugs: productData.collections_drinks,
+        });
+        setDrinksData(drinksResponse.data.drinks);
+      } catch (error) {
+        console.error('Error fetching product or drinks:', error);
         setProduct(null);
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchProduct();
+    fetchProductAndDrinks();
   }, [slug]);
 
   useEffect(() => {
-    if (!loading && product && Object.keys(drinksData).length > 0) {
+    if (!loading && product && Object.keys(drinksData).length > 0 && selectedSize) {
       generateRandomPackage(selectedSize);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,7 +68,7 @@ export default function ViBlanderForDigProduct() {
     let remaining = parseInt(size);
 
     // Filter drinks based on sugar preference
-    let drinksCopy = [...product.collection_drinks_public].filter((drinkSlug) => {
+    let drinksCopy = [...product.collections_drinks].filter((drinkSlug) => {
       const drink = drinksData[drinkSlug];
       if (!drink) return false;
       if (sugarPreference === 'uden_sukker' && !drink.isSugarFree) return false;
@@ -105,6 +105,7 @@ export default function ViBlanderForDigProduct() {
       const response = await axios.post('/api/getPackagePrice', {
         selectedProducts: selection,
         selectedSize,
+        slug,
       });
 
       if (response.data.price) {
@@ -143,7 +144,7 @@ export default function ViBlanderForDigProduct() {
           .join(', ')}`;
 
     const mixedProduct = {
-      slug: product.id,
+      slug: product.slug,
       title: `${product.title} - ${selectedSize} pcs`,
       description: description,
       image: product.image,
@@ -187,18 +188,22 @@ export default function ViBlanderForDigProduct() {
             {/* Package Size Selection */}
             <div className="mt-4">
               <p>Select Package Size:</p>
-              {product.packages.map((pkg) => (
-                <label key={pkg.size} className="mr-4">
-                  <input
-                    type="radio"
-                    name="size"
-                    value={pkg.size}
-                    checked={selectedSize === pkg.size}
-                    onChange={() => handleSizeChange(pkg.size)}
-                  />
-                  {pkg.size} pcs
-                </label>
-              ))}
+              {product.packages ? (
+                product.packages.map((pkg) => (
+                  <label key={pkg.size} className="mr-4">
+                    <input
+                      type="radio"
+                      name="size"
+                      value={pkg.size}
+                      checked={selectedSize === pkg.size}
+                      onChange={() => handleSizeChange(pkg.size)}
+                    />
+                    {pkg.size} pcs
+                  </label>
+                ))
+              ) : (
+                <p>No package sizes available.</p>
+              )}
             </div>
 
             {/* Sugar Preference Selection */}
@@ -256,7 +261,7 @@ export default function ViBlanderForDigProduct() {
               }`}
             >
               <h2 className="text-xl font-bold text-center mt-4">
-                {isMysteryBox ? 'Mysterybox enabled' : `Din Random ${product.title}`}
+                {isMysteryBox ? 'Mysterybox enabled' : `Your Random ${product.title}`}
               </h2>
               {isMysteryBox ? (
                 // Display a question mark in the center
@@ -295,7 +300,7 @@ export default function ViBlanderForDigProduct() {
 
             {/* Price */}
             <div className="text-2xl font-bold mt-4">
-              <span>{(price * quantity / 100).toFixed(2)} kr</span>
+              <span>{(price / 100).toFixed(2)} kr</span>
             </div>
           </div>
         </div>
@@ -341,11 +346,11 @@ export default function ViBlanderForDigProduct() {
         }
 
         .iphone-toggle input:checked + .slider {
-          background-color: #2196F3;
+          background-color: #2196f3;
         }
 
         .iphone-toggle input:focus + .slider {
-          box-shadow: 0 0 1px #2196F3;
+          box-shadow: 0 0 1px #2196f3;
         }
 
         .iphone-toggle input:checked + .slider:before {
