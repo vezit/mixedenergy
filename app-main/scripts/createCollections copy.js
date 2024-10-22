@@ -6,7 +6,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
-import minimist from 'minimist';
+import minimist from 'minimist'; // Ensure correct import for ES Modules
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -17,11 +17,12 @@ const __dirname = path.dirname(__filename);
 
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2), {
-  boolean: ['force'],
+  boolean: ['force', 'force-dogecry-overwrite'],
   alias: { f: 'force' },
 });
 
 const forceFlag = argv.force;
+const forceDogecryOverwrite = argv['force-dogecry-overwrite'];
 
 // Initialize Firebase Admin
 const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
@@ -77,25 +78,22 @@ async function collectionExists(collectionName) {
 async function populateCollections() {
   const dataFilePath = path.join(
     __dirname,
-    '../data/base/firebase_collections_merged.json'
+    '../data/base/firebase_collections_structure.json'
   );
   const jsonData = JSON.parse(fs.readFileSync(dataFilePath, 'utf-8'));
 
-  // Process the data to ensure collection_<something> fields are arrays of docIDs
-  const processedData = processData(jsonData);
-
   // Validate data structure
-  const validationError = validateDataStructure(processedData);
+  const validationError = validateDataStructure(jsonData);
   if (validationError) {
     console.error(validationError);
     process.exit(1);
   }
 
   // Get all collection names from the JSON data
-  const collectionNames = Object.keys(processedData);
+  const collectionNames = Object.keys(jsonData);
 
   for (const collectionName of collectionNames) {
-    const collectionData = processedData[collectionName];
+    const collectionData = jsonData[collectionName];
 
     // Skip if the data is not an object
     if (typeof collectionData !== 'object') {
@@ -103,6 +101,45 @@ async function populateCollections() {
         `Skipping collection "${collectionName}" because its data is not an object.`
       );
       continue;
+    }
+
+    // Check for public/private counterpart
+    const counterpartName = getCounterpartCollectionName(collectionName);
+    if (counterpartName) {
+      // Check for documents that exist in one but not the other
+      const thisCollectionDocs = Object.keys(collectionData);
+      const counterpartData = jsonData[counterpartName] || {};
+      const counterpartDocs = Object.keys(counterpartData);
+
+      const docsOnlyInThisCollection = thisCollectionDocs.filter(
+        (docId) => !counterpartDocs.includes(docId)
+      );
+      const docsOnlyInCounterpart = counterpartDocs.filter(
+        (docId) => !thisCollectionDocs.includes(docId)
+      );
+
+      // Warn and create empty documents
+      for (const docId of docsOnlyInThisCollection) {
+        console.warn(
+          `Warning: Document "${docId}" exists in "${collectionName}" but not in "${counterpartName}". Creating empty document in "${counterpartName}".`
+        );
+        // Create empty document in counterpart collection
+        if (!jsonData[counterpartName]) {
+          jsonData[counterpartName] = {};
+        }
+        jsonData[counterpartName][docId] = {};
+      }
+
+      for (const docId of docsOnlyInCounterpart) {
+        console.warn(
+          `Warning: Document "${docId}" exists in "${counterpartName}" but not in "${collectionName}". Creating empty document in "${collectionName}".`
+        );
+        // Create empty document in this collection
+        if (!jsonData[collectionName]) {
+          jsonData[collectionName] = {};
+        }
+        jsonData[collectionName][docId] = {};
+      }
     }
 
     // Data Type Consistency and Field Consistency Check
@@ -127,29 +164,40 @@ async function populateCollections() {
     for (const docId of docIds) {
       const docData = collectionData[docId];
 
+      // Remove underscores from private fields if it's a private collection
+      const finalDocData = { ...docData };
+      if (collectionName.endsWith('_private')) {
+        Object.keys(docData).forEach((key) => {
+          if (key.startsWith('_')) {
+            finalDocData[key.substring(1)] = docData[key];
+            delete finalDocData[key];
+          }
+        });
+      }
+
       // Ensure field consistency based on the first document
       // Add missing fields
       for (const field of firstDocFields) {
-        if (!(field in docData)) {
+        if (!(field in finalDocData)) {
           console.warn(
             `Warning: Field "${field}" is missing in document "${docId}" in collection "${collectionName}". Adding it with default value.`
           );
-          docData[field] = deepClone(firstDocData[field]);
+          finalDocData[field] = deepClone(firstDocData[field]);
         }
       }
 
       // Remove extra fields
-      for (const field of Object.keys(docData)) {
+      for (const field of Object.keys(finalDocData)) {
         if (!firstDocFields.includes(field)) {
           console.warn(
             `Warning: Field "${field}" in document "${docId}" does not exist in the first document of collection "${collectionName}". Removing it.`
           );
-          delete docData[field];
+          delete finalDocData[field];
         }
       }
 
       // Check and enforce data types
-      for (const [field, value] of Object.entries(docData)) {
+      for (const [field, value] of Object.entries(finalDocData)) {
         const expectedType = fieldTypes[field];
         const actualType = typeof value;
 
@@ -189,7 +237,7 @@ async function populateCollections() {
               default:
                 throw new Error(`Unsupported type "${expectedType}".`);
             }
-            docData[field] = convertedValue;
+            finalDocData[field] = convertedValue;
             console.warn(
               `Converted field "${field}" in document "${docId}" to type "${expectedType}".`
             );
@@ -202,16 +250,16 @@ async function populateCollections() {
         }
       }
 
-      // Validate collection references in 'collection_<collection>' and 'collections_<collection>' fields
-      const fieldNames = Object.keys(docData);
+      // Validate collection references in 'collection_<collection>' fields
+      const fieldNames = Object.keys(finalDocData);
 
       for (const fieldName of fieldNames) {
-        const match = fieldName.match(/^collections?_(.+)$/); // Updated regex to match both 'collection_' and 'collections_'
+        const match = fieldName.match(/^collection_(.+)$/);
         if (match) {
           const referencedCollectionName = match[1];
-          const referencedCollectionData = processedData[referencedCollectionName];
+          const referencedCollectionData = jsonData[referencedCollectionName];
 
-          if (!Array.isArray(docData[fieldName])) {
+          if (!Array.isArray(finalDocData[fieldName])) {
             console.error(
               `Error: In collection "${collectionName}", document "${docId}", field "${fieldName}" should be an array.`
             );
@@ -229,7 +277,7 @@ async function populateCollections() {
             referencedCollectionData
           );
 
-          for (const docIdRef of docData[fieldName]) {
+          for (const docIdRef of finalDocData[fieldName]) {
             if (!docIdsInReferencedCollection.includes(docIdRef)) {
               console.error(
                 `Error: In collection "${collectionName}", document "${docId}", field "${fieldName}" references docID "${docIdRef}" which does not exist in collection "${referencedCollectionName}".`
@@ -242,61 +290,27 @@ async function populateCollections() {
 
       // Save the document to Firestore
       const docRef = db.collection(collectionName).doc(docId);
-      await docRef.set(docData);
+      await docRef.set(finalDocData);
     }
 
     console.log(`Collection "${collectionName}" has been populated.`);
   }
-
-  // Write the processed data to a result file
-  const outputFilePath = path.join(
-    __dirname,
-    '../data/base/firebase_collections_merged_result.json'
-  );
-  fs.writeFileSync(outputFilePath, JSON.stringify(processedData, null, 2));
-  console.log(`Processed data has been written to ${outputFilePath}`);
-}
-
-// Function to process data and ensure collection_<something> fields are arrays of docIDs
-function processData(data) {
-  const processedData = deepClone(data);
-  const collectionNames = Object.keys(processedData);
-
-  for (const collectionName of collectionNames) {
-    const collectionData = processedData[collectionName];
-
-    for (const docId of Object.keys(collectionData)) {
-      const docData = collectionData[docId];
-
-      for (const [fieldName, value] of Object.entries(docData)) {
-        const match = fieldName.match(/^collections?_(.+)$/); // Updated regex to match both 'collection_' and 'collections_'
-        if (match) {
-          // Ensure the field is an array
-          if (!Array.isArray(value)) {
-            if (typeof value === 'string') {
-              docData[fieldName] = [value];
-            } else {
-              console.warn(
-                `Warning: Field "${fieldName}" in document "${docId}" should be an array of docIDs. Removing invalid field.`
-              );
-              delete docData[fieldName];
-              continue;
-            }
-          }
-
-          // Ensure the array only contains docIDs (strings)
-          docData[fieldName] = docData[fieldName].filter((id) => typeof id === 'string');
-        }
-      }
-    }
-  }
-
-  return processedData;
 }
 
 // Function to deep clone an object
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
+}
+
+// Function to get the counterpart collection name
+function getCounterpartCollectionName(collectionName) {
+  if (collectionName.endsWith('_public')) {
+    return collectionName.replace('_public', '_private');
+  } else if (collectionName.endsWith('_private')) {
+    return collectionName.replace('_private', '_public');
+  } else {
+    return null;
+  }
 }
 
 // Function to validate data structure
@@ -305,7 +319,35 @@ function validateDataStructure(data) {
     return 'Invalid data format. Expected an object.';
   }
 
-  // No further validation needed as we no longer require counterparts
+  // Validate that for each *_public collection, there is a *_private collection, and vice versa
+  const collectionNames = Object.keys(data);
+  const publicCollections = collectionNames.filter((name) =>
+    name.endsWith('_public')
+  );
+  const privateCollections = collectionNames.filter((name) =>
+    name.endsWith('_private')
+  );
+
+  for (const pubCol of publicCollections) {
+    const counterpart = pubCol.replace('_public', '_private');
+    if (!collectionNames.includes(counterpart)) {
+      console.warn(
+        `Warning: Collection "${pubCol}" does not have a counterpart "${counterpart}". An empty counterpart will be created.`
+      );
+      data[counterpart] = {};
+    }
+  }
+
+  for (const privCol of privateCollections) {
+    const counterpart = privCol.replace('_private', '_public');
+    if (!collectionNames.includes(counterpart)) {
+      console.warn(
+        `Warning: Collection "${privCol}" does not have a counterpart "${counterpart}". An empty counterpart will be created.`
+      );
+      data[counterpart] = {};
+    }
+  }
+
   return null; // No error
 }
 
@@ -329,7 +371,7 @@ async function deleteAndCreateCollections() {
   try {
     const dataFilePath = path.join(
       __dirname,
-      '../data/base/firebase_collections_merged.json'
+      '../data/base/firebase_collections_structure.json'
     );
     const jsonData = JSON.parse(fs.readFileSync(dataFilePath, 'utf-8'));
     const collectionNames = Object.keys(jsonData);

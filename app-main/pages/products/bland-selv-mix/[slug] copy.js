@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useBasket } from '../../../components/BasketContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-import axios from 'axios';
 import Loading from '/components/Loading';
 
 export default function BlandSelvMixProduct() {
@@ -15,7 +14,7 @@ export default function BlandSelvMixProduct() {
   const [drinksData, setDrinksData] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState({});
-  const [price, setPrice] = useState(0);
+  const [price, setPrice] = useState(0); // Initialize price to 0
   const [selectedSize, setSelectedSize] = useState(8); // Default package size
   const [quantity, setQuantity] = useState(1);
   const maxProducts = parseInt(selectedSize);
@@ -42,6 +41,7 @@ export default function BlandSelvMixProduct() {
           }
         }
         setDrinksData(drinksData);
+        // Remove automatic selection on load
       } else {
         setProduct(null);
       }
@@ -51,32 +51,31 @@ export default function BlandSelvMixProduct() {
     fetchProduct();
   }, [slug]);
 
-  // Fetch price whenever selectedProducts or selectedSize changes
-  useEffect(() => {
-    const fetchPrice = async () => {
-      if (Object.keys(selectedProducts).length === 0) {
-        setPrice(0);
-        return;
+
+
+  // Function to calculate the total price with discounts
+  const calculateTotalPrice = (selection) => {
+    let totalPrice = 0;
+    for (const [drinkSlug, qty] of Object.entries(selection)) {
+      const drink = drinksData[drinkSlug];
+      if (drink && drink.salePrice) {
+        // convert drink.salePrice
+        totalPrice += parseInt(drink.salePrice) * qty;
       }
+    }
 
-      try {
-        const response = await axios.post('/api/getPackagePrice', {
-          selectedProducts,
-          selectedSize,
-        });
+    // Apply discounts based on package size
+    let discount = 0;
+    if (parseInt(selectedSize) === 12) {
+      discount = 0.05; // 5% discount
+    } else if (parseInt(selectedSize) === 18) {
+      discount = 0.10; // 10% discount
+    }
 
-        if (response.data.price) {
-          setPrice(response.data.price); // Set the price from the API
-        } else {
-          console.error('Price not returned from API:', response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching price:', error);
-      }
-    };
+    const discountedPrice = totalPrice * (1 - discount);
+    return { totalPrice, discountedPrice, discount };
+  };
 
-    fetchPrice();
-  }, [selectedProducts, selectedSize]);
 
   // Function to handle quantity changes
   const handleProductQuantityChange = (drinkSlug, action) => {
@@ -95,9 +94,14 @@ export default function BlandSelvMixProduct() {
         delete updatedSelected[drinkSlug];
       }
 
+      // Recalculate price
+      const { discountedPrice } = calculateTotalPrice(updatedSelected);
+      setPrice(discountedPrice); // Use discountedPrice, which is a number
+
       return updatedSelected;
     });
   };
+
 
   // Calculate the total number of selected drinks
   const getTotalSelected = () => {
@@ -115,10 +119,7 @@ export default function BlandSelvMixProduct() {
       slug: product.id,
       title: `${product.title} - ${selectedSize} pcs`,
       description: `A mix of: ${Object.entries(selectedProducts)
-        .map(
-          ([drinkSlug, qty]) =>
-            `${drinksData[drinkSlug]?.name || drinkSlug} (x${qty})`
-        )
+        .map(([drinkSlug, qty]) => `${drinksData[drinkSlug]?.name || drinkSlug} (x${qty})`)
         .join(', ')}`,
       image: product.image,
       price: price, // Total price per package
@@ -179,12 +180,9 @@ export default function BlandSelvMixProduct() {
             <p>Select drinks (exactly {maxProducts}):</p>
             {Object.keys(drinksData).map((drinkSlug, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
+
                 <a href={`/drinks/${drinkSlug}`} className="flex items-center">
-                  <img
-                    src={drinksData[drinkSlug]?.image}
-                    alt={drinksData[drinkSlug]?.name || drinkSlug}
-                    className="w-12 h-12 object-cover mr-4"
-                  />
+                  <img src={drinksData[drinkSlug]?.image} alt={drinksData[drinkSlug]?.name || drinkSlug} className="w-12 h-12 object-cover mr-4" />
                   <span>{drinksData[drinkSlug]?.name || drinkSlug}</span>
                 </a>
                 <div className="flex items-center">

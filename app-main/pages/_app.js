@@ -1,34 +1,21 @@
 // pages/_app.js
+
 import '../styles/globals.css';
-import Header from '../components/Header';                    // Import the Header component
-import Footer from '../components/Footer';                    // Import the Footer component
-import { useModal } from '../lib/modals';                     // Import the useModal hook
-import CookieConsent from '../components/CookieConsent';      // Import the CookieConsent component
-import { BasketProvider } from '../components/BasketContext';        // Import BasketProvider
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import { useModal } from '../lib/modals';
+import CookieConsent from '../components/CookieConsent';
+import { BasketProvider } from '../components/BasketContext';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import * as gtag from '../lib/gtag';                          // Import Google Analytics tracking functions
-import { db } from '../lib/firebase';                         // Import db directly
-import { doc, getDoc, setDoc } from 'firebase/firestore';      // Import necessary Firestore functions
+import * as gtag from '../lib/gtag';
+import { getCookie } from '../lib/cookies';
+import axios from 'axios';
 import AddToBasketPopup from '../components/AddToBasketPopup';
-
 
 function MyApp({ Component, pageProps }) {
   const { isModalOpen, closeModal } = useModal(true);
   const router = useRouter();
-
-  // Helper function to get a cookie by name
-  const getCookie = (name) => {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-      if (c.indexOf(nameEQ) === 0)
-        return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-  };
 
   // Track page views when the route changes
   useEffect(() => {
@@ -42,26 +29,22 @@ function MyApp({ Component, pageProps }) {
     };
   }, [router.events]);
 
-  // Check for session cookie and Firebase session on any page load
+  // Check for session cookie and initialize session via API
   useEffect(() => {
     const consentId = getCookie('cookie_consent_id');
     if (consentId) {
-      const docRef = doc(db, 'sessions_public', consentId);
-
-      getDoc(docRef)
-        .then((docSnap) => {
-          if (!docSnap.exists()) {
-            // Session does not exist in Firebase, create it
-            setDoc(docRef, {
-              consentId: consentId,
-              createdAt: new Date(),
-              basketItems: [],
-              customerDetails: {},
-            });
-          }
-        })
+      // Ensure session exists via API
+      axios
+        .get('/api/getBasket', { params: { consentId } })
         .catch((error) => {
-          console.error('Error checking session in Firebase:', error);
+          if (error.response && error.response.status === 404) {
+            // Session does not exist, create it
+            axios.post('/api/createSession', { consentId }).catch((err) => {
+              console.error('Error creating session:', err);
+            });
+          } else {
+            console.error('Error checking session:', error);
+          }
         });
     }
   }, []);

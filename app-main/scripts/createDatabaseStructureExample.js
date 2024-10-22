@@ -1,12 +1,10 @@
-// scripts/createCollections.js
+// scripts/createDatabaseStructureExample.js
 
 import admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import readline from 'readline';
 import { fileURLToPath } from 'url';
-import minimist from 'minimist';
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -15,66 +13,16 @@ dotenv.config({ path: '.env.local' });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Parse command line arguments
-const argv = minimist(process.argv.slice(2), {
-  boolean: ['force'],
-  alias: { f: 'force' },
-});
-
-const forceFlag = argv.force;
-
 // Initialize Firebase Admin
 const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'mixedenergy-dk.appspot.com', // Use your storage bucket
 });
 
 const db = admin.firestore();
-const bucket = admin.storage().bucket();
 
-// Helper function to delete an entire collection
-async function deleteCollection(collectionName) {
-  const collectionRef = db.collection(collectionName);
-  const batchSize = 500;
-  let numDeleted = 0;
-
-  const deleteQueryBatch = async () => {
-    const querySnapshot = await collectionRef.limit(batchSize).get();
-    if (querySnapshot.size === 0) {
-      return;
-    }
-
-    const batch = db.batch();
-    querySnapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-    numDeleted += querySnapshot.size;
-    console.log(
-      `Deleted ${querySnapshot.size} documents from "${collectionName}" collection.`
-    );
-
-    if (querySnapshot.size === batchSize) {
-      // Delete next batch
-      await deleteQueryBatch();
-    }
-  };
-
-  await deleteQueryBatch();
-  console.log(`Total documents deleted from "${collectionName}": ${numDeleted}`);
-}
-
-// Function to check if a collection exists
-async function collectionExists(collectionName) {
-  const collectionRef = db.collection(collectionName);
-  const snapshot = await collectionRef.limit(1).get();
-  return !snapshot.empty;
-}
-
-// Function to populate collections based on the JSON data
-async function populateCollections() {
+// Function to populate the database
+async function populateDatabase() {
   const dataFilePath = path.join(
     __dirname,
     '../data/base/firebase_collections_merged.json'
@@ -206,7 +154,7 @@ async function populateCollections() {
       const fieldNames = Object.keys(docData);
 
       for (const fieldName of fieldNames) {
-        const match = fieldName.match(/^collections?_(.+)$/); // Updated regex to match both 'collection_' and 'collections_'
+        const match = fieldName.match(/^collections?_(.+)$/); // Matches 'collection_' or 'collections_'
         if (match) {
           const referencedCollectionName = match[1];
           const referencedCollectionData = processedData[referencedCollectionName];
@@ -225,9 +173,7 @@ async function populateCollections() {
             process.exit(1);
           }
 
-          const docIdsInReferencedCollection = Object.keys(
-            referencedCollectionData
-          );
+          const docIdsInReferencedCollection = Object.keys(referencedCollectionData);
 
           for (const docIdRef of docData[fieldName]) {
             if (!docIdsInReferencedCollection.includes(docIdRef)) {
@@ -269,7 +215,7 @@ function processData(data) {
       const docData = collectionData[docId];
 
       for (const [fieldName, value] of Object.entries(docData)) {
-        const match = fieldName.match(/^collections?_(.+)$/); // Updated regex to match both 'collection_' and 'collections_'
+        const match = fieldName.match(/^collections?_(.+)$/); // Matches 'collection_' or 'collections_'
         if (match) {
           // Ensure the field is an array
           if (!Array.isArray(value)) {
@@ -285,7 +231,9 @@ function processData(data) {
           }
 
           // Ensure the array only contains docIDs (strings)
-          docData[fieldName] = docData[fieldName].filter((id) => typeof id === 'string');
+          docData[fieldName] = docData[fieldName].filter(
+            (id) => typeof id === 'string'
+          );
         }
       }
     }
@@ -309,82 +257,16 @@ function validateDataStructure(data) {
   return null; // No error
 }
 
-// Function to prompt the user
-function promptUser(query) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
+// Run the script
+populateDatabase()
+  .then(() => {
+    console.log('Database population completed.');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('Error populating database:', error);
+    process.exit(1);
   });
 
-  return new Promise((resolve) =>
-    rl.question(query, (ans) => {
-      rl.close();
-      resolve(ans);
-    })
-  );
-}
 
-// Main function to delete and recreate collections
-async function deleteAndCreateCollections() {
-  try {
-    const dataFilePath = path.join(
-      __dirname,
-      '../data/base/firebase_collections_merged.json'
-    );
-    const jsonData = JSON.parse(fs.readFileSync(dataFilePath, 'utf-8'));
-    const collectionNames = Object.keys(jsonData);
-
-    let shouldProceed = forceFlag;
-
-    if (!forceFlag) {
-      let existingCollections = [];
-      for (const collectionName of collectionNames) {
-        const exists = await collectionExists(collectionName);
-        if (exists) {
-          existingCollections.push(collectionName);
-        }
-      }
-
-      if (existingCollections.length > 0) {
-        console.log(
-          `The following collections already exist: ${existingCollections.join(
-            ', '
-          )}`
-        );
-        const answer = await promptUser(
-          'Do you want to delete and replace them? (yes/no): '
-        );
-        if (answer.toLowerCase() === 'yes' || answer.toLowerCase() === 'y') {
-          shouldProceed = true;
-        } else {
-          console.log('Operation cancelled.');
-          process.exit(0);
-        }
-      } else {
-        shouldProceed = true;
-      }
-    }
-
-    if (shouldProceed) {
-      // Delete existing collections
-      for (const collectionName of collectionNames) {
-        await deleteCollection(collectionName);
-      }
-
-      // Populate collections from JSON file
-      await populateCollections();
-
-      console.log('All collections have been recreated.');
-    } else {
-      console.log('Operation cancelled.');
-    }
-  } catch (error) {
-    console.error('Error deleting or creating collections:', error);
-  }
-}
-
-// Run the script
-(async () => {
-  await deleteAndCreateCollections();
-  process.exit(0);
-})();
+// it is important for me that 

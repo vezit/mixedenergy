@@ -1,5 +1,4 @@
-// components/BasketContext.js
-
+// lib/BasketContext.js
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { getCookie } from '../lib/cookies';
@@ -19,15 +18,17 @@ export const BasketProvider = ({ children }) => {
     country: 'Danmark',
     streetNumber: '',
   });
+  const [consentId, setConsentId] = useState(null);
   const [isNewItemAdded, setIsNewItemAdded] = useState(false);
 
   useEffect(() => {
-    const consentId = getCookie('cookie_consent_id');
+    const consentIdFromCookie = getCookie('cookie_consent_id');
+    setConsentId(consentIdFromCookie);
 
-    if (consentId) {
+    if (consentIdFromCookie) {
       // Fetch basket data from API
       axios
-        .get('/api/getBasket', { params: { consentId } })
+        .get('/api/getBasket', { params: { consentId: consentIdFromCookie } })
         .then((response) => {
           const { basketItems, customerDetails } = response.data;
           if (basketItems) {

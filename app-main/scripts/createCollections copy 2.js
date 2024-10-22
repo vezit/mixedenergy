@@ -81,21 +81,18 @@ async function populateCollections() {
   );
   const jsonData = JSON.parse(fs.readFileSync(dataFilePath, 'utf-8'));
 
-  // Process the data to ensure collection_<something> fields are arrays of docIDs
-  const processedData = processData(jsonData);
-
   // Validate data structure
-  const validationError = validateDataStructure(processedData);
+  const validationError = validateDataStructure(jsonData);
   if (validationError) {
     console.error(validationError);
     process.exit(1);
   }
 
   // Get all collection names from the JSON data
-  const collectionNames = Object.keys(processedData);
+  const collectionNames = Object.keys(jsonData);
 
   for (const collectionName of collectionNames) {
-    const collectionData = processedData[collectionName];
+    const collectionData = jsonData[collectionName];
 
     // Skip if the data is not an object
     if (typeof collectionData !== 'object') {
@@ -202,14 +199,14 @@ async function populateCollections() {
         }
       }
 
-      // Validate collection references in 'collection_<collection>' and 'collections_<collection>' fields
+      // Validate collection references in 'collection_<collection>' fields
       const fieldNames = Object.keys(docData);
 
       for (const fieldName of fieldNames) {
-        const match = fieldName.match(/^collections?_(.+)$/); // Updated regex to match both 'collection_' and 'collections_'
+        const match = fieldName.match(/^collection_(.+)$/);
         if (match) {
           const referencedCollectionName = match[1];
-          const referencedCollectionData = processedData[referencedCollectionName];
+          const referencedCollectionData = jsonData[referencedCollectionName];
 
           if (!Array.isArray(docData[fieldName])) {
             console.error(
@@ -247,51 +244,6 @@ async function populateCollections() {
 
     console.log(`Collection "${collectionName}" has been populated.`);
   }
-
-  // Write the processed data to a result file
-  const outputFilePath = path.join(
-    __dirname,
-    '../data/base/firebase_collections_merged_result.json'
-  );
-  fs.writeFileSync(outputFilePath, JSON.stringify(processedData, null, 2));
-  console.log(`Processed data has been written to ${outputFilePath}`);
-}
-
-// Function to process data and ensure collection_<something> fields are arrays of docIDs
-function processData(data) {
-  const processedData = deepClone(data);
-  const collectionNames = Object.keys(processedData);
-
-  for (const collectionName of collectionNames) {
-    const collectionData = processedData[collectionName];
-
-    for (const docId of Object.keys(collectionData)) {
-      const docData = collectionData[docId];
-
-      for (const [fieldName, value] of Object.entries(docData)) {
-        const match = fieldName.match(/^collections?_(.+)$/); // Updated regex to match both 'collection_' and 'collections_'
-        if (match) {
-          // Ensure the field is an array
-          if (!Array.isArray(value)) {
-            if (typeof value === 'string') {
-              docData[fieldName] = [value];
-            } else {
-              console.warn(
-                `Warning: Field "${fieldName}" in document "${docId}" should be an array of docIDs. Removing invalid field.`
-              );
-              delete docData[fieldName];
-              continue;
-            }
-          }
-
-          // Ensure the array only contains docIDs (strings)
-          docData[fieldName] = docData[fieldName].filter((id) => typeof id === 'string');
-        }
-      }
-    }
-  }
-
-  return processedData;
 }
 
 // Function to deep clone an object

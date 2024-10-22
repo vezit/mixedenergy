@@ -1,1 +1,1 @@
-tree -Is 'node_modules|public'
+tree -Is 'node_modules|public|data|scripts'

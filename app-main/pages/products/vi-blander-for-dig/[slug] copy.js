@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useBasket } from '../../../components/BasketContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-import axios from 'axios';
 import Loading from '/components/Loading';
 
 export default function ViBlanderForDigProduct() {
@@ -16,12 +15,37 @@ export default function ViBlanderForDigProduct() {
   const [loading, setLoading] = useState(true);
   const [randomSelection, setRandomSelection] = useState({});
   const [price, setPrice] = useState(0);
+  const [originalPrice, setOriginalPrice] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [selectedSize, setSelectedSize] = useState(8);
   const [quantity, setQuantity] = useState(1);
   const [sugarPreference, setSugarPreference] = useState('alle');
   const [isMysteryBox, setIsMysteryBox] = useState(false);
 
   const { addItemToBasket } = useBasket();
+
+  // Function to calculate the total price with discounts
+const calculateTotalPrice = (selection) => {
+  let totalPrice = 0;
+  for (const [drinkSlug, qty] of Object.entries(selection)) {
+    const drink = drinksData[drinkSlug];
+    if (drink && drink.salePrice) {
+      totalPrice += parseInt(drink.salePrice) * qty;
+    }
+  }
+
+  // Apply discounts based on package size
+  let discount = 0;
+  if (parseInt(selectedSize) === 12) {
+    discount = 0.05; // 5% discount
+  } else if (parseInt(selectedSize) === 18) {
+    discount = 0.10; // 10% discount
+  }
+
+  const discountedPrice = totalPrice * (1 - discount);
+  return { totalPrice, discountedPrice, discount };
+};
+
 
   useEffect(() => {
     if (!slug) return;
@@ -60,6 +84,7 @@ export default function ViBlanderForDigProduct() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, product, drinksData, sugarPreference, selectedSize]);
 
+
   // Function to generate a random package
   const generateRandomPackage = (size) => {
     if (!product || Object.keys(drinksData).length === 0) return;
@@ -96,25 +121,11 @@ export default function ViBlanderForDigProduct() {
 
     setRandomSelection(randomSelection);
 
-    // Fetch price from API
-    fetchPrice(randomSelection);
-  };
-
-  const fetchPrice = async (selection) => {
-    try {
-      const response = await axios.post('/api/getPackagePrice', {
-        selectedProducts: selection,
-        selectedSize,
-      });
-
-      if (response.data.price) {
-        setPrice(response.data.price); // Set the price from the API
-      } else {
-        console.error('Price not returned from API:', response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching price:', error);
-    }
+    // Calculate price
+    const { totalPrice, discountedPrice, discount } = calculateTotalPrice(randomSelection);
+    setOriginalPrice(totalPrice);
+    setPrice(roundToNearestHundred(discountedPrice));
+    setDiscount(discount);
   };
 
   // Function to handle package size change
@@ -122,6 +133,10 @@ export default function ViBlanderForDigProduct() {
     setSelectedSize(size);
   };
 
+  const roundToNearestHundred = (price) => {
+    return Math.round(price / 100) * 100;
+  };
+  
   // Function to add the random package to the basket
   const addToBasket = () => {
     const totalSelected = Object.values(randomSelection).reduce(
@@ -180,6 +195,7 @@ export default function ViBlanderForDigProduct() {
             <p className="text-lg text-gray-700">{product.description}</p>
           </div>
         </div>
+
 
         {/* Right Column: Random Package and Actions */}
         <div className="md:w-1/2 md:pl-8 flex flex-col justify-between h-full flex-1">
@@ -249,8 +265,8 @@ export default function ViBlanderForDigProduct() {
               </label>
             </div>
 
-            {/* Display Random Package or Mysterybox */}
-            <div
+{/* Display Random Package or Mysterybox */}
+<div
               className={`mt-4 h-[30rem] pr-4 border border-gray-300 rounded ${
                 isMysteryBox ? 'overflow-hidden' : 'overflow-y-auto'
               }`}
@@ -295,7 +311,18 @@ export default function ViBlanderForDigProduct() {
 
             {/* Price */}
             <div className="text-2xl font-bold mt-4">
-              <span>{(price * quantity / 100).toFixed(2)} kr</span>
+              {discount > 0 ? (
+                <>
+                  <span className="line-through mr-2">
+                    {originalPrice * quantity / 100} kr
+                  </span>
+                  <span>
+                    {price * quantity / 100} kr
+                  </span>
+                </>
+              ) : (
+                <span>{price * quantity / 100} kr</span>
+              )}
             </div>
           </div>
         </div>
