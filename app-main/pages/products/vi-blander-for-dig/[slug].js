@@ -15,6 +15,7 @@ export default function ViBlanderForDigProduct() {
   const [loading, setLoading] = useState(true);
   const [randomSelection, setRandomSelection] = useState({});
   const [price, setPrice] = useState(0);
+  const [originalPrice, setOriginalPrice] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [sugarPreference, setSugarPreference] = useState('alle');
@@ -109,7 +110,8 @@ export default function ViBlanderForDigProduct() {
       });
 
       if (response.data.price) {
-        setPrice(response.data.price); // Set the price from the API
+        setPrice(response.data.price); // Set the discounted price
+        setOriginalPrice(response.data.originalPrice); // Set the original price
       } else {
         console.error('Price not returned from API:', response.data);
       }
@@ -148,7 +150,8 @@ export default function ViBlanderForDigProduct() {
       title: `${product.title} - ${selectedSize} pcs`,
       description: description,
       image: product.image,
-      price: price, // Total price per package
+      price: price, // Discounted price
+      originalPrice: originalPrice, // Original price
       quantity: quantity,
       selectedSize: selectedSize,
       selectedProducts: randomSelection,
@@ -300,7 +303,16 @@ export default function ViBlanderForDigProduct() {
 
             {/* Price */}
             <div className="text-2xl font-bold mt-4">
-              <span>{(price / 100).toFixed(2)} kr</span>
+              {originalPrice > price ? (
+                <>
+                  <span className="line-through text-gray-500 mr-2">
+                    {(originalPrice / 100).toFixed(2)} kr
+                  </span>
+                  <span>{(price / 100).toFixed(2)} kr</span>
+                </>
+              ) : (
+                <span>{(price / 100).toFixed(2)} kr</span>
+              )}
             </div>
           </div>
         </div>

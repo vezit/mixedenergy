@@ -2,6 +2,15 @@
     Bland selv skal ikke vælge automatisk naar man trykker paa den.
     5 % paa 12 og 10 % paa 18
 
+    vi runder op eller ned til nærmeste 5
+    160.80 >> 160
+    162 >> 160
+    162.49 >> 160
+    162.50 >> 165
+    162.51 >> 165
+    
+    163 >> 165
+
 2 gør saa naar man trykker paa tilføj til kurv at, kurven kommer op ligsom det billede jeg sendte til christrian, baade i en mobil- og web venlig udgave.
 
 

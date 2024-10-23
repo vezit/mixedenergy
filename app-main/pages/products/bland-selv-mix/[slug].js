@@ -157,6 +157,7 @@ export default function BlandSelvMixProduct() {
       <div className="flex flex-col md:flex-row">
         {/* Left Column: Image and Description */}
         <div className="md:w-1/2">
+        {/* <div className="md:w-1/2 flex-1 flex flex-col justify-center"></div> */}
           <img src={product.image} alt={product.title} className="w-full h-auto" />
 
           {/* Description */}
@@ -190,7 +191,7 @@ export default function BlandSelvMixProduct() {
           </div>
 
           {/* Scrollable Drinks Selection */}
-          <div className="mt-4 overflow-y-auto pr-4" style={{ maxHeight: '400px' }}>
+          <div className="mt-4 overflow-y-auto pr-4">
             <p>Select drinks (exactly {maxProducts}):</p>
             {Object.keys(drinksData).map((drinkSlug, index) => (
               <div key={index} className="flex items-center justify-between mt-2">

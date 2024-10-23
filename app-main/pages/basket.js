@@ -1,3 +1,4 @@
+// pages/basket.js
 import { useState, useEffect } from 'react';
 import router from 'next/router';
 import { useBasket } from '../components/BasketContext';
