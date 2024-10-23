@@ -1,6 +1,5 @@
 // /pages/api/addToBasket.js
 import { db } from '../../lib/firebaseAdmin';
-import { doc, setDoc, getDoc } from 'firebase-admin/firestore';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

@@ -1,15 +1,17 @@
 // pages/api/getSession.js
 
-import admin from 'firebase-admin';
-import cookie from 'cookie';
+// import admin from 'firebase-admin';
+// import cookie from 'cookie';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
-  });
-}
+// if (!admin.apps.length) {
+//   admin.initializeApp({
+//     credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
+//   });
+// }
 
-const db = admin.firestore();
+// const db = admin.firestore();
+
+import { db } from '../../lib/firebaseAdmin';
 
 export default async function handler(req, res) {
   try {

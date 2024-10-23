@@ -1,14 +1,9 @@
 // pages/api/checkAuth.js
 
-import admin from 'firebase-admin';
+import { admin } from '../../lib/firebaseAdmin';
 import cookie from 'cookie'; // Import the cookie module
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
-  });
-}
+
 
 export default async function handler(req, res) {
   try {

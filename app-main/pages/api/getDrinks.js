@@ -1,15 +1,6 @@
 // pages/api/getDrinks.js
 
-import admin from 'firebase-admin';
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(
-      JSON.parse(process.env.FIREBASE_ADMIN_KEY)
-    ),
-  });
-}
-const db = admin.firestore();
+import { db } from '../../lib/firebaseAdmin';
 
 export default async (req, res) => {
   try {

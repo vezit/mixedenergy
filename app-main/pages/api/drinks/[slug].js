@@ -1,15 +1,8 @@
 // pages/api/drinks/[slug].js
 
-import admin from 'firebase-admin';
+import { db } from '../../../lib/firebaseAdmin';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(
-      JSON.parse(process.env.FIREBASE_ADMIN_KEY)
-    ),
-  });
-}
-const db = admin.firestore();
+
 
 export default async (req, res) => {
   const { slug } = req.query;

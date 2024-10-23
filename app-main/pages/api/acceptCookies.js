@@ -1,15 +1,10 @@
 // pages/api/acceptCookies.js
 
-import admin from 'firebase-admin';
+import { db } from '../../lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import cookie from 'cookie';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
-  });
-}
-const db = admin.firestore();
+
 
 export default async (req, res) => {
   try {
