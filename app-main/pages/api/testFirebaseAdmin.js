@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   try {
     console.log('Attempting to read from Firestore...');
-    const testDoc = await db.collection('test').doc('testDoc').get();
+    const testDoc = await db.collection('sessions').doc('session1').get();
     
     if (!testDoc.exists) {
       console.log('Test document does not exist.');
