@@ -12,6 +12,7 @@
 // const db = admin.firestore();
 
 import { db } from '../../lib/firebaseAdmin';
+import cookie from 'cookie';
 
 export default async function handler(req, res) {
   try {
