@@ -9,7 +9,7 @@ const BannerSteps = ({ currentStep, onStepChange }) => {
   ];
 
   return (
-    <div className="flex justify-center space-x-8 bg-gray-800 text-white py-4 rounded-lg shadow-lg">
+    <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-8 bg-gray-800 text-white py-4 rounded-lg shadow-lg">
       {steps.map((step) => (
         <div
           key={step.number}
