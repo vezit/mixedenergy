@@ -99,41 +99,42 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
   };
 
   // Function to create InfoWindow content
+  // Function to create InfoWindow content
   const createInfoWindowContent = (point) => {
     const content = document.createElement('div');
     content.style.fontFamily = 'Arial, sans-serif';
     content.style.width = '100%';
-    content.style.maxWidth = '220px';
+    content.style.maxWidth = '200px';
 
     const container = document.createElement('div');
     container.style.backgroundColor = '#fff';
     container.style.padding = '10px';
     container.style.borderRadius = '8px';
-    // container.style.maxHeight = '270px'; // Set max height
-    container.style.overflowY = 'auto'; // Add scroll for overflow if needed
+    container.style.maxHeight = '270px'; // Set max height
+    container.style.overflowY = 'auto'; // Add scroll for overflow
 
     const title = document.createElement('h2');
-    title.style.fontSize = '13px';
-    title.style.fontWeight = '700';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = 'bold';
     title.style.margin = '0 0 10px';
-    title.style.whiteSpace = 'normal'; // Allow wrapping instead of ellipsis
-    title.style.lineHeight = '1.2em';  // Adjust line height for better readability
+    title.style.whiteSpace = 'nowrap';
+    title.style.overflow = 'hidden';
+    title.style.textOverflow = 'ellipsis'; // Handle title overflow
     title.textContent = point.name;
+
+    // Adjust title size dynamically if overflow occurs
+    if (title.scrollWidth > container.offsetWidth) {
+        title.style.fontSize = '14px'; // Make title smaller if overflowing
+    }
 
     const address1 = document.createElement('p');
     address1.style.fontSize = '14px';
     address1.style.margin = '0';
-    address1.style.color = '#7b7b7b';
-    address1.style.fontWeight = "300"
-    address1.style.fontSize = "13px"
     address1.textContent = `${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()}`;
 
     const address2 = document.createElement('p');
     address2.style.fontSize = '14px';
     address2.style.margin = '0';
-    address2.style.color = '#7b7b7b';
-    address2.style.fontWeight = "300"
-    address2.style.fontSize = "13px"
     address2.textContent = `${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}`;
 
     const hr = document.createElement('hr');
@@ -142,9 +143,6 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
     const openingHoursTitle = document.createElement('b');
     openingHoursTitle.style.fontSize = '14px';
     openingHoursTitle.textContent = 'Åbningstider';
-    openingHoursTitle.style.fontWeight = "700"
-    openingHoursTitle.style.color = "#7b7b7b"
-    openingHoursTitle.style.fontSize = "10px"
 
     const openingHours = formatOpeningHours(point.openingHours.postalServices);
 
@@ -161,63 +159,43 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
 };
 
 
-const formatOpeningHours = (openingHours) => {
-  const list = document.createElement('ul');
-  list.style.listStyleType = 'none';
-  list.style.padding = '0';
-  list.style.margin = '0';
-  list.style.fontSize = '10px';
-  list.style.color = '#7b7b7b';
+  // Function to format opening hours
+  const formatOpeningHours = (openingHours) => {
+    const list = document.createElement('ul');
+    list.style.listStyleType = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    list.style.fontSize = '12px';
 
-  if (!openingHours || openingHours.length === 0) {
-    const listItem = document.createElement('li');
-    listItem.textContent = 'Ingen åbningstider tilgængelige';
-    list.appendChild(listItem);
+    if (!openingHours || openingHours.length === 0) {
+        const listItem = document.createElement('li');
+        listItem.textContent = 'Ingen åbningstider tilgængelige';
+        list.appendChild(listItem);
+        return list;
+    }
+
+    openingHours.forEach((day) => {
+        const listItem = document.createElement('li');
+        listItem.style.lineHeight = '1.5em'; // Align numbers correctly
+        listItem.textContent = `${translateDay(day.openDay)}: ${day.openTime} - ${day.closeTime}`;
+        list.appendChild(listItem);
+    });
+
     return list;
-  }
-
-  openingHours.forEach((day) => {
-    const listItem = document.createElement('li');
-    listItem.style.display = 'flex';  // Use flexbox for alignment
-    listItem.style.justifyContent = 'space-between';  // Distribute space evenly
-    listItem.style.alignItems = 'center';  // Align day and hours on the same line
-    listItem.style.whiteSpace = 'nowrap';  // Prevent breaking lines
-    
-
-    // Create day name element
-    const dayName = document.createElement('span');
-    dayName.textContent = translateDay(day.openDay);
-    dayName.style.flex = '1';  // Let it take up flexible space
-    dayName.style.textAlign = 'left';
-
-    // Create hours element
-    const hours = document.createElement('span');
-    hours.textContent = `${day.openTime} - ${day.closeTime}`;
-    hours.style.flex = '1';  // Let it take up flexible space
-    hours.style.textAlign = 'left';  // Align hours to the right
-
-    listItem.appendChild(dayName);
-    listItem.appendChild(hours);
-
-    list.appendChild(listItem);
-  });
-
-  return list;
 };
 
-
-// Function to translate days to Danish
-const translateDay = (day) => {
-  const days = {
-      Monday: 'Mandag',
-      Tuesday: 'Tirsdag',
-      Wednesday: 'Onsdag',
-      Thursday: 'Torsdag',
-      Friday: 'Fredag',
-      Saturday: 'Lørdag',
-      Sunday: 'Søndag',
-  };
-  return days[day] || day;
+  // Function to translate days to Danish
+  const translateDay = (day) => {
+    const days = {
+        Monday: 'Mandag',
+        Tuesday: 'Tirsdag',
+        Wednesday: 'Onsdag',
+        Thursday: 'Torsdag',
+        Friday: 'Fredag',
+        Saturday: 'Lørdag',
+        Sunday: 'Søndag',
+    };
+    return days[day] || day;
 };
 
   // Update the map when selectedPoint changes
