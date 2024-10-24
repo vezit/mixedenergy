@@ -50,6 +50,32 @@ const Footer = () => {
                 </div>
                 <div className="flex space-x-2">
                     {/* right - payment icons */}
+
+
+                    <img
+                        src="/payment-icons/apple-pay-svgrepo-com.svg"
+                        alt="MasterCard"
+                        className="h-6"
+                    />
+
+
+                    <img
+                        src="/payment-icons/google-pay-or-tez-logo-svgrepo-com.svg"
+                        alt="MasterCard"
+                        className="h-6"
+                    />
+
+
+                    <img
+                        src="/payment-icons/klarna-svgrepo-com.svg"
+                        alt="MasterCard"
+                        className="h-6"
+                    />
+
+
+
+
+
                     <img
                         src="/payment-icons/1156750_finance_mastercard_payment_icon.svg"
                         alt="MasterCard"
