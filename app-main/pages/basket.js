@@ -43,6 +43,18 @@ export default function Basket() {
     }
   }, [basketItems, router]);
 
+  useEffect(() => {
+    if (deliveryOption === 'pickup') {
+      setLoading(true);
+      validateAddressWithDAWA();
+    } else {
+      setLoading(false);
+      // Reset pickup points when not pickup
+      setPickupPoints([]);
+      setSelectedPoint(null);
+    }
+  }, [deliveryOption]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     const updatedDetails = { ...customerDetails, [name]: value };
@@ -95,7 +107,7 @@ export default function Basket() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerDetails),
       });
-
+  
       const data = await response.json();
       const updatedDetails = {
         ...customerDetails,
@@ -104,16 +116,15 @@ export default function Basket() {
         postalCode: data.dawaResponse.resultater[0].adresse.postnr,
         city: data.dawaResponse.resultater[0].adresse.postnrnavn,
       };
-
+  
       updateCustomerDetails(updatedDetails);
-      if (deliveryOption === 'pickup') {
-        fetchPickupPoints(updatedDetails);
-      } else {
-        setLoading(false);
-      }
+  
+      // Fetch pickup points after DAWA validation
+      fetchPickupPoints(updatedDetails);
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
-      setLoading(false);
+    } finally {
+      setLoading(false); // Ensure loading is set to false
     }
   };
 
@@ -133,8 +144,8 @@ export default function Basket() {
       setErrors({});
     }
 
-    setLoading(true);
-    validateAddressWithDAWA();
+    // setLoading(true);
+    // validateAddressWithDAWA();
     setShowPickupPoints(true);
     // Move to the next step
     setCurrentStep(3);
@@ -359,21 +370,24 @@ export default function Basket() {
           <span className="ml-2">Privatpakke Home med omdeling (49,00 kr.)</span>
         </label>
       </div>
-
+  
       {deliveryOption === 'pickup' && (
         <>
-          {showPickupPoints && (
-            <div className="mt-8">
-              {loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="flex flex-col items-center">
-                    <LoadingSpinner />
-                    <p className="mt-4 font-bold">Henter afhentningssteder</p>
-                  </div>
-                </div>
-              ) : (
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="flex flex-col items-center">
+                <LoadingSpinner />
+                <p className="mt-4 font-bold">Henter afhentningssteder</p>
+              </div>
+            </div>
+          ) : (
+            showPickupPoints && (
+              <div className="mt-8">
                 <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
-                  <div className="w-full lg:w-1/2 overflow-y-scroll" style={{ maxHeight: '545px' }}>
+                  <div
+                    className="w-full lg:w-1/2 overflow-y-scroll"
+                    style={{ maxHeight: '545px' }}
+                  >
                     <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
                     <PickupPointsList
                       pickupPoints={pickupPoints}
@@ -389,76 +403,81 @@ export default function Basket() {
                     />
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )
           )}
         </>
       )}
-
-      {!loading && (
-        <div className="text-right mt-4">
-          <button
-            onClick={handleProceedToConfirmation}
-            className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
-          >
-            Næste: Godkend din ordre
-          </button>
-        </div>
-      )}
+  
+      <div className="text-right mt-4">
+        <button
+          onClick={handleProceedToConfirmation}
+          className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+        >
+          Næste: Godkend din ordre
+        </button>
+      </div>
     </div>
   );
 
   const renderOrderConfirmation = () => {
-    const totalPrice = basketItems.reduce((total, item) => total + item.price * item.quantity, 0);
+    const totalPrice = basketItems.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
     const shippingCost = deliveryOption === 'pickup' ? 3900 : 4900; // 39.00 or 49.00 DKK
     const totalPriceWithShipping = totalPrice + shippingCost;
     const vatAmount = totalPriceWithShipping * 0.25; // 25% VAT
-
-    // Prepare invoice address
+  
+    // Prepare invoice address using customer's original input
     const invoiceAddress = `${customerDetails.fullName}
-${customerDetails.address}
-${customerDetails.postalCode} ${customerDetails.city}
-${customerDetails.country}
-${customerDetails.email}`;
-
-    // Prepare delivery address
+  ${customerDetails.address}
+  ${customerDetails.postalCode} ${customerDetails.city}
+  ${customerDetails.country}
+  ${customerDetails.email}`;
+  
+    // Prepare delivery address based on delivery option
     let deliveryAddressText = '';
     if (deliveryOption === 'pickup') {
-      const selectedPickupPoint = pickupPoints.find((point) => point.servicePointId === selectedPoint);
+      // Use the sanitized address from DAWA and selected pickup point
+      const selectedPickupPoint = pickupPoints.find(
+        (point) => point.servicePointId === selectedPoint
+      );
       deliveryAddressText = selectedPickupPoint
         ? `${selectedPickupPoint.name}
-${customerDetails.fullName}
-${selectedPickupPoint.visitingAddress.streetName} ${selectedPickupPoint.visitingAddress.streetNumber}
-${selectedPickupPoint.visitingAddress.postalCode} ${selectedPickupPoint.visitingAddress.city.toUpperCase()}
-${customerDetails.country}`
+  ${customerDetails.fullName}
+  ${selectedPickupPoint.visitingAddress.streetName} ${selectedPickupPoint.visitingAddress.streetNumber}
+  ${selectedPickupPoint.visitingAddress.postalCode} ${selectedPickupPoint.visitingAddress.city.toUpperCase()}
+  ${customerDetails.country}`
         : '';
     } else if (deliveryOption === 'homeDelivery') {
+      // Use the user's original address as typed, including apartment number
       deliveryAddressText = `${customerDetails.fullName}
-${customerDetails.address} ${customerDetails.streetNumber}
-${customerDetails.postalCode} ${customerDetails.city}
-${customerDetails.country}`;
+  ${customerDetails.address}
+  ${customerDetails.postalCode} ${customerDetails.city}
+  ${customerDetails.country}`;
     }
-
+  
     return (
       <div>
         <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
-
+  
         {/* Order Summary */}
         <div className="mb-4">
           <h3 className="font-bold">Fakturaadresse</h3>
           <pre>{invoiceAddress}</pre>
         </div>
-
+  
         <div className="mb-4">
           <h3 className="font-bold">Leveringsadresse</h3>
           <pre>{deliveryAddressText}</pre>
         </div>
-
+  
         <div className="mb-4">
           <h3 className="font-bold">Betalingsmetode</h3>
           <p>Kreditkort, Viabill, Apple Pay, Google Pay, Klarna eller MobilePay</p>
         </div>
-
+  
         <div className="mb-4">
           <h3 className="font-bold">Leveringsmetode</h3>
           {deliveryOption === 'pickup' ? (
@@ -467,7 +486,7 @@ ${customerDetails.country}`;
             <p>Privatpakke Home med omdeling</p>
           )}
         </div>
-
+  
         <div className="mb-4">
           <h3 className="font-bold">Produkter</h3>
           {basketItems.map((item, index) => (
@@ -479,16 +498,18 @@ ${customerDetails.country}`;
             </div>
           ))}
         </div>
-
+  
         <div className="mb-4">
           <p>Varer i alt: {(totalPrice / 100).toFixed(2)} kr.</p>
           <p>Fragt: {(shippingCost / 100).toFixed(2)} kr.</p>
           <p>Heraf moms 25%: {((vatAmount) / 100).toFixed(2)} kr.</p>
           <p>
-            <strong>Total inkl. moms: {(totalPriceWithShipping / 100).toFixed(2)} kr.</strong>
+            <strong>
+              Total inkl. moms: {(totalPriceWithShipping / 100).toFixed(2)} kr.
+            </strong>
           </p>
         </div>
-
+  
         {/* Terms and Conditions Checkbox */}
         <div className="mb-4 p-4 border rounded">
           <p>
@@ -514,7 +535,7 @@ ${customerDetails.country}`;
           </div>
           {termsError && <p className="text-red-500 mt-1">{termsError}</p>}
         </div>
-
+  
         <button
           onClick={handlePayment}
           className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition"
@@ -524,7 +545,6 @@ ${customerDetails.country}`;
       </div>
     );
   };
-
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       {/* Include the BannerSteps component */}
