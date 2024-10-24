@@ -1,44 +1,45 @@
 // components/MapComponent.js
-import React, { useState, useEffect, useRef } from 'react';
-import { GoogleMap, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
-import Loading from './Loading';
-
-const containerStyle = {
-  width: '100%',
-  height: '545px',
-};
-
-// Move libraries array outside the component to prevent reloading
-const libraries = ['marker'];
+import React, { useEffect, useRef } from 'react';
+import { Loader } from '@googlemaps/js-api-loader';
 
 const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
-  const [activeInfoWindow, setActiveInfoWindow] = useState(null);
   const mapRef = useRef(null);
-  const markersRef = useRef([]);
-
-  // Determine the center of the map
-  const center =
-    pickupPoints && pickupPoints.length > 0
-      ? {
-          lat: parseFloat(pickupPoints[0].coordinates[0].northing),
-          lng: parseFloat(pickupPoints[0].coordinates[0].easting),
-        }
-      : {
-          lat: 55.6761,
-          lng: 12.5683,
-        };
-
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-    libraries,
-    version: 'weekly', // Use 'weekly' to get the latest features
-  });
+  const mapInstance = useRef(null);
+  const markersRef = useRef({});
+  const infoWindowsRef = useRef({});
 
   useEffect(() => {
-    if (isLoaded && mapRef.current) {
-      // Clear existing markers
-      markersRef.current.forEach((marker) => marker.map = null);
-      markersRef.current = [];
+    const loader = new Loader({
+      apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+      version: 'weekly',
+      libraries: ['marker'],
+    });
+
+    let isMounted = true;
+
+    loader.load().then(() => {
+      if (!isMounted) return;
+
+      const { google } = window;
+      const { Map } = google.maps;
+      const { AdvancedMarkerElement } = google.maps.marker;
+
+      const center =
+        pickupPoints.length > 0
+          ? {
+              lat: parseFloat(pickupPoints[0].coordinates[0].northing),
+              lng: parseFloat(pickupPoints[0].coordinates[0].easting),
+            }
+          : {
+              lat: 55.6761,
+              lng: 12.5683,
+            };
+
+      mapInstance.current = new Map(mapRef.current, {
+        center,
+        zoom: 12,
+        mapId: 'ba67a4a565ab9000',
+      });
 
       pickupPoints.forEach((point) => {
         const lat = parseFloat(point.coordinates[0].northing);
@@ -46,37 +47,128 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
         const position = { lat, lng };
 
         // Create the AdvancedMarkerElement
-        const marker = new window.google.maps.marker.AdvancedMarkerElement({
+        const marker = new AdvancedMarkerElement({
           position,
-          map: mapRef.current,
+          map: mapInstance.current,
           title: point.name,
         });
 
-        // Add event listener for marker click
-        marker.addListener('gmp-click', () => {
-          setSelectedPoint(point.servicePointId);
-          setActiveInfoWindow(point.servicePointId);
+        // Store marker
+        markersRef.current[point.servicePointId] = marker;
+
+        // Create InfoWindow
+        const infoWindow = new google.maps.InfoWindow({
+          content: createInfoWindowContent(point),
         });
 
-        // Store marker
-        markersRef.current.push(marker);
+        infoWindowsRef.current[point.servicePointId] = infoWindow;
+
+        // Add event listener for marker click
+        marker.addListener('click', () => {
+          setSelectedPoint(point.servicePointId);
+          openInfoWindow(point.servicePointId);
+        });
+      });
+
+      // Open InfoWindow for the selected point
+      if (selectedPoint) {
+        openInfoWindow(selectedPoint);
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (mapInstance.current) {
+        mapInstance.current = null;
+      }
+    };
+  }, [pickupPoints]);
+
+  const openInfoWindow = (servicePointId) => {
+    // Close all InfoWindows
+    Object.values(infoWindowsRef.current).forEach((infoWindow) => infoWindow.close());
+
+    // Open the InfoWindow for the selectedPoint
+    if (infoWindowsRef.current[servicePointId]) {
+      infoWindowsRef.current[servicePointId].open({
+        anchor: markersRef.current[servicePointId],
+        map: mapInstance.current,
       });
     }
-  }, [isLoaded, pickupPoints]);
+  };
+
+  // Function to create InfoWindow content
+  const createInfoWindowContent = (point) => {
+    const content = document.createElement('div');
+    content.style.fontFamily = 'Arial, sans-serif';
+    content.style.width = '100%';
+    content.style.maxWidth = '200px';
+
+    const container = document.createElement('div');
+    container.style.backgroundColor = '#fff';
+    container.style.padding = '10px';
+    container.style.borderRadius = '8px';
+
+    const title = document.createElement('h2');
+    title.style.fontSize = '16px';
+    title.style.fontWeight = 'bold';
+    title.style.margin = '0 0 10px';
+    title.textContent = point.name;
+
+    const address1 = document.createElement('p');
+    address1.style.fontSize = '14px';
+    address1.style.margin = '0';
+    address1.textContent = `${point.visitingAddress.postalCode} ${point.visitingAddress.city.toUpperCase()}`;
+
+    const address2 = document.createElement('p');
+    address2.style.fontSize = '14px';
+    address2.style.margin = '0';
+    address2.textContent = `${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}`;
+
+    const hr = document.createElement('hr');
+    hr.style.margin = '10px 0';
+
+    const openingHoursTitle = document.createElement('b');
+    openingHoursTitle.style.fontSize = '14px';
+    openingHoursTitle.textContent = 'Åbningstider';
+
+    const openingHours = formatOpeningHours(point.openingHours.postalServices);
+
+    container.appendChild(title);
+    container.appendChild(address1);
+    container.appendChild(address2);
+    container.appendChild(hr);
+    container.appendChild(openingHoursTitle);
+    container.appendChild(openingHours);
+
+    content.appendChild(container);
+
+    return content;
+  };
 
   // Function to format opening hours
   const formatOpeningHours = (openingHours) => {
-    if (!openingHours || openingHours.length === 0) return <p>Ingen åbningstider tilgængelige</p>;
+    const list = document.createElement('ul');
+    list.style.listStyleType = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    list.style.fontSize = '12px';
 
-    return (
-      <ul style={{ listStyleType: 'none', padding: 0, margin: 0, fontSize: '12px' }}>
-        {openingHours.map((day, index) => (
-          <li key={index}>
-            {translateDay(day.openDay)}: {day.openTime} - {day.closeTime}
-          </li>
-        ))}
-      </ul>
-    );
+    if (!openingHours || openingHours.length === 0) {
+      const listItem = document.createElement('li');
+      listItem.textContent = 'Ingen åbningstider tilgængelige';
+      list.appendChild(listItem);
+      return list;
+    }
+
+    openingHours.forEach((day) => {
+      const listItem = document.createElement('li');
+      listItem.textContent = `${translateDay(day.openDay)}: ${day.openTime} - ${day.closeTime}`;
+      list.appendChild(listItem);
+    });
+
+    return list;
   };
 
   // Function to translate days to Danish
@@ -93,53 +185,23 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
     return days[day] || day;
   };
 
-  if (!isLoaded) {
-    return <Loading />;
-  }
+  // Update the map when selectedPoint changes
+  useEffect(() => {
+    if (selectedPoint && mapInstance.current) {
+      const marker = markersRef.current[selectedPoint];
+      if (marker) {
+        mapInstance.current.panTo(marker.position);
+        // Open the InfoWindow
+        Object.values(infoWindowsRef.current).forEach((infoWindow) => infoWindow.close());
+        infoWindowsRef.current[selectedPoint].open({
+          anchor: marker,
+          map: mapInstance.current,
+        });
+      }
+    }
+  }, [selectedPoint]);
 
-  return (
-    <GoogleMap
-      mapContainerStyle={containerStyle}
-      center={center}
-      zoom={12}
-      onLoad={(map) => (mapRef.current = map)}
-    >
-      {pickupPoints.map((point) => {
-        const lat = parseFloat(point.coordinates[0].northing);
-        const lng = parseFloat(point.coordinates[0].easting);
-        const position = { lat, lng };
-
-        return (
-          activeInfoWindow === point.servicePointId && (
-            <InfoWindow
-              key={point.servicePointId}
-              position={position}
-              onCloseClick={() => setActiveInfoWindow(null)}
-            >
-              <div style={{ fontFamily: 'Arial, sans-serif', width: '100%', maxWidth: '200px' }}>
-                <div style={{ backgroundColor: '#fff', padding: '10px', borderRadius: '8px' }}>
-                  <h2 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px' }}>
-                    {point.name}
-                  </h2>
-                  <p style={{ fontSize: '14px', margin: '0' }}>
-                    {point.visitingAddress.postalCode}{' '}
-                    {point.visitingAddress.city.toUpperCase()}
-                  </p>
-                  <p style={{ fontSize: '14px', margin: '0' }}>
-                    {point.visitingAddress.streetName}{' '}
-                    {point.visitingAddress.streetNumber}
-                  </p>
-                  <hr style={{ margin: '10px 0' }} />
-                  <b style={{ fontSize: '14px' }}>Åbningstider</b>
-                  {formatOpeningHours(point.openingHours.postalServices)}
-                </div>
-              </div>
-            </InfoWindow>
-          )
-        );
-      })}
-    </GoogleMap>
-  );
+  return <div ref={mapRef} style={{ width: '100%', height: '545px' }}></div>;
 };
 
-export default React.memo(MapComponent);
+export default MapComponent;

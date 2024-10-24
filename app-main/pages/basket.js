@@ -6,6 +6,7 @@ import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
 import BannerSteps from '../components/BannerSteps';
+import Loading from '../components/Loading';
 
 export default function Basket() {
   const {
@@ -530,7 +531,7 @@ ${customerDetails.country}`;
       <BannerSteps currentStep={currentStep} onStepChange={handleStepChange} />
 
       {basketItems.length === 0 ? (
-        <p>Din kurv er tom. Du lander på siden om 5 sekunder</p>
+        <Loading />
       ) : (
         <>
           {/* Step 1: Basket Items */}
