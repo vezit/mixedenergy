@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     // Update order status based on payment acceptance
     const updatedOrderData = {
       ...orderData,
-      myPaymentDetails: {
+      quickpayPaymentDetails: {
         operations: payment.operations.map(({ id, type, amount, aq_status_msg }) => ({
           id,
           type,
