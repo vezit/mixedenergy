@@ -1,21 +1,31 @@
 // /pages/api/postnord/servicepoints.js
-// eksempel http://localhost:3000/api/postnord/servicepoints?city=Bagsværd&postalCode=2880&streetName=Bagsværd Hovedgade&streetNumber=141
+// Example: http://localhost:3000/api/postnord/servicepoints?city=Lyngby&postalCode=2800&streetName=Vinkelvej&streetNumber=12D
 export default async function handler(req, res) {
-    const { city, postalCode, streetName, streetNumber } = req.query;
-    
-    // const apiKey = 'POSTNORD_API_KEY'; // replace with your actual API key
-    const apiKey = process.env.POSTNORD_API_KEY;
-    const url = `https://atapi2.postnord.com/rest/businesslocation/v5/servicepoints/nearest/byaddress?apikey=${apiKey}&returnType=json&countryCode=DK&agreementCountry=DK&city=${city}&postalCode=${postalCode}&streetName=${encodeURIComponent(
-      streetName
-    )}&streetNumber=${streetNumber}&numberOfServicePoints=10&srId=EPSG:4326&context=optionalservicepoint&responseFilter=public`;
-  
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-  
-      res.status(200).json(data);
-    } catch (error) {
-      res.status(500).json({ error: 'Error fetching data from PostNord' });
-    }
+  const { city, postalCode, streetName, streetNumber } = req.query;
+
+  // Use the API key from your environment variables
+  const apiKey = process.env.POSTNORD_API_KEY;
+
+  // Construct the URL for the PostNord API endpoint
+  const url = `https://api2.postnord.com/rest/businesslocation/v5/servicepoints/nearest/byaddress?returnType=json&countryCode=DK&agreementCountry=DK&city=${encodeURIComponent(
+    city
+  )}&postalCode=${encodeURIComponent(
+    postalCode
+  )}&streetName=${encodeURIComponent(
+    streetName
+  )}&streetNumber=${encodeURIComponent(
+    streetNumber
+  )}&numberOfServicePoints=5&srId=EPSG:4326&context=optionalservicepoint&responseFilter=public&located=all&whiteLabelName=false&apikey=${apiKey}`;
+
+  try {
+    // Fetch data from the PostNord API
+    const response = await fetch(url, { headers: { accept: 'application/json' } });
+    const data = await response.json();
+
+    // Return the data in the response
+    res.status(200).json(data);
+  } catch (error) {
+    // Handle any errors that occur during the fetch
+    res.status(500).json({ error: 'Error fetching data from PostNord' });
   }
-  
+}
