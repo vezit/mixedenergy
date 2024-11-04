@@ -2,19 +2,20 @@
 # docker compose run --service-ports --rm test-my-docker-project-app-main bash
 services:
   mixedenergy-app-main:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    user: dockeruser  # Set user to dockeruser
+    image: vicmrp/mixedenergy-app-main:nodejs20-1.0.0
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    user: node  # Set user to dockeruser
     command: sleep infinity
     stdin_open: true  # Keep stdin open to allow interactive commands
     tty: true  # Allocate a pseudo-TTY for the container
     volumes:
       - ..:/usr/src/project
-    environment:
-      - HOST_UID=${DOCKERUSER_UID}
-      - HOST_GID=${DOCKERUSER_GID}
-      - DOCKERUSER_NAME=${DOCKERUSER_NAME}
-      - DOCKERUSER_PASSWORD=${DOCKERUSER_PASSWORD}
-      - DOCKERUSER_HOME=${DOCKERUSER_HOME}
-      - DOCKERUSER_SHELL=${DOCKERUSER_SHELL}
+#    environment:
+#      - HOST_UID=${DOCKERUSER_UID}
+#      - HOST_GID=${DOCKERUSER_GID}
+#      - DOCKERUSER_NAME=${DOCKERUSER_NAME}
+#      - DOCKERUSER_PASSWORD=${DOCKERUSER_PASSWORD}
+#      - DOCKERUSER_HOME=${DOCKERUSER_HOME}
+#     - DOCKERUSER_SHELL=${DOCKERUSER_SHELL}

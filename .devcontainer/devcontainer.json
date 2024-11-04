@@ -3,7 +3,7 @@
     "dockerComposeFile": "docker-compose.yaml",
     "service": "mixedenergy-app-main",
     "workspaceFolder": "/usr/src/project",
-    "remoteUser": "dockeruser",
+    "remoteUser": "node",
     "customizations": {
         "vscode": {
             "settings": {
