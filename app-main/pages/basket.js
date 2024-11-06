@@ -7,6 +7,7 @@ import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
 import BannerSteps from '../components/BannerSteps';
 import Loading from '../components/Loading';
+import { getCookie } from '../lib/cookies';
 
 export default function Basket() {
   const {
@@ -201,11 +202,14 @@ export default function Basket() {
         };
       }
 
+      
+      const cookieConsentId = getCookie('cookie_consent_id');
+
       // Step 1: Create Order
       const orderResponse = await fetch('/api/createOrder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ basketItems, customerDetails, deliveryAddress, deliveryOption }),
+        body: JSON.stringify({ cookieConsentId }),
       });
 
       const { orderId, totalPrice } = await orderResponse.json();

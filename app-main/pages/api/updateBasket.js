@@ -15,9 +15,13 @@ export default async (req, res) => {
     }
 
     const { basketItems } = req.body;
+    const basketDetails = {
+      items: basketItems,
+      total: basketItems.reduce((acc, item) => acc + item.price * item.quantity, 0),
+    }
 
     // Update the session document
-    await db.collection('sessions').doc(consentId).update({ basketItems });
+    await db.collection('sessions').doc(consentId).update({ basketDetails });
 
     res.status(200).json({ success: true });
   } catch (error) {
