@@ -1,6 +1,6 @@
 // pages/api/testSendEmail.js
 
-import { sendOrderConfirmation } from '../../lib/email';
+import { sendOrderConfirmation } from '../../../lib/email';
 
 export default async function handler(req, res) {
   // Verify the secret key for security

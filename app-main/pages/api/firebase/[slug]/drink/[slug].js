@@ -1,6 +1,6 @@
 // pages/api/drinks/[slug].js
 
-import { db } from '../../../lib/firebaseAdmin';
+import { db } from '../../../../../lib/firebaseAdmin';
 
 
 

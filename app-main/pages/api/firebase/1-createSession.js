@@ -1,6 +1,6 @@
 // pages/api/createSession.js
 
-import { db } from '../../lib/firebaseAdmin';
+import { db } from '../../../lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import cookie from 'cookie';
 
@@ -9,17 +9,17 @@ import cookie from 'cookie';
 export default async (req, res) => {
   try {
     const cookies = cookie.parse(req.headers.cookie || '');
-    const consentAndSessionId  = cookies.consent_and_session_id;
+    const sessionId  = cookies.session_id;
 
-    if (!consentAndSessionId) {
+    if (!sessionId) {
       return res.status(400).json({ error: 'Missing consent_and_session_id in cookies' });
     }
 
-    const docRef = db.collection('sessions').doc(consentAndSessionId);
+    const docRef = db.collection('sessions').doc(sessionId);
 
     await docRef.set(
       {
-        sessionId: consentAndSessionId,
+        sessionId: sessionId,
         orderId: null,
         allowCookies: false,
         basketDetails: {

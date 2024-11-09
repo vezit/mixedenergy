@@ -1,6 +1,6 @@
 // pages/api/checkAuth.js
 
-import { admin } from '../../lib/firebaseAdmin';
+import { admin } from '../../../lib/firebaseAdmin';
 import cookie from 'cookie'; // Import the cookie module
 
 

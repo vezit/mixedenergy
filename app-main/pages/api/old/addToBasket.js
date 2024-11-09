@@ -1,6 +1,6 @@
 // pages/api/addToBasket.js
 
-import { db } from '../../lib/firebaseAdmin';
+import { db } from '../../../lib/firebaseAdmin';
 import cookie from 'cookie';
 
 export default async (req, res) => {

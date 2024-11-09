@@ -3,7 +3,7 @@
 
 import cookie from 'cookie';
 
-import { db } from '../../lib/firebaseAdmin';
+import { db } from '../../../lib/firebaseAdmin';
 
 export default async (req, res) => {
   try {

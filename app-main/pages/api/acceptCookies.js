@@ -9,13 +9,13 @@ import cookie from 'cookie';
 export default async (req, res) => {
   try {
     const cookies = cookie.parse(req.headers.cookie || '');
-    const consentAndSessionId = cookies.consent_and_session_id;
+    const sessionId = cookies.session_id;
 
-    if (!consentAndSessionId) {
-      return res.status(400).json({ error: 'Missing consentAndSessionId in cookies' });
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Missing sessionId in cookies' });
     }
 
-    const docRef = db.collection('sessions').doc(consentAndSessionId);
+    const docRef = db.collection('sessions').doc(sessionId);
 
     await docRef.set(
       {
