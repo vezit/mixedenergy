@@ -9,33 +9,57 @@ export default function CookieConsent() {
   const [show, setShow] = useState(false);
   const [cookieError, setCookieError] = useState(false);
 
-  const generateConsentAndSessionId = () => {
-    return uuidv4();
+  const generateSessionId = () => {
+    // Generate the full UUID and slice it to get the desired length
+    return uuidv4().slice(0, 30); // Returns the first 30 characters
+  };
+
+  const createSessionWithUniqueId = async () => {
+    let attempts = 0;
+    let maxAttempts = 5;
+    let sessionId = generateSessionId();
+
+    while (attempts < maxAttempts) {
+      try {
+        // Try to create the session with the generated sessionId
+        await axios.post('/api/firebase/1-createSession', { sessionId });
+
+        // If successful, set the cookie and break the loop
+        const cookieSet = setCookie('session_id', sessionId, 365);
+        if (!cookieSet) {
+          setCookieError(true);
+          return;
+        }
+        setShow(true); // Show banner since cookies aren't allowed yet
+        return;
+      } catch (error) {
+        if (
+          error.response &&
+          error.response.data &&
+          error.response.data.error === 'Session ID already exists'
+        ) {
+          // Session ID already exists, generate a new one
+          sessionId = generateSessionId();
+          attempts++;
+        } else {
+          console.error('Error creating session:', error);
+          return;
+        }
+      }
+    }
+
+    // If all attempts fail, show an error
+    console.error('Failed to create a unique session ID after multiple attempts.');
   };
 
   useEffect(() => {
-    let cookieConsentAndSessionId = getCookie('consent_and_session_id');
-    if (!cookieConsentAndSessionId) {
-      cookieConsentAndSessionId = generateConsentAndSessionId();
-      const cookieSet = setCookie('consent_and_session_id', cookieConsentAndSessionId, 365);
-      if (!cookieSet) {
-        setCookieError(true);
-        return;
-      }
-
-      // Create session via API
-      axios
-        .post('/api/createSession')
-        .then(() => {
-          setShow(true); // Show banner since cookies aren't allowed yet
-        })
-        .catch((error) => {
-          console.error('Error creating session:', error);
-        });
+    let cookieSessionId = getCookie('session_id');
+    if (!cookieSessionId) {
+      createSessionWithUniqueId();
     } else {
       // Fetch session data via API
       axios
-        .get('/api/getSession')
+        .get('/api/firebase/1-getSession')
         .then((response) => {
           if (!response.data.session.allowCookies) {
             setShow(true); // Show banner if cookies aren't allowed yet
@@ -44,14 +68,7 @@ export default function CookieConsent() {
         .catch((error) => {
           if (error.response && error.response.status === 404) {
             // Session does not exist, create it
-            axios
-              .post('/api/createSession')
-              .then(() => {
-                setShow(true);
-              })
-              .catch((err) => {
-                console.error('Error creating session:', err);
-              });
+            createSessionWithUniqueId();
           } else {
             console.error('Error fetching session:', error);
           }
@@ -61,12 +78,25 @@ export default function CookieConsent() {
 
   const acceptCookies = async () => {
     try {
-      await axios.post('/api/acceptCookies');
-      setShow(false); // Hide banner after accepting cookies
+      const sessionId = getCookie('session_id');
+      const response = await axios.post('/api/firebase/1-acceptCookies', { sessionId });
+      if (response.data.success) {
+        setShow(false); // Hide banner after accepting cookies
+      }
     } catch (error) {
-      console.error('Error updating cookie consent:', error);
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.error.includes('enable cookies')
+      ) {
+        // Display a message if cookies are not enabled
+        alert('Cookies are required for the site to function. Please enable cookies in your browser settings.');
+      } else {
+        console.error('Error updating cookie consent:', error);
+      }
     }
   };
+  
 
   if (cookieError) {
     return (

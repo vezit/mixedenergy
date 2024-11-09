@@ -21,13 +21,13 @@ export const setCookie = (name, value, days) => {
       date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
       expires = '; expires=' + date.toUTCString();
     }
-    document.cookie = name + '=' + (value || '') + expires + '; path=/';
+    const secureCookie = `${name}=${value || ''}${expires}; path=/; Secure; SameSite=Strict`;
+    document.cookie = secureCookie;
     return true;
   } catch (error) {
     return false;
   }
 };
-
 export function deleteCookie(name) {
   document.cookie = name + '=; Max-Age=0; path=/; domain=' + window.location.hostname;
 }

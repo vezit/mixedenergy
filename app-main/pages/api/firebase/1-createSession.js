@@ -1,47 +1,45 @@
-// pages/api/createSession.js
+// pages/api/firebase/1-createSession.js
 
 import { db } from '../../../lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
-import cookie from 'cookie';
-
-
 
 export default async (req, res) => {
   try {
-    const cookies = cookie.parse(req.headers.cookie || '');
-    const sessionId  = cookies.session_id;
+    const { sessionId } = req.body;
 
     if (!sessionId) {
-      return res.status(400).json({ error: 'Missing consent_and_session_id in cookies' });
+      return res.status(400).json({ error: 'Missing sessionId in request body' });
     }
 
     const docRef = db.collection('sessions').doc(sessionId);
 
-    await docRef.set(
-      {
-        sessionId: sessionId,
-        orderId: null,
-        allowCookies: false,
-        basketDetails: {
-          items: [],
-          customerDetails: {
-            customerType:   null,
-            fullName:       null,
-            mobileNumber:   null,
-            email:          null,
-            address:        null,
-            postalCode:     null,
-            city:           null,
-            country:        null,
-          },
-          paymentDetails: {},
-          deliveryDetails: {},
+    const doc = await docRef.get();
+    if (doc.exists) {
+      return res.status(400).json({ error: 'Session ID already exists' });
+    }
+
+    await docRef.set({
+      sessionId: sessionId,
+      orderId: null,
+      allowCookies: false,
+      basketDetails: {
+        items: [],
+        customerDetails: {
+          customerType: null,
+          fullName: null,
+          mobileNumber: null,
+          email: null,
+          address: null,
+          postalCode: null,
+          city: null,
+          country: null,
         },
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+        paymentDetails: {},
+        deliveryDetails: {},
       },
-      { merge: true }
-    );
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
 
     res.status(200).json({ success: true });
   } catch (error) {

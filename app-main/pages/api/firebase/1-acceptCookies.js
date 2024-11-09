@@ -1,18 +1,14 @@
-// pages/api/acceptCookies.js
+// pages/api/firebase/1-acceptCookies.js
 
-import { db } from '../../lib/firebaseAdmin';
+import { db } from '../../../lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
-import cookie from 'cookie';
-
-
 
 export default async (req, res) => {
   try {
-    const cookies = cookie.parse(req.headers.cookie || '');
-    const sessionId = cookies.session_id;
+    const { sessionId } = req.body;
 
     if (!sessionId) {
-      return res.status(400).json({ error: 'Missing sessionId in cookies' });
+      return res.status(400).json({ error: 'Missing sessionId in cookies. Please enable cookies for the site to function.' });
     }
 
     const docRef = db.collection('sessions').doc(sessionId);
