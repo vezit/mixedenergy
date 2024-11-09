@@ -1,5 +1,9 @@
 {
   "version": "0.2.0",
+
+
+
+
   "configurations": [
     {
       "name": "Next.js: Full Stack",
@@ -37,15 +41,28 @@
       "skipFiles": [
         "<node_internals>/**"
       ]
-    }
-    ,{
+    },
+    {
       "name": "Browser: chromium",
       "runtimeExecutable": "C:\\Program Files\\chrome-win\\chrome.exe",
       "request": "launch",
       "type": "msedge",
       "url": "http://localhost:3000/",
       "webRoot": "${workspaceFolder}/app-main",
-      "disableNetworkCache": true,
-  }
-  ]
+      "disableNetworkCache": true
+    }
+  ],
+
+  "compounds": [
+    {
+      "name": "Start All",
+      "configurations": [
+        "Next.js: Full Stack",
+        "Attach to Node.js",
+        "Browser: chromium"
+      ]
+    }
+  ],
+
+
 }
