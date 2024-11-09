@@ -29,7 +29,7 @@ export default function ViBlanderForDigProduct() {
     const fetchProductAndDrinks = async () => {
       try {
         // Fetch product data
-        const productResponse = await axios.get(`/api/packages/${slug}`);
+        const productResponse = await axios.get(`/api/firebase/products/${slug}`);
         const productData = productResponse.data.package;
         setProduct(productData);
 
@@ -39,8 +39,8 @@ export default function ViBlanderForDigProduct() {
         }
 
         // Fetch drinks data
-        const drinksResponse = await axios.post('/api/getDrinksBySlugs', {
-          slugs: productData.collections_drinks,
+        const drinksResponse = await axios.post('/api/firebase/3-getDrinksBySlugs', {
+          slugs: productData.collectionsDrinks,
         });
         setDrinksData(drinksResponse.data.drinks);
       } catch (error) {
@@ -69,7 +69,7 @@ export default function ViBlanderForDigProduct() {
     let remaining = parseInt(size);
 
     // Filter drinks based on sugar preference
-    let drinksCopy = [...product.collections_drinks].filter((drinkSlug) => {
+    let drinksCopy = [...product.collectionsDrinks].filter((drinkSlug) => {
       const drink = drinksData[drinkSlug];
       if (!drink) return false;
       if (sugarPreference === 'uden_sukker' && !drink.isSugarFree) return false;
@@ -103,7 +103,7 @@ export default function ViBlanderForDigProduct() {
 
   const fetchPrice = async (selection) => {
     try {
-      const response = await axios.post('/api/getPackagePrice', {
+      const response = await axios.post('/api/firebase/3-getCalculatedPackagePrice', {
         selectedProducts: selection,
         selectedSize,
         slug,

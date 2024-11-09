@@ -20,7 +20,7 @@ export const BasketProvider = ({ children }) => {
 
   const fetchBasketItems = async () => {
     try {
-      const response = await axios.get('/api/getSession');
+      const response = await axios.get('/api/firebase/1-getSession');
       const { basketDetails } = response.data.session;
       if (basketDetails && basketDetails.items) {
         setBasketItems(basketDetails.items);

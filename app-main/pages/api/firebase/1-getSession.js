@@ -1,4 +1,3 @@
-
 import { db } from '../../../lib/firebaseAdmin';
 import cookie from 'cookie';
 
@@ -6,7 +5,7 @@ export default async function handler(req, res) {
   try {
     // Parse cookies from the request headers
     const cookies = cookie.parse(req.headers.cookie || '');
-    const sessionId  = cookies.session_id;
+    const sessionId = cookies.session_id;
 
     if (!sessionId) {
       return res.status(400).json({ error: 'Missing sessionId in cookies' });
@@ -21,8 +20,16 @@ export default async function handler(req, res) {
 
     const data = docSnap.data();
 
-    // Return the session data
-    res.status(200).json({ session: data });
+    // Exclude fields that start with an underscore
+    const filteredData = Object.keys(data)
+      .filter(key => !key.startsWith('_'))
+      .reduce((obj, key) => {
+        obj[key] = data[key];
+        return obj;
+      }, {});
+
+    // Return the filtered session data
+    res.status(200).json({ session: filteredData });
   } catch (error) {
     console.error('Error fetching session:', error);
     res.status(500).json({ error: 'Internal server error' });

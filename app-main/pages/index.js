@@ -14,7 +14,7 @@ export default function Home() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('/api/getPackages');
+        const response = await axios.get('/api/firebase/2-getPackages');
         const packagesData = response.data.packages; // Now an array
 
         // Separate products by category

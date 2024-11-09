@@ -20,7 +20,7 @@ export default async (req, res) => {
 
     await docRef.set({
       sessionId: sessionId,
-      orderId: null,
+      _orderId: null,
       allowCookies: false,
       basketDetails: {
         items: [],
@@ -36,9 +36,10 @@ export default async (req, res) => {
         },
         paymentDetails: {},
         deliveryDetails: {},
+
       },
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      _createdAt: FieldValue.serverTimestamp(),
+      _updatedAt: FieldValue.serverTimestamp(),
     });
 
     res.status(200).json({ success: true });

@@ -16,7 +16,7 @@ const Header = () => {
     // Check if user is authenticated using API
     const checkAuth = async () => {
       try {
-        const response = await axios.get('/api/checkAuth');
+        const response = await axios.get('/api/firebase/0-checkAuth');
         if (response.data.loggedIn) {
           setIsLoggedIn(true);
           setUsername(response.data.email);

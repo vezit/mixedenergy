@@ -10,7 +10,6 @@ export default async (req, res) => {
   }
 
   try {
-    const excludeFields = ['stock', 'salePrice', 'purchasePrice'];
     const drinks = {};
 
     const drinkRefs = slugs.map((slug) => db.collection('drinks').doc(slug));
@@ -19,10 +18,13 @@ export default async (req, res) => {
     drinkDocs.forEach((doc) => {
       if (doc.exists) {
         const data = doc.data();
-        excludeFields.forEach((field) => {
-          delete data[field];
-        });
-        drinks[doc.id] = data;
+        const filteredData = Object.keys(data)
+          .filter(key => !key.startsWith('_'))
+          .reduce((obj, key) => {
+            obj[key] = data[key];
+            return obj;
+          }, {});
+        drinks[doc.id] = filteredData;
       }
     });
 

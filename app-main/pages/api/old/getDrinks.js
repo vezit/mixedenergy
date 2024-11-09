@@ -7,19 +7,19 @@ export default async (req, res) => {
     const drinksRef = db.collection('drinks');
     const snapshot = await drinksRef.get();
 
-    // Define the fields to exclude
-    const excludeFields = ['stock', 'salePrice', 'purchasePrice'];
-
     const drinks = {};
     snapshot.forEach((doc) => {
       const data = doc.data();
 
-      // Exclude specified fields
-      excludeFields.forEach((field) => {
-        delete data[field];
-      });
+      // Exclude fields that start with an underscore
+      const filteredData = Object.keys(data)
+        .filter(key => !key.startsWith('_'))
+        .reduce((obj, key) => {
+          obj[key] = data[key];
+          return obj;
+        }, {});
 
-      drinks[doc.id] = data;
+      drinks[doc.id] = filteredData;
     });
 
     res.status(200).json({ drinks });
