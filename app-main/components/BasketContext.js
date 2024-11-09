@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { getCookie } from '../lib/cookies';
 
 const BasketContext = createContext();
 
@@ -15,116 +14,75 @@ export const BasketProvider = ({ children }) => {
     email: '',
     address: '',
     postalCode: '',
-    city: '',
-    country: 'Danmark',
-    streetNumber: '',
+    city: ''
   });
   const [isNewItemAdded, setIsNewItemAdded] = useState(false);
 
-  useEffect(() => {
-    // Fetch session data from API
-    axios
-      .get('/api/getSession')
-      .then((response) => {
-        const { basketItems, customerDetails } = response.data.session;
-        if (basketItems) {
-          setBasketItems(basketItems);
-        }
-        if (customerDetails) {
-          setCustomerDetails(customerDetails);
-        }
-      })
-      .catch((error) => {
-        console.error('Error fetching session:', error);
-      });
-  }, []);
-
-  // Helper function to compare selected products
-  const isSameSelection = (a, b) => {
-    const aEntries = Object.entries(a).sort();
-    const bEntries = Object.entries(b).sort();
-    return JSON.stringify(aEntries) === JSON.stringify(bEntries);
-  };
-
-  const addItemToBasket = async (item) => {
-    const existingItemIndex = basketItems.findIndex(
-      (basketItem) =>
-        basketItem.slug === item.slug &&
-        basketItem.selectedSize === item.selectedSize &&
-        isSameSelection(basketItem.selectedProducts, item.selectedProducts)
-    );
-
-    let updatedBasket;
-
-    if (existingItemIndex >= 0) {
-      updatedBasket = basketItems.map((basketItem, index) =>
-        index === existingItemIndex
-          ? { ...basketItem, quantity: basketItem.quantity + item.quantity }
-          : basketItem
-      );
-    } else {
-      updatedBasket = [...basketItems, item];
-    }
-
-    setBasketItems(updatedBasket);
-    setIsNewItemAdded(true);
-
-    // Update the basket on the server
+  const fetchBasketItems = async () => {
     try {
-      const consentId = getCookie('cookie_consent_id');
-      const response = await axios.post('/api/updateBasket', {
-        consentId,
-        basketItems: updatedBasket,
-      });
-      if (!response.data.success) {
-        console.error('Failed to update basket:', response.data);
+      const response = await axios.get('/api/getSession');
+      const { basketDetails } = response.data.session;
+      if (basketDetails && basketDetails.items) {
+        setBasketItems(basketDetails.items);
+      } else {
+        setBasketItems([]);
       }
     } catch (error) {
-      console.error('Error updating basket:', error);
+      console.error('Error fetching basket items:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBasketItems();
+  }, []);
+
+  const addItemToBasket = async (item) => {
+    try {
+      const response = await axios.post('/api/addToBasket', { item });
+      if (response.data.success) {
+        await fetchBasketItems();
+        setIsNewItemAdded(true);
+      } else {
+        console.error('Failed to add item to basket:', response.data);
+      }
+    } catch (error) {
+      console.error('Error adding item to basket:', error);
     }
   };
 
   const removeItemFromBasket = async (index) => {
-    const updatedBasket = basketItems.filter((_, i) => i !== index);
-    setBasketItems(updatedBasket);
-
-    // Update the basket on the server
     try {
-      const consentId = getCookie('cookie_consent_id');
       const response = await axios.post('/api/updateBasket', {
-        consentId,
-        basketItems: updatedBasket,
+        action: 'removeItem',
+        itemIndex: index,
       });
-      if (!response.data.success) {
-        console.error('Failed to update basket:', response.data);
+      if (response.data.success) {
+        await fetchBasketItems();
+      } else {
+        console.error('Failed to remove item from basket:', response.data);
       }
     } catch (error) {
-      console.error('Error updating basket:', error);
+      console.error('Error removing item from basket:', error);
     }
   };
 
   const updateItemQuantity = async (index, newQuantity) => {
     if (newQuantity < 1) {
       return; // Do nothing if quantity is less than 1
-    } else {
-      const updatedBasket = basketItems.map((item, i) =>
-        i === index ? { ...item, quantity: newQuantity } : item
-      );
-      setBasketItems(updatedBasket);
-
-      // Update the basket on the server
-      try {
-        const consentId = getCookie('cookie_consent_id');
-        const response = await axios.post('/api/updateBasket', {
-          consentId,
-          basketItems: updatedBasket,
-        });
-        if (!response.data.success) {
-          console.error('Failed to update basket:', response.data);
-        }
-      } catch (error) {
-        console.error('Error updating basket:', error);
+    }
+    try {
+      const response = await axios.post('/api/updateBasket', {
+        action: 'updateQuantity',
+        itemIndex: index,
+        quantity: newQuantity,
+      });
+      if (response.data.success) {
+        await fetchBasketItems();
+      } else {
+        console.error('Failed to update item quantity:', response.data);
       }
+    } catch (error) {
+      console.error('Error updating item quantity:', error);
     }
   };
 
@@ -133,9 +91,7 @@ export const BasketProvider = ({ children }) => {
 
     // Update customer details on the server
     try {
-      const consentId = getCookie('cookie_consent_id');
       const response = await axios.post('/api/updateCustomerDetails', {
-        consentId,
         customerDetails: updatedDetails,
       });
       if (!response.data.success) {
@@ -152,7 +108,6 @@ export const BasketProvider = ({ children }) => {
         basketItems,
         addItemToBasket,
         removeItemFromBasket,
-        setBasketItems,
         customerDetails,
         updateCustomerDetails,
         isNewItemAdded,

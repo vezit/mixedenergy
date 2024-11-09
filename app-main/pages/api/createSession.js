@@ -9,21 +9,36 @@ import cookie from 'cookie';
 export default async (req, res) => {
   try {
     const cookies = cookie.parse(req.headers.cookie || '');
-    const consentId = cookies.cookie_consent_id;
+    const consentAndSessionId  = cookies.consent_and_session_id;
 
-    if (!consentId) {
-      return res.status(400).json({ error: 'Missing consentId in cookies' });
+    if (!consentAndSessionId) {
+      return res.status(400).json({ error: 'Missing consent_and_session_id in cookies' });
     }
 
-    const docRef = db.collection('sessions').doc(consentId);
+    const docRef = db.collection('sessions').doc(consentAndSessionId);
 
     await docRef.set(
       {
-        consentId,
+        sessionId: consentAndSessionId,
+        orderId: null,
         allowCookies: false,
-        basketItems: [],
-        customerDetails: {},
+        basketDetails: {
+          items: [],
+          customerDetails: {
+            customerType:   null,
+            fullName:       null,
+            mobileNumber:   null,
+            email:          null,
+            address:        null,
+            postalCode:     null,
+            city:           null,
+            country:        null,
+          },
+          paymentDetails: {},
+          deliveryDetails: {},
+        },
         createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     );

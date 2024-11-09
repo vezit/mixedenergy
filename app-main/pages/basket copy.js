@@ -569,11 +569,11 @@ export default function Basket() {
                 >
                   <img
                     src={item.image}
-                    alt={item.packageSlug}
+                    alt={item.title}
                     className="w-24 h-24 object-cover rounded"
                   />
                   <div className="flex-1 ml-4">
-                    <h2 className="text-xl font-bold">{item.packageSlug}</h2>
+                    <h2 className="text-xl font-bold">{item.title}</h2>
                     <div className="flex items-center mt-2">
                       <button
                         onClick={() => updateItemQuantity(index, item.quantity - 1)}
@@ -590,11 +590,10 @@ export default function Basket() {
                       </button>
                     </div>
                     <p className="text-gray-700 mt-2">
-                      Pris pr. pakke: {(item.pricePerPackage / 100).toFixed(2)} kr
+                      Pris pr. pakke: {(item.price / 100).toFixed(2)} kr
                     </p>
                     <p className="text-gray-700 mt-2">
-                      Totalpris: {(item.totalPrice / 100).toFixed(2)} kr (pant{' '}
-                      {(item.totalRecyclingFee / 100).toFixed(2)} kr)
+                      Totalpris: {((item.price * item.quantity) / 100).toFixed(2)} kr
                     </p>
                   </div>
                   <button onClick={() => removeItemFromBasket(index)} className="text-red-600">

@@ -9,15 +9,15 @@ export default function CookieConsent() {
   const [show, setShow] = useState(false);
   const [cookieError, setCookieError] = useState(false);
 
-  const generateConsentId = () => {
+  const generateConsentAndSessionId = () => {
     return uuidv4();
   };
 
   useEffect(() => {
-    let consentId = getCookie('cookie_consent_id');
-    if (!consentId) {
-      consentId = generateConsentId();
-      const cookieSet = setCookie('cookie_consent_id', consentId, 365);
+    let cookieConsentAndSessionId = getCookie('consent_and_session_id');
+    if (!cookieConsentAndSessionId) {
+      cookieConsentAndSessionId = generateConsentAndSessionId();
+      const cookieSet = setCookie('consent_and_session_id', cookieConsentAndSessionId, 365);
       if (!cookieSet) {
         setCookieError(true);
         return;
