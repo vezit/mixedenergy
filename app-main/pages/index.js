@@ -48,7 +48,7 @@ export default function Home() {
           className="w-full hidden lg:block"
           style={{
             height: '50vh',
-            backgroundImage: "url('/images/Color-logo-with-background.png')",
+            backgroundImage: "url('/images/mixedenergy-logo-with-background.png')",
             backgroundSize: 'contain',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
