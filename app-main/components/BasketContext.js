@@ -38,7 +38,7 @@ export const BasketProvider = ({ children }) => {
 
   const addItemToBasket = async (item) => {
     try {
-      const response = await axios.post('/api/addToBasket', { item });
+      const response = await axios.post('/api/firebase/4-addToBasket', { item });
       if (response.data.success) {
         await fetchBasketItems();
         setIsNewItemAdded(true);
@@ -52,7 +52,7 @@ export const BasketProvider = ({ children }) => {
 
   const removeItemFromBasket = async (index) => {
     try {
-      const response = await axios.post('/api/updateBasket', {
+      const response = await axios.post('/api/firebase/4-updateBasket', {
         action: 'removeItem',
         itemIndex: index,
       });
@@ -71,7 +71,7 @@ export const BasketProvider = ({ children }) => {
       return; // Do nothing if quantity is less than 1
     }
     try {
-      const response = await axios.post('/api/updateBasket', {
+      const response = await axios.post('/api/firebase/4-updateBasket', {
         action: 'updateQuantity',
         itemIndex: index,
         quantity: newQuantity,

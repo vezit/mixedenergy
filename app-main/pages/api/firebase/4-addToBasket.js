@@ -10,18 +10,17 @@ export default async (req, res) => {
     }
 
     const cookies = cookie.parse(req.headers.cookie || '');
-    const consentAndSessionId  = cookies.consent_and_session_id;
+    const sessionId  = cookies.session_id;
 
-    if (!consentAndSessionId) {
-      return res.status(400).json({ error: 'Missing consentAndSessionId in cookies' });
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Missing sessionId in cookies' });
     }
 
     const { item } = req.body; // Expected to contain packageSlug, selectedSize, selectedProducts, quantity
-
-    const { packageSlug, selectedSize, selectedProducts, quantity } = item;
+    const { slug, selectedSize, selectedProducts, quantity } = item;
 
     // Fetch package details
-    const packageDoc = await db.collection('packages').doc(packageSlug).get();
+    const packageDoc = await db.collection('packages').doc(slug).get();
     if (!packageDoc.exists) {
       return res.status(400).json({ error: 'Invalid packageSlug' });
     }
@@ -38,7 +37,7 @@ export default async (req, res) => {
     const totalRecyclingFee = recyclingFeePerPackage * quantity;
 
     // Get current basket
-    const sessionDocRef = db.collection('sessions').doc(consentAndSessionId);
+    const sessionDocRef = db.collection('sessions').doc(sessionId);
     const sessionDoc = await sessionDocRef.get();
     let basketDetails = {};
     if (sessionDoc.exists) {
@@ -60,7 +59,7 @@ export default async (req, res) => {
       items[existingItemIndex].quantity += quantity;
     } else {
       items.push({
-        packageSlug,
+        slug,
         quantity,
         packages_size: selectedSize,
         selectedDrinks: selectedProducts,

@@ -1,4 +1,5 @@
 import { db } from '../../../lib/firebaseAdmin';
+import { filterData } from '../../../lib/filterData';
 
 export default async (req, res) => {
   try {
@@ -7,9 +8,16 @@ export default async (req, res) => {
 
     const packages = [];
     snapshot.forEach((doc) => {
+
       const data = doc.data();
-      packages.push({ id: doc.id, ...data });
+      const filteredData = filterData(data, 1);
+
+      packages.push({ id: doc.id, ...filteredData });
     });
+
+
+
+
 
     res.status(200).json({ packages });
   } catch (error) {

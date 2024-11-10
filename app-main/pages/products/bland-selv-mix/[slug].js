@@ -27,7 +27,7 @@ export default function BlandSelvMixProduct() {
     const fetchProductAndDrinks = async () => {
       try {
         // Fetch product data
-        const productResponse = await axios.get(`/api/packages/${slug}`);
+        const productResponse = await axios.get(`/api/firebase/products/${slug}`);
         const productData = productResponse.data.package;
         setProduct(productData);
 
@@ -37,8 +37,8 @@ export default function BlandSelvMixProduct() {
         }
 
         // Fetch drinks data
-        const drinksResponse = await axios.post('/api/getDrinksBySlugs', {
-          slugs: productData.collections_drinks,
+        const drinksResponse = await axios.post('/api/firebase/3-getDrinksBySlugs', {
+          slugs: productData.collectionsDrinks,
         });
         setDrinksData(drinksResponse.data.drinks);
       } catch (error) {
@@ -70,7 +70,7 @@ export default function BlandSelvMixProduct() {
       }
 
       try {
-        const response = await axios.post('/api/getPackagePrice', {
+        const response = await axios.post('/api/firebase/3-getCalculatedPackagePrice', {
           selectedProducts,
           selectedSize,
           slug,

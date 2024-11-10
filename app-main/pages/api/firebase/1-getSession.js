@@ -1,5 +1,6 @@
 import { db } from '../../../lib/firebaseAdmin';
 import cookie from 'cookie';
+import { filterData } from '../../../lib/filterData';
 
 export default async function handler(req, res) {
   try {
@@ -21,12 +22,8 @@ export default async function handler(req, res) {
     const data = docSnap.data();
 
     // Exclude fields that start with an underscore
-    const filteredData = Object.keys(data)
-      .filter(key => !key.startsWith('_'))
-      .reduce((obj, key) => {
-        obj[key] = data[key];
-        return obj;
-      }, {});
+    // create a function that filters out keys that start with an underscore, nesed in if statement is 'recursive' , default is 1, first level 2, is the first level and the second level and so on
+    const filteredData = filterData(data, Infinity);
 
     // Return the filtered session data
     res.status(200).json({ session: filteredData });

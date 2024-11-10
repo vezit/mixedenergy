@@ -34,7 +34,6 @@ export function deleteCookie(name) {
 
 
 // cookies.js
-
 export function deleteAllCookies() {
   const cookies = document.cookie.split(";");
 

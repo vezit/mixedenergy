@@ -1,5 +1,6 @@
 // pages/api/getDrinksBySlugs.js
 
+import { filterData } from '../../../lib/filterData';
 import { db } from '../../../lib/firebaseAdmin';
 
 export default async (req, res) => {
@@ -18,12 +19,7 @@ export default async (req, res) => {
     drinkDocs.forEach((doc) => {
       if (doc.exists) {
         const data = doc.data();
-        const filteredData = Object.keys(data)
-          .filter(key => !key.startsWith('_'))
-          .reduce((obj, key) => {
-            obj[key] = data[key];
-            return obj;
-          }, {});
+        const filteredData = filterData(data, Infinity);
         drinks[doc.id] = filteredData;
       }
     });
