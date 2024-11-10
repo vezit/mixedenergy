@@ -21,6 +21,7 @@ export const BasketProvider = ({ children }) => {
   const fetchBasketItems = async () => {
     try {
       const response = await axios.get('/api/firebase/1-getSession');
+      console.log('Response from getSession:', response.data);
       const { basketDetails } = response.data.session || {};
       const items = basketDetails && basketDetails.items;
       if (Array.isArray(items)) {
@@ -32,10 +33,15 @@ export const BasketProvider = ({ children }) => {
       console.error('Error fetching basket items:', error);
     }
   };
+  
 
   useEffect(() => {
     fetchBasketItems();
   }, []);
+
+  useEffect(() => {
+    console.log('Basket items updated:', basketItems);
+  }, [basketItems]);
 
   const addItemToBasket = async (item) => {
     try {
