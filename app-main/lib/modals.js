@@ -1,12 +1,17 @@
 // lib/modals.js
 import { useState, useEffect } from 'react';
 
-export const useModal = (initialState = false) => {
-  const [isModalOpen, setIsModalOpen] = useState(false); // Set to false by default
+export const useModal = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    // Check sessionStorage to see if the user has already acknowledged the dialog
-    const hasAcknowledged = sessionStorage.getItem('acknowledged');
+    let hasAcknowledged = false;
+    try {
+      hasAcknowledged = sessionStorage.getItem('acknowledged');
+    } catch (e) {
+      console.error('Error accessing sessionStorage:', e);
+      hasAcknowledged = false;
+    }
     if (!hasAcknowledged) {
       setIsModalOpen(true);
     }
@@ -14,8 +19,11 @@ export const useModal = (initialState = false) => {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    // Set a flag in sessionStorage so the dialog doesn't appear again during this session
-    sessionStorage.setItem('acknowledged', 'true');
+    try {
+      sessionStorage.setItem('acknowledged', 'true');
+    } catch (e) {
+      console.error('Error accessing sessionStorage:', e);
+    }
   };
 
   return {

@@ -1,26 +1,46 @@
 // pages/_app.js
-
 import '../styles/globals.css';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { useModal } from '../lib/modals';
 import CookieConsent from '../components/CookieConsent';
 import { BasketProvider } from '../components/BasketContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import * as gtag from '../lib/gtag';
-import { getCookie } from '../lib/cookies';
-import axios from 'axios';
 import AddToBasketPopup from '../components/AddToBasketPopup';
 
 function MyApp({ Component, pageProps }) {
-  const { isModalOpen, closeModal } = useModal(true);
   const router = useRouter();
+  const [isStorageEnabled, setIsStorageEnabled] = useState(true);
 
-  // Track page views when the route changes
+  useEffect(() => {
+    let storageEnabled = true;
+    try {
+      localStorage.setItem('test', 'test');
+      localStorage.removeItem('test');
+    } catch (e) {
+      storageEnabled = false;
+    }
+
+    try {
+      document.cookie = "testcookie=1; SameSite=Strict";
+      if (document.cookie.indexOf("testcookie=") === -1) {
+        storageEnabled = false;
+      } else {
+        document.cookie = "testcookie=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict";
+      }
+    } catch (e) {
+      storageEnabled = false;
+    }
+
+    if (!storageEnabled) {
+      setIsStorageEnabled(false);
+    }
+  }, []);
+
   useEffect(() => {
     const handleRouteChange = (url) => {
-      gtag.pageview(url); // Send pageview event to Google Analytics
+      gtag.pageview(url);
     };
 
     router.events.on('routeChangeComplete', handleRouteChange);
@@ -29,10 +49,16 @@ function MyApp({ Component, pageProps }) {
     };
   }, [router.events]);
 
-
   return (
     <BasketProvider>
       <div className="flex flex-col min-h-screen">
+        {/* Warning message displayed above the header */}
+        {!isStorageEnabled && (
+          <div className="bg-red-500 text-white text-center p-2">
+            Our website requires cookies and local storage to function properly. Please enable cookies and local storage in your browser settings.
+          </div>
+        )}
+
         {/* Header */}
         <Header />
 

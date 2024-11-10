@@ -13,16 +13,32 @@ export default function ViBlanderForDigProduct() {
   const [product, setProduct] = useState(null);
   const [drinksData, setDrinksData] = useState({});
   const [loading, setLoading] = useState(true);
+
+  const [selections, setSelections] = useState({});
   const [randomSelection, setRandomSelection] = useState({});
+  const [selectionId, setSelectionId] = useState(null);
+
   const [price, setPrice] = useState(0);
   const [originalPrice, setOriginalPrice] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [sugarPreference, setSugarPreference] = useState('alle');
   const [isMysteryBox, setIsMysteryBox] = useState(false);
-  const [selectionId, setSelectionId] = useState(null);
 
   const { addItemToBasket } = useBasket();
+
+  // Function to generate a unique key for the current options
+  const getSelectionKey = () => {
+    return `${selectedSize}_${sugarPreference}_${isMysteryBox}`;
+  };
+
+  // Load selections from localStorage on initial mount
+  useEffect(() => {
+    const storedSelections = localStorage.getItem('selections');
+    if (storedSelections) {
+      setSelections(JSON.parse(storedSelections));
+    }
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -55,11 +71,24 @@ export default function ViBlanderForDigProduct() {
     fetchProductAndDrinks();
   }, [slug]);
 
+  // Effect to handle changes in options
   useEffect(() => {
-    if (Object.keys(randomSelection).length > 0) {
-      fetchPrice(randomSelection);
+    if (!product) return;
+
+    const selectionKey = getSelectionKey();
+
+    // Check if we already have a selection for the current options
+    if (selections[selectionKey]) {
+      const { selectedProducts, selectionId } = selections[selectionKey];
+      setRandomSelection(selectedProducts);
+      setSelectionId(selectionId);
+      fetchPrice(selectedProducts);
+    } else {
+      // Generate a new package
+      generateRandomPackage();
     }
-  }, [randomSelection]);
+  }, [selectedSize, sugarPreference, isMysteryBox]);
+
   // Function to generate a random package
   const generateRandomPackage = async () => {
     try {
@@ -71,8 +100,20 @@ export default function ViBlanderForDigProduct() {
       });
 
       if (response.data.success) {
-        setRandomSelection(response.data.selectedProducts);
-        setSelectionId(response.data.selectionId);
+        const { selectedProducts, selectionId } = response.data;
+        setRandomSelection(selectedProducts);
+        setSelectionId(selectionId);
+
+        // Store the selection
+        const selectionKey = getSelectionKey();
+        const newSelections = {
+          ...selections,
+          [selectionKey]: { selectedProducts, selectionId },
+        };
+        setSelections(newSelections);
+        localStorage.setItem('selections', JSON.stringify(newSelections));
+
+        fetchPrice(selectedProducts);
       } else {
         console.error('Failed to generate package:', response.data);
         alert('Failed to generate package: ' + (response.data.error || 'Unknown error'));
@@ -102,7 +143,6 @@ export default function ViBlanderForDigProduct() {
     }
   };
 
-
   // Function to handle package size change
   const handleSizeChange = (size) => {
     setSelectedSize(size);
@@ -114,15 +154,14 @@ export default function ViBlanderForDigProduct() {
       alert('Please generate a package first.');
       return;
     }
-  
+
     const mixedProduct = {
       slug: product.slug,
       selectedSize: parseInt(selectedSize),
       quantity: parseInt(quantity),
       selectionId,
     };
-  
-    console.log('Adding to basket:', mixedProduct); // Add this line to debug
+
     addItemToBasket(mixedProduct);
   };
 
@@ -253,7 +292,7 @@ export default function ViBlanderForDigProduct() {
           <div className="mt-8">
             {/* Generate Button */}
             <button
-              onClick={() => generateRandomPackage(selectedSize)}
+              onClick={generateRandomPackage}
               className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition w-full"
             >
               Generate New Package
