@@ -1,4 +1,5 @@
 // components/Header.js
+
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../components/BasketContext';
@@ -58,11 +59,10 @@ const Header = () => {
     }
   };
 
-  // **Calculate the total number of items in the basket**
-  const totalItemsInBasket = basketItems.reduce(
-    (total, item) => total + item.quantity,
-    0
-  );
+  // **Ensure basketItems is an array and calculate total items**
+  const totalItemsInBasket = Array.isArray(basketItems)
+    ? basketItems.reduce((total, item) => total + item.quantity, 0)
+    : 0;
 
   return (
     <header

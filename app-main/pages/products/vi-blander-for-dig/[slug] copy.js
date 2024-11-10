@@ -20,7 +20,6 @@ export default function ViBlanderForDigProduct() {
   const [quantity, setQuantity] = useState(1);
   const [sugarPreference, setSugarPreference] = useState('alle');
   const [isMysteryBox, setIsMysteryBox] = useState(false);
-  const [selectionId, setSelectionId] = useState(null);
 
   const { addItemToBasket } = useBasket();
 
@@ -56,31 +55,50 @@ export default function ViBlanderForDigProduct() {
   }, [slug]);
 
   useEffect(() => {
-    if (Object.keys(randomSelection).length > 0) {
-      fetchPrice(randomSelection);
+    if (!loading && product && Object.keys(drinksData).length > 0 && selectedSize) {
+      generateRandomPackage(selectedSize);
     }
-  }, [randomSelection]);
-  // Function to generate a random package
-  const generateRandomPackage = async () => {
-    try {
-      const response = await axios.post('/api/firebase/4-generateRandomSelection', {
-        slug,
-        selectedSize,
-        sugarPreference,
-        isMysteryBox,
-      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, product, drinksData, sugarPreference, selectedSize]);
 
-      if (response.data.success) {
-        setRandomSelection(response.data.selectedProducts);
-        setSelectionId(response.data.selectionId);
-      } else {
-        console.error('Failed to generate package:', response.data);
-        alert('Failed to generate package: ' + (response.data.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error generating package:', error);
-      alert('Error generating package: ' + error.message);
+  // Function to generate a random package
+  const generateRandomPackage = (size) => {
+    if (!product || Object.keys(drinksData).length === 0) return;
+
+    const randomSelection = {};
+    let remaining = parseInt(size);
+
+    // Filter drinks based on sugar preference
+    let drinksCopy = [...product.collectionsDrinks].filter((drinkSlug) => {
+      const drink = drinksData[drinkSlug];
+      if (!drink) return false;
+      if (sugarPreference === 'uden_sukker' && !drink.isSugarFree) return false;
+      if (sugarPreference === 'med_sukker' && drink.isSugarFree) return false;
+      return true; // For 'alle', include all drinks
+    });
+
+    if (drinksCopy.length === 0) {
+      alert('No drinks match your sugar preference.');
+      return;
     }
+
+    while (remaining > 0) {
+      const randomIndex = Math.floor(Math.random() * drinksCopy.length);
+      const drinkSlug = drinksCopy[randomIndex];
+      const drink = drinksData[drinkSlug];
+      if (!drink) {
+        drinksCopy.splice(randomIndex, 1);
+        continue;
+      }
+      const qty = 1; // Select one at a time
+      randomSelection[drinkSlug] = (randomSelection[drinkSlug] || 0) + qty;
+      remaining -= qty;
+    }
+
+    setRandomSelection(randomSelection);
+
+    // Fetch price from API
+    fetchPrice(randomSelection);
   };
 
   const fetchPrice = async (selection) => {
@@ -102,7 +120,6 @@ export default function ViBlanderForDigProduct() {
     }
   };
 
-
   // Function to handle package size change
   const handleSizeChange = (size) => {
     setSelectedSize(size);
@@ -110,19 +127,36 @@ export default function ViBlanderForDigProduct() {
 
   // Function to add the random package to the basket
   const addToBasket = () => {
-    if (!selectionId) {
-      alert('Please generate a package first.');
+    const totalSelected = Object.values(randomSelection).reduce(
+      (sum, qty) => sum + qty,
+      0
+    );
+    if (totalSelected !== parseInt(selectedSize)) {
+      alert('Error generating the package. Please try again.');
       return;
     }
-  
+
+    const description = isMysteryBox
+      ? 'A mystery mix of drinks'
+      : `A mix of: ${Object.entries(randomSelection)
+          .map(
+            ([drinkSlug, qty]) =>
+              `${drinksData[drinkSlug]?.name || drinkSlug} (x${qty})`
+          )
+          .join(', ')}`;
+
     const mixedProduct = {
       slug: product.slug,
-      selectedSize: parseInt(selectedSize),
-      quantity: parseInt(quantity),
-      selectionId,
+      title: `${product.title} - ${selectedSize} pcs`,
+      description: description,
+      image: product.image,
+      price: price, // Discounted price
+      originalPrice: originalPrice, // Original price
+      quantity: quantity,
+      selectedSize: selectedSize,
+      selectedProducts: randomSelection,
     };
-  
-    console.log('Adding to basket:', mixedProduct); // Add this line to debug
+
     addItemToBasket(mixedProduct);
   };
 

@@ -21,9 +21,10 @@ export const BasketProvider = ({ children }) => {
   const fetchBasketItems = async () => {
     try {
       const response = await axios.get('/api/firebase/1-getSession');
-      const { basketDetails } = response.data.session;
-      if (basketDetails && basketDetails.items) {
-        setBasketItems(basketDetails.items);
+      const { basketDetails } = response.data.session || {};
+      const items = basketDetails && basketDetails.items;
+      if (Array.isArray(items)) {
+        setBasketItems(items);
       } else {
         setBasketItems([]);
       }
@@ -38,15 +39,25 @@ export const BasketProvider = ({ children }) => {
 
   const addItemToBasket = async (item) => {
     try {
-      const response = await axios.post('/api/firebase/4-addToBasket', { item });
+      const response = await axios.post('/api/firebase/4-updateBasket', {
+        action: 'addItem',
+        ...item,
+      });
       if (response.data.success) {
         await fetchBasketItems();
         setIsNewItemAdded(true);
       } else {
         console.error('Failed to add item to basket:', response.data);
+        alert('Failed to add item to basket: ' + (response.data.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error adding item to basket:', error);
+      if (error.response) {
+        console.error('Server responded with:', error.response.data);
+        alert('Error adding item to basket: ' + (error.response.data.error || error.message));
+      } else {
+        alert('Error adding item to basket: ' + error.message);
+      }
     }
   };
 

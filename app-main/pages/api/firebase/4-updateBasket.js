@@ -1,30 +1,28 @@
-// pages/api/updateBasket.js
+// pages/api/firebase/4-updateBasket.js
 
-import { db } from '../../../lib/firebaseAdmin';
+import { admin, db } from '../../../lib/firebaseAdmin';
 import cookie from 'cookie';
 
 export default async (req, res) => {
   try {
-    const method = req.method;
-
-    if (method !== 'POST') {
+    if (req.method !== 'POST') {
       return res.status(405).end(); // Method Not Allowed
     }
 
     const cookies = cookie.parse(req.headers.cookie || '');
-    const consentId = cookies.cookie_consent_id;
+    const sessionId = cookies.session_id;
 
-    if (!consentId) {
-      return res.status(400).json({ error: 'Missing consentId in cookies' });
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Missing sessionId in cookies' });
     }
 
-    const { action, itemIndex, quantity } = req.body;
+    const { action } = req.body;
 
-    if (!['updateQuantity', 'removeItem'].includes(action)) {
+    if (action !== 'addItem') {
       return res.status(400).json({ error: 'Invalid action' });
     }
 
-    const sessionDocRef = db.collection('sessions').doc(consentId);
+    const sessionDocRef = db.collection('sessions').doc(sessionId);
     const sessionDoc = await sessionDocRef.get();
 
     if (!sessionDoc.exists) {
@@ -33,39 +31,79 @@ export default async (req, res) => {
 
     const sessionData = sessionDoc.data();
     const basketDetails = sessionData.basketDetails || {};
-    const items = basketDetails.items || [];
+    let items = basketDetails.items || [];
 
-    if (itemIndex < 0 || itemIndex >= items.length) {
-      return res.status(400).json({ error: 'Invalid item index' });
+    // Handle 'addItem' action
+    const { selectionId, quantity } = req.body;
+
+    if (!selectionId) {
+      return res.status(400).json({ error: 'Missing selectionId' });
     }
 
-    if (action === 'updateQuantity') {
-      if (quantity < 1) {
-        return res.status(400).json({ error: 'Quantity must be at least 1' });
+    const temporarySelections = sessionData.temporarySelections || {};
+    const selection = temporarySelections[selectionId];
+
+    if (!selection) {
+      return res.status(400).json({ error: 'Invalid or expired selectionId' });
+    }
+
+    const { selectedProducts, isMysteryBox, sugarPreference, selectedSize, packageSlug } = selection;
+
+    // Fetch package details
+    const packageDoc = await db.collection('packages').doc(packageSlug).get();
+    if (!packageDoc.exists) {
+      return res.status(400).json({ error: 'Invalid package slug' });
+    }
+    const packageData = packageDoc.data();
+
+    // Compute price and recycling fee
+    const { pricePerPackage, recyclingFeePerPackage } = await calculatePrice({
+      packageData,
+      selectedSize,
+      selectedProducts,
+    });
+
+    const totalPrice = pricePerPackage * quantity;
+    const totalRecyclingFee = recyclingFeePerPackage * quantity;
+    let itemFound = false;
+    for (let item of items) {
+      if (
+        item.slug === packageSlug &&
+        item.packages_size === selectedSize &&
+        isSameSelection(item.selectedDrinks, selectedProducts)
+      ) {
+        // **Increment the quantity and update totalPrice and totalRecyclingFee**
+        item.quantity += quantity;
+        item.totalPrice += totalPrice;
+        item.totalRecyclingFee += totalRecyclingFee;
+        itemFound = true;
+        break;
       }
+    }
 
-      // Recalculate price based on new quantity
-      const item = items[itemIndex];
-      const { packageSlug, packages_size, selectedDrinks } = item;
-
-      // Compute price and recycling fee
-      const { pricePerPackage, recyclingFeePerPackage } = await calculatePrice({
-        packageSlug,
-        packages_size,
-        selectedDrinks,
+    if (!itemFound) {
+      // Add item to basket
+      items.push({
+        slug: packageSlug,
+        quantity,
+        packages_size: selectedSize,
+        selectedDrinks: selectedProducts,
+        pricePerPackage,
+        recyclingFeePerPackage,
+        totalPrice,
+        totalRecyclingFee,
+        isMysteryBox,
+        sugarPreference,
       });
-
-      items[itemIndex].quantity = quantity;
-      items[itemIndex].totalPrice = pricePerPackage * quantity;
-      items[itemIndex].totalRecyclingFee = recyclingFeePerPackage * quantity;
-    } else if (action === 'removeItem') {
-      items.splice(itemIndex, 1);
     }
 
     // Update the basket in the session
     await sessionDocRef.update({
-      'basketDetails.items': items,
+      'basketDetails.items': items
     });
+
+    // // Optional: Cleanup old selections
+    // await cleanupOldSelections(sessionDocRef, temporarySelections);
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -74,17 +112,93 @@ export default async (req, res) => {
   }
 };
 
-async function calculatePrice({ packageSlug, packages_size, selectedDrinks }) {
-  // Fetch package details
-  const packageDoc = await db.collection('packages').doc(packageSlug).get();
-  if (!packageDoc.exists) {
-    throw new Error('Package not found');
-  }
-  const packageData = packageDoc.data();
+// **Include the isSameSelection function here**
+function isSameSelection(a, b) {
+  const aKeys = Object.keys(a).sort();
+  const bKeys = Object.keys(b).sort();
 
-  // Implement your logic to calculate the price and recycling fee
-  const pricePerPackage = 16000; // 160.00 kr
-  const recyclingFeePerPackage = 800; // 8.00 kr
+  if (aKeys.length !== bKeys.length) {
+    return false;
+  }
+
+  for (let i = 0; i < aKeys.length; i++) {
+    if (aKeys[i] !== bKeys[i]) {
+      return false;
+    }
+    if (a[aKeys[i]] !== b[bKeys[i]]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+// // Function to cleanup old selections
+// const cleanupOldSelections = async (sessionDocRef, temporarySelections) => {
+//   const now = admin.firestore.Timestamp.now();
+//   const oneHourAgo = new admin.firestore.Timestamp(now.seconds - 3600, now.nanoseconds);
+
+//   const updatedSelections = {};
+//   for (const [key, value] of Object.entries(temporarySelections)) {
+//     if (value.createdAt && value.createdAt >= oneHourAgo) {
+//       updatedSelections[key] = value;
+//     }
+//   }
+
+//   await sessionDocRef.update({
+//     temporarySelections: updatedSelections,
+//   });
+// };
+
+
+
+
+
+async function calculatePrice({ packageData, selectedSize, selectedProducts }) {
+  // Fetch all drinks data
+  const drinksCollection = await db.collection('drinks').get();
+  const drinksData = {};
+  drinksCollection.forEach((doc) => {
+    drinksData[doc.id] = doc.data();
+  });
+
+  const selectedDrinkSlugs = Object.keys(selectedProducts);
+
+  let totalDrinkPrice = 0;
+  let totalRecyclingFee = 0;
+  let totalQuantity = 0;
+
+  for (const slug of selectedDrinkSlugs) {
+    const quantity = selectedProducts[slug];
+    const drinkData = drinksData[slug];
+
+    if (!drinkData) {
+      throw new Error(`Drink not found: ${slug}`);
+    }
+
+    const salePrice = drinkData._salePrice; // Price in cents
+    const recyclingFee = drinkData.recyclingFee || 0; // Recycling fee in cents
+
+    totalDrinkPrice += salePrice * quantity;
+    totalRecyclingFee += recyclingFee * quantity;
+    totalQuantity += quantity;
+  }
+
+  // Ensure totalQuantity matches selectedSize
+  if (totalQuantity !== parseInt(selectedSize)) {
+    throw new Error('Total quantity of selected drinks does not match the package size');
+  }
+
+  // Apply package discount
+  const packageOption = packageData.packages.find((pkg) => pkg.size === parseInt(selectedSize));
+  if (!packageOption) {
+    throw new Error('Invalid package size selected');
+  }
+  const discount = packageOption.discount || 1; // Default to no discount if not specified
+
+  const pricePerPackage = Math.round(totalDrinkPrice * discount);
+  const recyclingFeePerPackage = totalRecyclingFee; // Recycling fee is not discounted
 
   return { pricePerPackage, recyclingFeePerPackage };
 }
