@@ -43,11 +43,12 @@ export const BasketProvider = ({ children }) => {
     console.log('Basket items updated:', basketItems);
   }, [basketItems]);
 
-  const addItemToBasket = async (item) => {
+  const addItemToBasket = async ({ selectionId, quantity }) => {
     try {
       const response = await axios.post('/api/firebase/4-updateBasket', {
         action: 'addItem',
-        ...item,
+        selectionId,
+        quantity,
       });
       if (response.data.success) {
         await fetchBasketItems();
