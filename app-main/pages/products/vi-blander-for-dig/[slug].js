@@ -126,12 +126,20 @@ export default function ViBlanderForDigProduct() {
 
   const fetchPrice = async (selection) => {
     try {
-      const response = await axios.post('/api/firebase/3-getCalculatedPackagePrice', {
-        selectedProducts: selection,
+      const payload = {
         selectedSize,
         slug,
-      });
-
+      };
+  
+      if (isMysteryBox) {
+        payload.isMysteryBox = true;
+        payload.sugarPreference = sugarPreference;
+      } else {
+        payload.selectedProducts = selection;
+      }
+  
+      const response = await axios.post('/api/firebase/3-getCalculatedPackagePrice', payload);
+  
       if (response.data.price) {
         setPrice(response.data.price); // Set the discounted price
         setOriginalPrice(response.data.originalPrice); // Set the original price
@@ -142,6 +150,7 @@ export default function ViBlanderForDigProduct() {
       console.error('Error fetching price:', error);
     }
   };
+  
 
   // Function to handle package size change
   const handleSizeChange = (size) => {

@@ -18,8 +18,47 @@ export default function BlandSelvMixProduct() {
   const [selectedSize, setSelectedSize] = useState(null); // Will be set after fetching product
   const [quantity, setQuantity] = useState(1);
   const [maxProducts, setMaxProducts] = useState(0);
+  const [selectionId, setSelectionId] = useState(null);
 
   const { addItemToBasket } = useBasket();
+
+
+  useEffect(() => {
+    const createTemporarySelection = async () => {
+      const totalSelected = getTotalSelected();
+  
+      // Only proceed if total selected equals maxProducts
+      if (totalSelected !== maxProducts || !selectedSize) {
+        setPrice(0);
+        setSelectionId(null);
+        return;
+      }
+  
+      try {
+        const response = await axios.post('/api/firebase/4-createTemporarySelection', {
+          selectedProducts,
+          selectedSize,
+          packageSlug: slug,
+          isMysteryBox: false,
+          sugarPreference: null, // Set accordingly if needed
+        });
+  
+        if (response.data.success) {
+          setPrice(response.data.price);
+          setSelectionId(response.data.selectionId);
+        } else {
+          console.error('Failed to create temporary selection:', response.data);
+          alert('Failed to create selection. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error creating temporary selection:', error);
+        alert('Error creating selection. Please try again.');
+      }
+    };
+  
+    createTemporarySelection();
+  }, [selectedProducts, selectedSize, slug]);
+
 
   useEffect(() => {
     if (!slug) return;
@@ -61,32 +100,38 @@ export default function BlandSelvMixProduct() {
     }
   }, [selectedSize]);
 
-  // Fetch price whenever selectedProducts or selectedSize changes
+  // Fetch price and create temporary selection whenever selectedProducts or selectedSize changes
   useEffect(() => {
-    const fetchPrice = async () => {
+    const createTemporarySelection = async () => {
       if (Object.keys(selectedProducts).length === 0 || !selectedSize) {
         setPrice(0);
+        setSelectionId(null);
         return;
       }
 
       try {
-        const response = await axios.post('/api/firebase/3-getCalculatedPackagePrice', {
+        const response = await axios.post('/api/firebase/4-createTemporarySelection', {
           selectedProducts,
           selectedSize,
-          slug,
+          packageSlug: slug,
+          isMysteryBox: false,
+          sugarPreference: null, // Set accordingly if needed
         });
 
-        if (response.data.price) {
-          setPrice(response.data.price); // Set the price from the API
+        if (response.data.success) {
+          setPrice(response.data.price);
+          setSelectionId(response.data.selectionId);
         } else {
-          console.error('Price not returned from API:', response.data);
+          console.error('Failed to create temporary selection:', response.data);
+          alert('Failed to create selection. Please try again.');
         }
       } catch (error) {
-        console.error('Error fetching price:', error);
+        console.error('Error creating temporary selection:', error);
+        alert('Error creating selection. Please try again.');
       }
     };
 
-    fetchPrice();
+    createTemporarySelection();
   }, [selectedProducts, selectedSize, slug]);
 
   // Function to handle quantity changes
@@ -122,23 +167,12 @@ export default function BlandSelvMixProduct() {
       return;
     }
 
-    const mixedProduct = {
-      slug: product.slug,
-      title: `${product.title} - ${selectedSize} pcs`,
-      description: `A mix of: ${Object.entries(selectedProducts)
-        .map(
-          ([drinkSlug, qty]) =>
-            `${drinksData[drinkSlug]?.name || drinkSlug} (x${qty})`
-        )
-        .join(', ')}`,
-      image: product.image,
-      price: price, // Total price per package
-      quantity: quantity,
-      selectedSize: selectedSize,
-      selectedProducts: selectedProducts,
-    };
+    if (!selectionId) {
+      alert('Failed to create selection. Please try again.');
+      return;
+    }
 
-    addItemToBasket(mixedProduct);
+    addItemToBasket({ selectionId, quantity });
   };
 
   if (loading) {
@@ -157,7 +191,6 @@ export default function BlandSelvMixProduct() {
       <div className="flex flex-col md:flex-row">
         {/* Left Column: Image and Description */}
         <div className="md:w-1/2">
-        {/* <div className="md:w-1/2 flex-1 flex flex-col justify-center"></div> */}
           <img src={product.image} alt={product.title} className="w-full h-auto" />
 
           {/* Description */}
@@ -191,7 +224,7 @@ export default function BlandSelvMixProduct() {
           </div>
 
           {/* Scrollable Drinks Selection */}
-          <div className="mt-4 overflow-y-auto pr-4">
+          <div className="mt-4 overflow-y-auto pr-4 max-h-96">
             <p>Select drinks (exactly {maxProducts}):</p>
             {Object.keys(drinksData).map((drinkSlug, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
@@ -229,6 +262,18 @@ export default function BlandSelvMixProduct() {
             </p>
           </div>
 
+          {/* Quantity Selection */}
+          <div className="mt-4">
+            <label className="mr-2">Quantity:</label>
+            <input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value))}
+              className="w-16 text-center border rounded"
+            />
+          </div>
+
           {/* Add to Basket Button */}
           <button
             onClick={addToBasket}
@@ -238,7 +283,7 @@ export default function BlandSelvMixProduct() {
           </button>
 
           {/* Price */}
-          <p className="text-2xl font-bold mt-4">{(price / 100).toFixed(2)} kr</p>
+          <p className="text-2xl font-bold mt-4">{((price * quantity) / 100).toFixed(2)} kr</p>
         </div>
       </div>
     </div>
