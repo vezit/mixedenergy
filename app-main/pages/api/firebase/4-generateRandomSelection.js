@@ -17,7 +17,7 @@ export default async (req, res) => {
       return res.status(400).json({ error: 'Missing sessionId in cookies' });
     }
 
-    const { slug, selectedSize, sugarPreference, isMysteryBox } = req.body;
+    const { slug, selectedSize, sugarPreference } = req.body;
 
     // Fetch package details
     const packageDoc = await db.collection('packages').doc(slug).get();
@@ -30,13 +30,11 @@ export default async (req, res) => {
     const drinksData = await getDrinksData(packageData.collectionsDrinks);
 
     // Generate random selection
-    const selectedProducts = isMysteryBox
-      ? {} // Empty selection for mystery box
-      : generateRandomSelection({
-          drinksData,
-          selectedSize,
-          sugarPreference,
-        });
+    const selectedProducts = generateRandomSelection({
+      drinksData,
+      selectedSize,
+      sugarPreference,
+    });
 
     // Store the selection in the session with a unique identifier
     const selectionId = uuidv4();
@@ -46,7 +44,6 @@ export default async (req, res) => {
         temporarySelections: {
           [selectionId]: {
             selectedProducts,
-            isMysteryBox,
             sugarPreference,
             selectedSize,
             packageSlug: slug,
@@ -60,19 +57,34 @@ export default async (req, res) => {
     res.status(200).json({ success: true, selectedProducts, selectionId });
   } catch (error) {
     console.error('Error generating random selection:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message });
   }
 };
 
 async function getDrinksData(drinkSlugs) {
-  const drinksCollection = await db
-    .collection('drinks')
-    .where('__name__', 'in', drinkSlugs)
-    .get();
+  // Ensure drinkSlugs is an array and has elements
+  if (!Array.isArray(drinkSlugs) || drinkSlugs.length === 0) {
+    throw new Error('No drinks available for the selected package.');
+  }
+
+  // Firestore 'in' queries can handle a maximum of 10 elements
+  const chunks = [];
+  for (let i = 0; i < drinkSlugs.length; i += 10) {
+    chunks.push(drinkSlugs.slice(i, i + 10));
+  }
+
   const drinksData = {};
-  drinksCollection.forEach((doc) => {
-    drinksData[doc.id] = doc.data();
-  });
+
+  for (const chunk of chunks) {
+    const drinksCollection = await db
+      .collection('drinks')
+      .where('__name__', 'in', chunk)
+      .get();
+    drinksCollection.forEach((doc) => {
+      drinksData[doc.id] = doc.data();
+    });
+  }
+
   return drinksData;
 }
 

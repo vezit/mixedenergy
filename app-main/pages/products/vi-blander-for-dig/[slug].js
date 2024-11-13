@@ -23,13 +23,12 @@ export default function ViBlanderForDigProduct() {
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [sugarPreference, setSugarPreference] = useState('alle');
-  const [isMysteryBox, setIsMysteryBox] = useState(false);
 
   const { addItemToBasket } = useBasket();
 
   // Function to generate a unique key for the current options
   const getSelectionKey = () => {
-    return `${selectedSize}_${sugarPreference}_${isMysteryBox}`;
+    return `${selectedSize}_${sugarPreference}`;
   };
 
   // Load selections from localStorage on initial mount
@@ -87,7 +86,7 @@ export default function ViBlanderForDigProduct() {
       // Generate a new package
       generateRandomPackage();
     }
-  }, [selectedSize, sugarPreference, isMysteryBox]);
+  }, [selectedSize, sugarPreference]);
 
   // Function to generate a random package
   const generateRandomPackage = async () => {
@@ -96,7 +95,6 @@ export default function ViBlanderForDigProduct() {
         slug,
         selectedSize,
         sugarPreference,
-        isMysteryBox,
       });
 
       if (response.data.success) {
@@ -129,17 +127,11 @@ export default function ViBlanderForDigProduct() {
       const payload = {
         selectedSize,
         slug,
+        selectedProducts: selection,
       };
-  
-      if (isMysteryBox) {
-        payload.isMysteryBox = true;
-        payload.sugarPreference = sugarPreference;
-      } else {
-        payload.selectedProducts = selection;
-      }
-  
+
       const response = await axios.post('/api/firebase/3-getCalculatedPackagePrice', payload);
-  
+
       if (response.data.price) {
         setPrice(response.data.price); // Set the discounted price
         setOriginalPrice(response.data.originalPrice); // Set the original price
@@ -150,7 +142,6 @@ export default function ViBlanderForDigProduct() {
       console.error('Error fetching price:', error);
     }
   };
-  
 
   // Function to handle package size change
   const handleSizeChange = (size) => {
@@ -258,43 +249,18 @@ export default function ViBlanderForDigProduct() {
               </label>
             </div>
 
-            {/* Mysterybox Toggle */}
-            <div className="mt-4 flex items-center">
-              <label className="mr-4">Mysterybox</label>
-              <label className="iphone-toggle">
-                <input
-                  type="checkbox"
-                  checked={isMysteryBox}
-                  onChange={() => setIsMysteryBox(!isMysteryBox)}
-                />
-                <span className="slider"></span>
-              </label>
-            </div>
-
-            {/* Display Random Package or Mysterybox */}
-            <div
-              className={`mt-4 h-[30rem] pr-4 border border-gray-300 rounded ${
-                isMysteryBox ? 'overflow-hidden' : 'overflow-y-auto'
-              }`}
-            >
+            {/* Display Random Package */}
+            <div className="mt-4 h-[30rem] pr-4 border border-gray-300 rounded overflow-y-auto">
               <h2 className="text-xl font-bold text-center mt-4">
-                {isMysteryBox ? 'Mysterybox enabled' : `Your Random ${product.title}`}
+                {`Your Random ${product.title}`}
               </h2>
-              {isMysteryBox ? (
-                // Display a question mark in the center
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-8xl text-gray-400 mt-4">?</div>
-                </div>
-              ) : (
-                // Display the list of drinks
-                <ul className="list-disc list-inside mt-4 px-4">
-                  {Object.entries(randomSelection).map(([drinkSlug, qty], index) => (
-                    <li key={index}>
-                      {drinksData[drinkSlug]?.name || drinkSlug} (x{qty})
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <ul className="list-disc list-inside mt-4 px-4">
+                {Object.entries(randomSelection).map(([drinkSlug, qty], index) => (
+                  <li key={index}>
+                    {drinksData[drinkSlug]?.name || drinkSlug} (x{qty})
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
@@ -331,58 +297,6 @@ export default function ViBlanderForDigProduct() {
           </div>
         </div>
       </div>
-
-      {/* Include CSS for iPhone-style toggle */}
-      <style jsx>{`
-        .iphone-toggle {
-          position: relative;
-          display: inline-block;
-          width: 50px;
-          height: 28px;
-        }
-
-        .iphone-toggle input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        .iphone-toggle .slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: #ccc;
-          border-radius: 34px;
-          transition: 0.4s;
-        }
-
-        .iphone-toggle .slider:before {
-          position: absolute;
-          content: '';
-          height: 22px;
-          width: 22px;
-          left: 3px;
-          bottom: 3px;
-          background-color: white;
-          border-radius: 50%;
-          transition: 0.4s;
-        }
-
-        .iphone-toggle input:checked + .slider {
-          background-color: #2196f3;
-        }
-
-        .iphone-toggle input:focus + .slider {
-          box-shadow: 0 0 1px #2196f3;
-        }
-
-        .iphone-toggle input:checked + .slider:before {
-          transform: translateX(22px);
-        }
-      `}</style>
     </div>
   );
 }
