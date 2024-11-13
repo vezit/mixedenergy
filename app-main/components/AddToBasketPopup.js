@@ -24,7 +24,6 @@ const AddToBasketPopup = () => {
     }
   };
 
-  // Functions can be defined after hooks
   const handleClose = () => {
     setIsNewItemAdded(false);
   };
@@ -32,14 +31,6 @@ const AddToBasketPopup = () => {
   const handleGoToBasket = () => {
     setIsNewItemAdded(false);
     router.push('/basket');
-  };
-
-  const handleViewDetails = () => {
-    setIsNewItemAdded(false);
-    if (lastItem && lastItem.slug) {
-      // Adjust the route according to your product detail page
-      router.push(`/products/bland-selv-mix/${lastItem.slug}`);
-    }
   };
 
   // Get the last added item
@@ -74,12 +65,6 @@ const AddToBasketPopup = () => {
             className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
           >
             Køb Mere
-          </button>
-          <button
-            onClick={handleViewDetails}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
-            Details
           </button>
           <button
             onClick={handleGoToBasket}
