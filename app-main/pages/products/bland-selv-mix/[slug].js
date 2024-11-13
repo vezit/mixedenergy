@@ -14,51 +14,42 @@ export default function BlandSelvMixProduct() {
   const [drinksData, setDrinksData] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState({});
-  const [price, setPrice] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null); // Will be set after fetching product
-  const [quantity, setQuantity] = useState(1);
   const [maxProducts, setMaxProducts] = useState(0);
-  const [selectionId, setSelectionId] = useState(null);
 
-  const { addItemToBasket } = useBasket();
+  const { addItemToBasket } = useBasket(); // Importing addItemToBasket from BasketContext
 
-
+  // Load data from localStorage on mount
   useEffect(() => {
-    const createTemporarySelection = async () => {
-      const totalSelected = getTotalSelected();
-  
-      // Only proceed if total selected equals maxProducts
-      if (totalSelected !== maxProducts || !selectedSize) {
-        setPrice(0);
-        setSelectionId(null);
-        return;
-      }
-  
-      try {
-        const response = await axios.post('/api/firebase/4-createTemporarySelection', {
-          selectedProducts,
-          selectedSize,
-          packageSlug: slug,
-          isMysteryBox: false,
-          sugarPreference: null, // Set accordingly if needed
-        });
-  
-        if (response.data.success) {
-          setPrice(response.data.price);
-          setSelectionId(response.data.selectionId);
-        } else {
-          console.error('Failed to create temporary selection:', response.data);
-          alert('Failed to create selection. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error creating temporary selection:', error);
-        alert('Error creating selection. Please try again.');
-      }
-    };
-  
-    createTemporarySelection();
-  }, [selectedProducts, selectedSize, slug]);
+    if (!slug) return;
 
+    const storedData = localStorage.getItem('slugBlandSelvMix');
+    if (storedData) {
+      const slugData = JSON.parse(storedData)[slug];
+      if (slugData) {
+        const { selectedSize, selectedProducts } = slugData;
+        if (selectedSize) setSelectedSize(selectedSize);
+        if (selectedProducts) setSelectedProducts(selectedProducts);
+      }
+    }
+  }, [slug]);
+
+  // Save data to localStorage whenever selectedSize or selectedProducts change
+  useEffect(() => {
+    if (!slug) return;
+
+    const storedData = localStorage.getItem('slugBlandSelvMix');
+    const allData = storedData ? JSON.parse(storedData) : {};
+
+    const slugData = {
+      selectedSize,
+      selectedProducts,
+    };
+
+    allData[slug] = slugData;
+
+    localStorage.setItem('slugBlandSelvMix', JSON.stringify(allData));
+  }, [slug, selectedSize, selectedProducts]);
 
   useEffect(() => {
     if (!slug) return;
@@ -70,8 +61,8 @@ export default function BlandSelvMixProduct() {
         const productData = productResponse.data.package;
         setProduct(productData);
 
-        // Set default selected size
-        if (productData.packages && productData.packages.length > 0) {
+        // Set default selected size if not already set
+        if (!selectedSize && productData.packages && productData.packages.length > 0) {
           setSelectedSize(productData.packages[0].size);
         }
 
@@ -89,50 +80,14 @@ export default function BlandSelvMixProduct() {
     };
 
     fetchProductAndDrinks();
-  }, [slug]);
+  }, [slug, selectedSize]);
 
   // Update maxProducts whenever selectedSize changes
   useEffect(() => {
     if (selectedSize) {
       setMaxProducts(parseInt(selectedSize));
-      // Reset selected products when size changes
-      setSelectedProducts({});
     }
   }, [selectedSize]);
-
-  // Fetch price and create temporary selection whenever selectedProducts or selectedSize changes
-  useEffect(() => {
-    const createTemporarySelection = async () => {
-      if (Object.keys(selectedProducts).length === 0 || !selectedSize) {
-        setPrice(0);
-        setSelectionId(null);
-        return;
-      }
-
-      try {
-        const response = await axios.post('/api/firebase/4-createTemporarySelection', {
-          selectedProducts,
-          selectedSize,
-          packageSlug: slug,
-          isMysteryBox: false,
-          sugarPreference: null, // Set accordingly if needed
-        });
-
-        if (response.data.success) {
-          setPrice(response.data.price);
-          setSelectionId(response.data.selectionId);
-        } else {
-          console.error('Failed to create temporary selection:', response.data);
-          alert('Failed to create selection. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error creating temporary selection:', error);
-        alert('Error creating selection. Please try again.');
-      }
-    };
-
-    createTemporarySelection();
-  }, [selectedProducts, selectedSize, slug]);
 
   // Function to handle quantity changes
   const handleProductQuantityChange = (drinkSlug, action) => {
@@ -161,18 +116,45 @@ export default function BlandSelvMixProduct() {
   };
 
   // Function to add the selected products to the basket
-  const addToBasket = () => {
+  const addToBasket = async () => {
     if (getTotalSelected() !== maxProducts) {
       alert(`Please select exactly ${maxProducts} drinks.`);
       return;
     }
 
-    if (!selectionId) {
-      alert('Failed to create selection. Please try again.');
-      return;
-    }
+    try {
+      // Create temporary selection using the provided API
+      const response = await axios.post('/api/firebase/4-generateRandomSelection', {
+        slug,
+        selectedSize,
+        selectedProducts,
+        isCustomSelection: true, // Indicate that this is a custom selection
+        sugarPreference: null,   // Explicitly set sugarPreference to null
+      });
 
-    addItemToBasket({ selectionId, quantity });
+      if (response.data.success) {
+        const selectionId = response.data.selectionId;
+
+        // Use BasketContext to add item to basket
+        await addItemToBasket({ selectionId, quantity: 1 });
+
+        // Clear selected products
+        setSelectedProducts({});
+        // Remove from localStorage
+        const storedData = localStorage.getItem('slugBlandSelvMix');
+        if (storedData) {
+          const allData = JSON.parse(storedData);
+          delete allData[slug];
+          localStorage.setItem('slugBlandSelvMix', JSON.stringify(allData));
+        }
+      } else {
+        console.error('Failed to create temporary selection:', response.data);
+        alert('Failed to create selection. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error adding to basket:', error);
+      alert('Error adding to basket. Please try again.');
+    }
   };
 
   if (loading) {
@@ -262,18 +244,6 @@ export default function BlandSelvMixProduct() {
             </p>
           </div>
 
-          {/* Quantity Selection */}
-          <div className="mt-4">
-            <label className="mr-2">Quantity:</label>
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value))}
-              className="w-16 text-center border rounded"
-            />
-          </div>
-
           {/* Add to Basket Button */}
           <button
             onClick={addToBasket}
@@ -281,9 +251,6 @@ export default function BlandSelvMixProduct() {
           >
             Add Mixed Package to Cart
           </button>
-
-          {/* Price */}
-          <p className="text-2xl font-bold mt-4">{((price * quantity) / 100).toFixed(2)} kr</p>
         </div>
       </div>
     </div>
