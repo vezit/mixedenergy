@@ -1,3 +1,5 @@
+// pages pages/cookiepolitik.js
+
 import React from 'react';
 import axios from 'axios';
 import { deleteAllCookies } from '../lib/cookies'; // Import deleteAllCookies function if you have one

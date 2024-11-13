@@ -17,7 +17,7 @@ export default async (req, res) => {
       return res.status(400).json({ error: 'Missing sessionId in cookies' });
     }
 
-    const { slug, selectedSize, sugarPreference } = req.body;
+    const { slug, selectedSize, sugarPreference = null, isCustomSelection = false, selectedProducts = null } = req.body;
 
     // Fetch package details
     const packageDoc = await db.collection('packages').doc(slug).get();
@@ -29,12 +29,21 @@ export default async (req, res) => {
     // Fetch drinks data
     const drinksData = await getDrinksData(packageData.collectionsDrinks);
 
-    // Generate random selection
-    const selectedProducts = generateRandomSelection({
-      drinksData,
-      selectedSize,
-      sugarPreference,
-    });
+    let finalSelectedProducts = {};
+
+    if (isCustomSelection && selectedProducts) {
+      finalSelectedProducts = selectedProducts;
+    } else {
+      if (!sugarPreference) {
+        return res.status(400).json({ error: 'Missing sugarPreference' });
+      }
+      // Generate random selection
+      finalSelectedProducts = generateRandomSelection({
+        drinksData,
+        selectedSize,
+        sugarPreference,
+      });
+    }
 
     // Store the selection in the session with a unique identifier
     const selectionId = uuidv4();
@@ -43,10 +52,11 @@ export default async (req, res) => {
       {
         temporarySelections: {
           [selectionId]: {
-            selectedProducts,
+            selectedProducts: finalSelectedProducts,
             sugarPreference,
             selectedSize,
             packageSlug: slug,
+            isCustomSelection,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           },
         },
@@ -54,7 +64,7 @@ export default async (req, res) => {
       { merge: true }
     );
 
-    res.status(200).json({ success: true, selectedProducts, selectionId });
+    res.status(200).json({ success: true, selectedProducts: finalSelectedProducts, selectionId });
   } catch (error) {
     console.error('Error generating random selection:', error);
     res.status(500).json({ error: error.message });

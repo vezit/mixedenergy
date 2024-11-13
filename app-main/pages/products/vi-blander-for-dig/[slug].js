@@ -33,11 +33,17 @@ export default function ViBlanderForDigProduct() {
 
   // Load selections from localStorage on initial mount
   useEffect(() => {
-    const storedSelections = localStorage.getItem('selections');
-    if (storedSelections) {
-      setSelections(JSON.parse(storedSelections));
+    if (!slug) return;
+  
+    const storedData = localStorage.getItem('slugViBlander');
+    if (storedData) {
+      const allSelections = JSON.parse(storedData);
+      if (allSelections[slug]) {
+        setSelections(allSelections[slug]);
+      }
     }
-  }, []);
+  }, [slug]);
+  
 
   useEffect(() => {
     if (!slug) return;
@@ -96,12 +102,12 @@ export default function ViBlanderForDigProduct() {
         selectedSize,
         sugarPreference,
       });
-
+  
       if (response.data.success) {
         const { selectedProducts, selectionId } = response.data;
         setRandomSelection(selectedProducts);
         setSelectionId(selectionId);
-
+  
         // Store the selection
         const selectionKey = getSelectionKey();
         const newSelections = {
@@ -109,8 +115,13 @@ export default function ViBlanderForDigProduct() {
           [selectionKey]: { selectedProducts, selectionId },
         };
         setSelections(newSelections);
-        localStorage.setItem('selections', JSON.stringify(newSelections));
-
+  
+        // Save to localStorage
+        const storedData = localStorage.getItem('slugViBlander');
+        const allSelections = storedData ? JSON.parse(storedData) : {};
+        allSelections[slug] = newSelections;
+        localStorage.setItem('slugViBlander', JSON.stringify(allSelections));
+  
         fetchPrice(selectedProducts);
       } else {
         console.error('Failed to generate package:', response.data);
