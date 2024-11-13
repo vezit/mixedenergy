@@ -48,7 +48,7 @@ export default async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired selectionId' });
     }
 
-    const { selectedProducts, isMysteryBox, sugarPreference, selectedSize, packageSlug } = selection;
+    const { selectedProducts, sugarPreference, selectedSize, packageSlug } = selection;
 
     // Fetch package details
     const packageDoc = await db.collection('packages').doc(packageSlug).get();
@@ -94,7 +94,6 @@ export default async (req, res) => {
         recyclingFeePerPackage,
         totalPrice,
         totalRecyclingFee,
-        isMysteryBox,
         sugarPreference,
       });
     }
@@ -107,7 +106,7 @@ export default async (req, res) => {
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('Error updating basket:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message });
   }
 };
 
