@@ -12,15 +12,13 @@ export default function CookiePolitik() {
     );
     if (confirmAction) {
       try {
-        // Call API to delete session document
-        await axios.post('/api/deleteSession');
+        // Delete all cookies and session
+        await deleteAllCookies();
+        // Redirect to home page
+        window.location.href = '/';
       } catch (error) {
-        console.error('Error deleting session:', error);
+        console.error('Error deleting cookies:', error);
       }
-
-      // Delete all cookies
-      deleteAllCookies(); // Ensure this function is defined in your code
-      window.location.href = '/';
     }
   };
 
