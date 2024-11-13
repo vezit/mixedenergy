@@ -25,7 +25,7 @@ export default function CookieConsent() {
         await axios.post('/api/firebase/1-createSession', { sessionId });
 
         // If successful, set the cookie and break the loop
-        const cookieSet = setCookie('session_id', sessionId, 7);
+        const cookieSet = setCookie('session_id', sessionId, 1);
         if (!cookieSet) {
           setCookieError(true);
           return;
