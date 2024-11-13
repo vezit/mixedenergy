@@ -33,17 +33,16 @@ export function deleteCookie(name) {
 }
 
 
-// cookies.js
-// cookies.js
-export function deleteAllCookies(deleteSessionStorage = true, deleteLocalStorage = true) {
+
+export async function deleteAllCookies(deleteSessionStorage = true, deleteLocalStorage = true, deleteSessionInFirebase = true) {
   // Delete all cookies
   const cookies = document.cookie.split(";");
 
   for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i];
+    let cookie = cookies[i].trim();
     const eqPos = cookie.indexOf("=");
-    const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+    const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
   }
 
   // Optionally delete session storage
@@ -54,5 +53,16 @@ export function deleteAllCookies(deleteSessionStorage = true, deleteLocalStorage
   // Optionally delete local storage
   if (deleteLocalStorage) {
     localStorage.clear();
+  }
+
+  // Optionally delete session in Firebase
+  if (deleteSessionInFirebase) {
+    try {
+      await fetch('/api/firebase/1-deleteSession', {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Error deleting session in Firebase:', error);
+    }
   }
 }
