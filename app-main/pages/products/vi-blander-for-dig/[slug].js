@@ -1,16 +1,19 @@
-// pages/products/vi-blander-for-dig/[slug].js
-
+// Import statements
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useBasket } from '../../../components/BasketContext';
 import axios from 'axios';
 import Loading from '/components/Loading';
-import LoadingButton from '/components/LoadingButton'; // Import the LoadingButton component
-import FireworkAnimation from '/components/FireworkAnimation';
+import LoadingButton from '/components/LoadingButton'; // Import LoadingButton
+import LoadingConfettiButton from '/components/LoadingConfettiButton'; // Keep LoadingConfettiButton
+import ConfettiAnimation from '/components/ConfettiAnimation';
 
+// Component definition
 export default function ViBlanderForDigProduct() {
   const router = useRouter();
   const { slug } = router.query;
+
+  const addToCartButtonRef = useRef(null);
 
   const [product, setProduct] = useState(null);
   const [drinksData, setDrinksData] = useState({});
@@ -26,10 +29,9 @@ export default function ViBlanderForDigProduct() {
   const [quantity, setQuantity] = useState(1);
   const [sugarPreference, setSugarPreference] = useState('alle');
 
-  const [isGenerating, setIsGenerating] = useState(false); // State for Generate button
-  const [isAddingToCart, setIsAddingToCart] = useState(false); // State for Add to Cart button
-  const [showFireworks, setShowFireworks] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false); // Removed showFireworks
 
   const { addItemToBasket } = useBasket();
 
@@ -100,10 +102,8 @@ export default function ViBlanderForDigProduct() {
     }
   }, [selectedSize, sugarPreference]);
 
-  
   const handleConfettiEnd = () => {
     setShowConfetti(false);
-    alert('Product added to cart!');
   };
 
   // Function to generate a random package
@@ -187,7 +187,7 @@ export default function ViBlanderForDigProduct() {
         selectionId,
         quantity: parseInt(quantity),
       };
-      
+
       await addItemToBasket(mixedProduct);
       setShowConfetti(true); // Trigger confetti
     } catch (error) {
@@ -308,13 +308,14 @@ export default function ViBlanderForDigProduct() {
             </LoadingButton>
 
             {/* Add to Basket Button */}
-            <LoadingButton
+            <LoadingConfettiButton
+              ref={addToCartButtonRef} // Attach the ref here
               onClick={addToBasket}
               loading={isAddingToCart}
               className="mt-4 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full"
             >
               Add to Cart
-            </LoadingButton>
+            </LoadingConfettiButton>
 
             {/* Price */}
             <div className="text-2xl font-bold mt-4">
@@ -332,6 +333,11 @@ export default function ViBlanderForDigProduct() {
           </div>
         </div>
       </div>
+
+      {/* Render Confetti */}
+      {showConfetti && (
+        <ConfettiAnimation onAnimationEnd={handleConfettiEnd} buttonRef={addToCartButtonRef} />
+      )}
     </div>
   );
 }
