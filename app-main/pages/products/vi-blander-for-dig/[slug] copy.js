@@ -1,4 +1,4 @@
-// Import statements
+// /pages/products/vi-blander-for-dig/[slug].js
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { useBasket } from '../../../components/BasketContext';
@@ -31,7 +31,7 @@ export default function ViBlanderForDigProduct() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false); // Removed showFireworks
 
   const { addItemToBasket } = useBasket();
 
@@ -189,12 +189,12 @@ export default function ViBlanderForDigProduct() {
       };
 
       await addItemToBasket(mixedProduct);
+      setShowConfetti(true); // Trigger confetti
     } catch (error) {
       console.error('Error adding to basket:', error);
       alert('Error adding to basket. Please try again.');
     } finally {
       setIsAddingToCart(false);
-      setShowConfetti(true); // Trigger confetti after loading stops
     }
   };
 

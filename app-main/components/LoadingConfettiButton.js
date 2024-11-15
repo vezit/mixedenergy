@@ -4,7 +4,7 @@ const LoadingConfettiButton = React.forwardRef(
   ({ onClick, loading, disabled, className, children }, ref) => {
     const handleClick = (e) => {
       if (navigator.vibrate) {
-        // Trigger a short vibration (100ms)
+        // Trigger a short vibration (200ms)
         navigator.vibrate(200);
       }
       if (onClick) {
