@@ -2,20 +2,10 @@ import React from 'react';
 
 const LoadingConfettiButton = React.forwardRef(
   ({ onClick, loading, disabled, className, children }, ref) => {
-    const handleClick = (e) => {
-      if (navigator.vibrate) {
-        // Trigger a short vibration (100ms)
-        navigator.vibrate(200);
-      }
-      if (onClick) {
-        onClick(e);
-      }
-    };
-
     return (
       <button
         ref={ref}
-        onClick={handleClick}
+        onClick={onClick}
         disabled={loading || disabled}
         className={`relative flex items-center justify-center ${className} ${
           loading || disabled ? 'opacity-50 cursor-not-allowed' : ''
