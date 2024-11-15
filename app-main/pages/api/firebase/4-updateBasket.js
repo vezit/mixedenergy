@@ -147,6 +147,20 @@ export default async (req, res) => {
       });
 
       res.status(200).json({ success: true });
+    } else if (action === 'updateCustomerDetails') {
+      // Handle 'updateCustomerDetails' action
+      const { customerDetails } = req.body;
+
+      if (!customerDetails) {
+        return res.status(400).json({ error: 'Missing customerDetails' });
+      }
+
+      // Update the customerDetails in the session
+      await sessionDocRef.update({
+        'basketDetails.customerDetails': customerDetails,
+      });
+
+      res.status(200).json({ success: true });
     } else {
       return res.status(400).json({ error: 'Invalid action' });
     }
@@ -176,3 +190,6 @@ function isSameSelection(a, b) {
 
   return true;
 }
+
+
+

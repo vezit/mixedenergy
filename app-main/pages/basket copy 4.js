@@ -8,7 +8,7 @@ import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
 import BannerSteps from '../components/BannerSteps';
 import Loading from '../components/Loading';
-import LoadingButton from '../components/LoadingButton';
+import LoadingButton from '../components/LoadingButton'; // Import LoadingButton
 import { getCookie } from '../lib/cookies';
 
 export default function Basket() {
@@ -145,15 +145,16 @@ export default function Basket() {
       console.error('Error updating customer details in Firebase:', error);
     }
   };
+  
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     const updatedDetails = { ...customerDetails, [name]: value };
     updateCustomerDetails(updatedDetails); // This updates the context
-
+  
     // Save to Firebase
     updateCustomerDetailsInFirebase(updatedDetails);
-
+  
     // Additional logic for postal code
     if (name === 'postalCode' && value.length === 4 && /^\d{4}$/.test(value)) {
       fetch(`https://api.dataforsyningen.dk/postnumre/${value}`)
@@ -172,6 +173,7 @@ export default function Basket() {
         });
     }
   };
+  
 
   const removeItem = (itemIndex) => {
     removeItemFromBasket(itemIndex);
@@ -181,34 +183,10 @@ export default function Basket() {
     updateItemQuantity(itemIndex, newQuantity);
   };
 
-  // Function to split address into streetName and streetNumber
-  const splitAddress = (address) => {
-    const regex = /^(.*?)(\s+\d+\S*)$/;
-    const match = address.match(regex);
-    if (match) {
-      return {
-        streetName: match[1].trim(),
-        streetNumber: match[2].trim(),
-      };
-    } else {
-      return {
-        streetName: address,
-        streetNumber: '',
-      };
-    }
-  };
-
   const fetchPickupPoints = (updatedDetails) => {
-    const { streetName, streetNumber } = splitAddress(updatedDetails.address);
-    if (updatedDetails.city && updatedDetails.postalCode && streetNumber) {
+    if (updatedDetails.city && updatedDetails.postalCode && updatedDetails.streetNumber) {
       fetch(
-        `/api/postnord/servicepoints?city=${encodeURIComponent(
-          updatedDetails.city
-        )}&postalCode=${encodeURIComponent(
-          updatedDetails.postalCode
-        )}&streetName=${encodeURIComponent(
-          streetName
-        )}&streetNumber=${encodeURIComponent(streetNumber)}`
+        `/api/postnord/servicepoints?city=${updatedDetails.city}&postalCode=${updatedDetails.postalCode}&streetName=${updatedDetails.address}&streetNumber=${updatedDetails.streetNumber}`
       )
         .then((res) => res.json())
         .then((data) => {
@@ -257,13 +235,13 @@ export default function Basket() {
 
       const updatedDetails = {
         ...customerDetails,
-        address: `${bestResult.vejnavn} ${bestResult.husnr}`,
+        streetNumber: bestResult.husnr,
+        address: bestResult.vejnavn,
         postalCode: bestResult.postnr,
         city: bestResult.postnrnavn,
       };
 
       updateCustomerDetails(updatedDetails);
-      updateCustomerDetailsInFirebase(updatedDetails);
 
       // Fetch pickup points after DAWA validation
       fetchPickupPoints(updatedDetails);
@@ -339,11 +317,10 @@ export default function Basket() {
         };
       } else if (deliveryOption === 'homeDelivery') {
         // Use sanitized customer address
-        const { streetName, streetNumber } = splitAddress(customerDetails.address);
         deliveryAddress = {
           name: customerDetails.fullName,
-          streetName: streetName,
-          streetNumber: streetNumber,
+          streetName: customerDetails.address,
+          streetNumber: customerDetails.streetNumber,
           postalCode: customerDetails.postalCode,
           city: customerDetails.city,
           country: 'Danmark',
@@ -428,7 +405,7 @@ export default function Basket() {
             />
             {errors.fullName && <p className="text-red-600">{errors.fullName}</p>}
           </div>
-
+  
           {/* Mobile Number */}
           <div className="mb-4">
             <label className="block text-gray-700">Mobilnummer</label>
@@ -441,7 +418,7 @@ export default function Basket() {
             />
             {errors.mobileNumber && <p className="text-red-600">{errors.mobileNumber}</p>}
           </div>
-
+  
           {/* Email */}
           <div className="mb-4">
             <label className="block text-gray-700">E-mail</label>
@@ -454,7 +431,7 @@ export default function Basket() {
             />
             {errors.email && <p className="text-red-600">{errors.email}</p>}
           </div>
-
+  
           {/* Address */}
           <div className="mb-4">
             <label className="block text-gray-700">Adresse</label>
@@ -467,7 +444,20 @@ export default function Basket() {
             />
             {errors.address && <p className="text-red-600">{errors.address}</p>}
           </div>
-
+  
+          {/* Street Number */}
+          <div className="mb-4">
+            <label className="block text-gray-700">Husnummer</label>
+            <input
+              type="text"
+              name="streetNumber"
+              value={customerDetails.streetNumber || ''}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border rounded"
+            />
+            {errors.streetNumber && <p className="text-red-600">{errors.streetNumber}</p>}
+          </div>
+  
           {/* Postal Code */}
           <div className="mb-4">
             <label className="block text-gray-700">Postnummer</label>
@@ -475,12 +465,12 @@ export default function Basket() {
               type="text"
               name="postalCode"
               value={customerDetails.postalCode || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded"
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border rounded"
             />
             {errors.postalCode && <p className="text-red-600">{errors.postalCode}</p>}
           </div>
-
+  
           {/* City */}
           <div className="mb-4">
             <label className="block text-gray-700">By</label>
@@ -493,7 +483,7 @@ export default function Basket() {
             />
             {errors.city && <p className="text-red-600">{errors.city}</p>}
           </div>
-
+  
           {/* Country */}
           <div className="mb-4">
             <label className="block text-gray-700">Land</label>
@@ -506,7 +496,7 @@ export default function Basket() {
               disabled
             />
           </div>
-
+  
           {/* Buttons */}
           <div className="mt-4 flex justify-between">
             <LoadingButton
@@ -527,6 +517,9 @@ export default function Basket() {
     );
   };
 
+
+
+  
   const renderShippingAndPayment = () => {
     return (
       <>
@@ -672,7 +665,9 @@ export default function Basket() {
                         className="w-24 h-24 object-cover rounded"
                       />
                       <div className="flex-1 mt-4 md:mt-0 md:ml-4">
-                        <h2 className="text-xl font-bold">{packageData?.title || item.slug}</h2>
+                        <h2 className="text-xl font-bold">
+                          {packageData?.title || item.slug}
+                        </h2>
                         <div className="flex items-center mt-2">
                           <button
                             onClick={() => updateQuantity(index, item.quantity - 1)}

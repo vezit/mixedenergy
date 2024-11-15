@@ -7,17 +7,15 @@ const BasketContext = createContext();
 
 export const BasketProvider = ({ children }) => {
   const [basketItems, setBasketItems] = useState([]);
-  const [isBasketLoaded, setIsBasketLoaded] = useState(false);
+  const [isBasketLoaded, setIsBasketLoaded] = useState(false); // New state to track loading
   const [customerDetails, setCustomerDetails] = useState({
     customerType: 'Privat',
     fullName: '',
     mobileNumber: '',
     email: '',
     address: '',
-    streetNumber: '',
     postalCode: '',
     city: '',
-    country: 'Danmark',
   });
 
   const fetchBasketItems = async () => {
@@ -31,14 +29,10 @@ export const BasketProvider = ({ children }) => {
       } else {
         setBasketItems([]);
       }
-      // Also set customerDetails from session if available
-      if (basketDetails && basketDetails.customerDetails) {
-        setCustomerDetails(basketDetails.customerDetails);
-      }
     } catch (error) {
       console.error('Error fetching basket items:', error);
     } finally {
-      setIsBasketLoaded(true);
+      setIsBasketLoaded(true); // Indicate that loading has completed
     }
   };
 
@@ -121,13 +115,11 @@ export const BasketProvider = ({ children }) => {
   };
 
   const updateCustomerDetails = async (updatedDetails) => {
-    // Update local state
     setCustomerDetails(updatedDetails);
 
     // Update customer details on the server
     try {
-      const response = await axios.post('/api/firebase/4-updateBasket', {
-        action: 'updateCustomerDetails',
+      const response = await axios.post('/api/updateCustomerDetails', {
         customerDetails: updatedDetails,
       });
       if (!response.data.success) {
@@ -142,7 +134,7 @@ export const BasketProvider = ({ children }) => {
     <BasketContext.Provider
       value={{
         basketItems,
-        isBasketLoaded,
+        isBasketLoaded, // Expose isBasketLoaded
         addItemToBasket,
         removeItemFromBasket,
         customerDetails,
