@@ -6,6 +6,7 @@ import { useBasket } from '../../../components/BasketContext';
 import axios from 'axios';
 import Loading from '/components/Loading';
 import LoadingButton from '/components/LoadingButton'; // Import the LoadingButton component
+import FireworkAnimation from '/components/FireworkAnimation';
 
 export default function ViBlanderForDigProduct() {
   const router = useRouter();
@@ -27,6 +28,8 @@ export default function ViBlanderForDigProduct() {
 
   const [isGenerating, setIsGenerating] = useState(false); // State for Generate button
   const [isAddingToCart, setIsAddingToCart] = useState(false); // State for Add to Cart button
+  const [showFireworks, setShowFireworks] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const { addItemToBasket } = useBasket();
 
@@ -96,6 +99,12 @@ export default function ViBlanderForDigProduct() {
       generateRandomPackage();
     }
   }, [selectedSize, sugarPreference]);
+
+  
+  const handleConfettiEnd = () => {
+    setShowConfetti(false);
+    alert('Product added to cart!');
+  };
 
   // Function to generate a random package
   const generateRandomPackage = async () => {
@@ -178,8 +187,9 @@ export default function ViBlanderForDigProduct() {
         selectionId,
         quantity: parseInt(quantity),
       };
-
+      
       await addItemToBasket(mixedProduct);
+      setShowConfetti(true); // Trigger confetti
     } catch (error) {
       console.error('Error adding to basket:', error);
       alert('Error adding to basket. Please try again.');
