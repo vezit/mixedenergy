@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useBasket } from '../../../components/BasketContext';
 import axios from 'axios';
 import Loading from '/components/Loading';
+import LoadingButton from '/components/LoadingButton'; // Import the LoadingButton component
 
 export default function BlandSelvMixProduct() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function BlandSelvMixProduct() {
   const [selectedProducts, setSelectedProducts] = useState({});
   const [selectedSize, setSelectedSize] = useState(null); // Will be set after fetching product
   const [maxProducts, setMaxProducts] = useState(0);
+
+  const [isAddingToCart, setIsAddingToCart] = useState(false); // State for Add to Cart button
 
   const { addItemToBasket } = useBasket(); // Importing addItemToBasket from BasketContext
 
@@ -122,6 +125,7 @@ export default function BlandSelvMixProduct() {
       return;
     }
 
+    setIsAddingToCart(true);
     try {
       // Create temporary selection using the provided API
       const response = await axios.post('/api/firebase/4-generateRandomSelection', {
@@ -129,7 +133,7 @@ export default function BlandSelvMixProduct() {
         selectedSize,
         selectedProducts,
         isCustomSelection: true, // Indicate that this is a custom selection
-        sugarPreference: null,   // Explicitly set sugarPreference to null
+        sugarPreference: null, // Explicitly set sugarPreference to null
       });
 
       if (response.data.success) {
@@ -154,6 +158,8 @@ export default function BlandSelvMixProduct() {
     } catch (error) {
       console.error('Error adding to basket:', error);
       alert('Error adding to basket. Please try again.');
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -245,12 +251,13 @@ export default function BlandSelvMixProduct() {
           </div>
 
           {/* Add to Basket Button */}
-          <button
+          <LoadingButton
             onClick={addToBasket}
-            className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition"
+            loading={isAddingToCart}
+            className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full"
           >
             Add Mixed Package to Cart
-          </button>
+          </LoadingButton>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useBasket } from '../../../components/BasketContext';
 import axios from 'axios';
 import Loading from '/components/Loading';
+import LoadingButton from '/components/LoadingButton'; // Import the LoadingButton component
 
 export default function ViBlanderForDigProduct() {
   const router = useRouter();
@@ -24,6 +25,9 @@ export default function ViBlanderForDigProduct() {
   const [quantity, setQuantity] = useState(1);
   const [sugarPreference, setSugarPreference] = useState('alle');
 
+  const [isGenerating, setIsGenerating] = useState(false); // State for Generate button
+  const [isAddingToCart, setIsAddingToCart] = useState(false); // State for Add to Cart button
+
   const { addItemToBasket } = useBasket();
 
   // Function to generate a unique key for the current options
@@ -34,7 +38,7 @@ export default function ViBlanderForDigProduct() {
   // Load selections from localStorage on initial mount
   useEffect(() => {
     if (!slug) return;
-  
+
     const storedData = localStorage.getItem('slugViBlander');
     if (storedData) {
       const allSelections = JSON.parse(storedData);
@@ -43,7 +47,6 @@ export default function ViBlanderForDigProduct() {
       }
     }
   }, [slug]);
-  
 
   useEffect(() => {
     if (!slug) return;
@@ -96,18 +99,19 @@ export default function ViBlanderForDigProduct() {
 
   // Function to generate a random package
   const generateRandomPackage = async () => {
+    setIsGenerating(true);
     try {
       const response = await axios.post('/api/firebase/4-generateRandomSelection', {
         slug,
         selectedSize,
         sugarPreference,
       });
-  
+
       if (response.data.success) {
         const { selectedProducts, selectionId } = response.data;
         setRandomSelection(selectedProducts);
         setSelectionId(selectionId);
-  
+
         // Store the selection
         const selectionKey = getSelectionKey();
         const newSelections = {
@@ -115,13 +119,13 @@ export default function ViBlanderForDigProduct() {
           [selectionKey]: { selectedProducts, selectionId },
         };
         setSelections(newSelections);
-  
+
         // Save to localStorage
         const storedData = localStorage.getItem('slugViBlander');
         const allSelections = storedData ? JSON.parse(storedData) : {};
         allSelections[slug] = newSelections;
         localStorage.setItem('slugViBlander', JSON.stringify(allSelections));
-  
+
         fetchPrice(selectedProducts);
       } else {
         console.error('Failed to generate package:', response.data);
@@ -130,6 +134,8 @@ export default function ViBlanderForDigProduct() {
     } catch (error) {
       console.error('Error generating package:', error);
       alert('Error generating package: ' + error.message);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -160,20 +166,26 @@ export default function ViBlanderForDigProduct() {
   };
 
   // Function to add the random package to the basket
-  const addToBasket = () => {
+  const addToBasket = async () => {
     if (!selectionId) {
       alert('Please generate a package first.');
       return;
     }
 
-    const mixedProduct = {
-      slug: product.slug,
-      selectedSize: parseInt(selectedSize),
-      quantity: parseInt(quantity),
-      selectionId,
-    };
+    setIsAddingToCart(true);
+    try {
+      const mixedProduct = {
+        selectionId,
+        quantity: parseInt(quantity),
+      };
 
-    addItemToBasket(mixedProduct);
+      await addItemToBasket(mixedProduct);
+    } catch (error) {
+      console.error('Error adding to basket:', error);
+      alert('Error adding to basket. Please try again.');
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   if (loading) {
@@ -277,20 +289,22 @@ export default function ViBlanderForDigProduct() {
 
           <div className="mt-8">
             {/* Generate Button */}
-            <button
+            <LoadingButton
               onClick={generateRandomPackage}
+              loading={isGenerating}
               className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition w-full"
             >
               Generate New Package
-            </button>
+            </LoadingButton>
 
             {/* Add to Basket Button */}
-            <button
+            <LoadingButton
               onClick={addToBasket}
+              loading={isAddingToCart}
               className="mt-4 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full"
             >
               Add to Cart
-            </button>
+            </LoadingButton>
 
             {/* Price */}
             <div className="text-2xl font-bold mt-4">
