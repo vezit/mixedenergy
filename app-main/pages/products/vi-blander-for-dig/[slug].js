@@ -148,6 +148,50 @@ export default function ViBlanderForDigProduct() {
     }
   };
 
+
+  const createTemporarySelection = async () => {
+    try {
+      const response = await axios.post('/api/firebase/4-createTemporarySelection', {
+        selectedProducts: randomSelection,
+        selectedSize,
+        packageSlug: slug,
+        isMysteryBox: false,
+        sugarPreference,
+      });
+  
+      if (response.data.success) {
+        const newSelectionId = response.data.selectionId;
+        setSelectionId(newSelectionId);
+  
+        // Update the selections in state and localStorage
+        const selectionKey = getSelectionKey();
+        const newSelections = {
+          ...selections,
+          [selectionKey]: { selectedProducts: randomSelection, selectionId: newSelectionId },
+        };
+        setSelections(newSelections);
+  
+        // Save to localStorage
+        const storedData = localStorage.getItem('slugViBlander');
+        const allSelections = storedData ? JSON.parse(storedData) : {};
+        allSelections[slug] = newSelections;
+        localStorage.setItem('slugViBlander', JSON.stringify(allSelections));
+  
+        return newSelectionId;
+      } else {
+        console.error('Failed to create temporary selection:', response.data);
+        alert('Failed to create temporary selection: ' + (response.data.error || 'Unknown error'));
+        return null;
+      }
+    } catch (error) {
+      console.error('Error creating temporary selection:', error);
+      alert('Error creating temporary selection: ' + error.message);
+      return null;
+    }
+  };
+  
+
+
   const fetchPrice = async (selection) => {
     try {
       const payload = {
@@ -180,23 +224,49 @@ export default function ViBlanderForDigProduct() {
       alert('Please generate a package first.');
       return;
     }
-
+  
     setIsAddingToCart(true);
     try {
       const mixedProduct = {
         selectionId,
         quantity: parseInt(quantity),
       };
-
+  
       await addItemToBasket(mixedProduct);
+      setShowConfetti(true); // Trigger confetti
     } catch (error) {
       console.error('Error adding to basket:', error);
-      alert('Error adding to basket. Please try again.');
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.error === 'Invalid or expired selectionId'
+      ) {
+        // The selectionId is invalid, so create a new temporary selection
+        const newSelectionId = await createTemporarySelection();
+        if (newSelectionId) {
+          // Retry adding to basket with the new selectionId
+          try {
+            const mixedProduct = {
+              selectionId: newSelectionId,
+              quantity: parseInt(quantity),
+            };
+            await addItemToBasket(mixedProduct);
+            setShowConfetti(true); // Trigger confetti
+          } catch (err) {
+            console.error('Error adding to basket with new selectionId:', err);
+            alert('Error adding to basket. Please try again.');
+          }
+        } else {
+          alert('Failed to create a new selection. Please try generating a new package.');
+        }
+      } else {
+        alert('Error adding to basket. Please try again.');
+      }
     } finally {
       setIsAddingToCart(false);
-      setShowConfetti(true); // Trigger confetti after loading stops
     }
   };
+  
 
   if (loading) {
     return <Loading />;
