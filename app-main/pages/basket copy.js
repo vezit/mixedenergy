@@ -1,5 +1,4 @@
 // pages/basket.js
-
 import { useState, useEffect } from 'react';
 import router from 'next/router';
 import { useBasket } from '../components/BasketContext';
@@ -17,7 +16,6 @@ export default function Basket() {
     updateItemQuantity,
     customerDetails,
     updateCustomerDetails,
-    isBasketLoaded, // Get loading state from context
   } = useBasket();
 
   const [errors, setErrors] = useState({});
@@ -26,6 +24,7 @@ export default function Basket() {
   const [showPickupPoints, setShowPickupPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [packagesData, setPackagesData] = useState({});
+
 
   // State for step management
   const [currentStep, setCurrentStep] = useState(1);
@@ -42,6 +41,7 @@ export default function Basket() {
 
   // State for drinks data
   const [drinksData, setDrinksData] = useState({});
+
 
   useEffect(() => {
     // Collect all the package slugs from basket items
@@ -73,12 +73,16 @@ export default function Basket() {
     }
   }, [basketItems]);
 
+
   useEffect(() => {
-    if (isBasketLoaded && basketItems.length === 0) {
-      // Redirect immediately when basket is empty and data has loaded
-      router.push('/');
+    if (basketItems.length === 0) {
+      const timer = setTimeout(() => {
+        router.push('/');
+      }, 5000);
+
+      return () => clearTimeout(timer);
     }
-  }, [isBasketLoaded, basketItems, router]);
+  }, [basketItems, router]);
 
   useEffect(() => {
     if (deliveryOption === 'pickup') {
@@ -143,12 +147,49 @@ export default function Basket() {
     }
   };
 
-  const removeItem = (itemIndex) => {
-    removeItemFromBasket(itemIndex);
+
+  const removeItem = async (itemIndex) => {
+    try {
+      const response = await fetch('/api/firebase/4-updateBasket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'removeItem', itemIndex }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update local state
+        removeItemFromBasket(itemIndex);
+      } else {
+        console.error('Error removing item:', data.error);
+      }
+    } catch (error) {
+      console.error('Error removing item:', error);
+    }
   };
 
-  const updateQuantity = (itemIndex, newQuantity) => {
-    updateItemQuantity(itemIndex, newQuantity);
+
+  // Updated updateQuantity function to include API call
+  const updateQuantity = async (itemIndex, newQuantity) => {
+    try {
+      const response = await fetch('/api/firebase/4-updateBasket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateQuantity', itemIndex, quantity: newQuantity }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update local state
+        updateItemQuantity(itemIndex, newQuantity);
+      } else {
+        console.error('Error updating item quantity:', data.error);
+      }
+    } catch (error) {
+      console.error('Error updating item quantity:', error);
+    }
   };
 
   const fetchPickupPoints = (updatedDetails) => {
@@ -276,6 +317,7 @@ export default function Basket() {
         };
       }
 
+
       const cookieConsentId = getCookie('cookie_consent_id');
 
       // Step 1: Create Order
@@ -334,20 +376,309 @@ export default function Basket() {
     }));
   };
 
-  // ... [The rest of your render functions remain unchanged] ...
+  const renderCustomerDetails = () => (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
 
-  // Conditional rendering based on loading state
-  if (!isBasketLoaded) {
-    return <Loading />;
-  }
+      {/* Customer Details Form */}
+      <div className="mb-4">
+        <label className="block mb-2">Fulde Navn *</label>
+        <input
+          type="text"
+          name="fullName"
+          value={customerDetails.fullName}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.fullName ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.fullName && <p className="text-red-500 mt-1">{errors.fullName}</p>}
+      </div>
 
+      <div className="mb-4">
+        <label className="block mb-2">Mobilnummer *</label>
+        <input
+          type="text"
+          name="mobileNumber"
+          value={customerDetails.mobileNumber}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.mobileNumber ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.mobileNumber && <p className="text-red-500 mt-1">{errors.mobileNumber}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">E-mail Adresse *</label>
+        <input
+          type="email"
+          name="email"
+          value={customerDetails.email}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.email && <p className="text-red-500 mt-1">{errors.email}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">Vejnavn og Husnummer *</label>
+        <input
+          type="text"
+          name="address"
+          value={customerDetails.address}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.address ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.address && <p className="text-red-500 mt-1">{errors.address}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">Postnummer *</label>
+        <input
+          type="text"
+          name="postalCode"
+          value={customerDetails.postalCode}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.postalCode ? 'border-red-500' : ''}`}
+          required
+        />
+        {errors.postalCode && <p className="text-red-500 mt-1">{errors.postalCode}</p>}
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-2">By *</label>
+        <input
+          type="text"
+          name="city"
+          value={customerDetails.city}
+          onChange={handleInputChange}
+          className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : ''}`}
+          required
+          disabled={true}
+        />
+        {errors.city && <p className="text-red-500 mt-1">{errors.city}</p>}
+      </div>
+
+      <button
+        onClick={handleShowShippingOptions}
+        className="mt-6 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+      >
+        Næste: Fragt og levering
+      </button>
+    </div>
+  );
+
+  const renderShippingAndPayment = () => (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Fragt og levering</h2>
+      <div className="mb-4">
+        <p>Leveringsmuligheder Post Nord</p>
+        <label className="block">
+          <input
+            type="radio"
+            name="deliveryOption"
+            value="pickup"
+            checked={deliveryOption === 'pickup'}
+            onChange={() => setDeliveryOption('pickup')}
+          />
+          <span className="ml-2">
+            Privatpakke Collect uden omdeling - Vælg selv udleveringssted (39,00 kr.)
+          </span>
+        </label>
+        <label className="block">
+          <input
+            type="radio"
+            name="deliveryOption"
+            value="homeDelivery"
+            checked={deliveryOption === 'homeDelivery'}
+            onChange={() => setDeliveryOption('homeDelivery')}
+          />
+          <span className="ml-2">Privatpakke Home med omdeling (49,00 kr.)</span>
+        </label>
+      </div>
+
+      {deliveryOption === 'pickup' && (
+        <>
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="flex flex-col items-center">
+                <LoadingSpinner />
+                <p className="mt-4 font-bold">Henter afhentningssteder</p>
+              </div>
+            </div>
+          ) : (
+            showPickupPoints && (
+              <div className="mt-8">
+                <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+                  <div
+                    className="w-full lg:w-1/2 overflow-y-scroll"
+                    style={{ maxHeight: '545px' }}
+                  >
+                    <h2 className="text-xl font-bold mb-4">Vælg et afhentningssted</h2>
+                    <PickupPointsList
+                      pickupPoints={pickupPoints}
+                      selectedPoint={selectedPoint}
+                      setSelectedPoint={setSelectedPoint}
+                    />
+                  </div>
+                  <div className="w-full lg:w-1/2" style={{ height: '545px' }}>
+                    <MapComponent
+                      pickupPoints={pickupPoints}
+                      selectedPoint={selectedPoint}
+                      setSelectedPoint={setSelectedPoint}
+                    />
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+        </>
+      )}
+
+      <div className="text-right mt-4">
+        <button
+          onClick={handleProceedToConfirmation}
+          className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+        >
+          Næste: Godkend din ordre
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderOrderConfirmation = () => {
+    const totalPrice = basketItems.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
+    const shippingCost = deliveryOption === 'pickup' ? 3900 : 4900; // 39.00 or 49.00 DKK
+    const totalPriceWithShipping = totalPrice + shippingCost;
+    const vatAmount = totalPriceWithShipping * 0.25; // 25% VAT
+
+    // Prepare invoice address using customer's original input
+    const invoiceAddress = `${customerDetails.fullName}
+  ${customerDetails.address}
+  ${customerDetails.postalCode} ${customerDetails.city}
+  ${customerDetails.country}
+  ${customerDetails.email}`;
+
+    // Prepare delivery address based on delivery option
+    let deliveryAddressText = '';
+    if (deliveryOption === 'pickup') {
+      // Use the sanitized address from DAWA and selected pickup point
+      const selectedPickupPoint = pickupPoints.find(
+        (point) => point.servicePointId === selectedPoint
+      );
+      deliveryAddressText = selectedPickupPoint
+        ? `${selectedPickupPoint.name}
+  ${customerDetails.fullName}
+  ${selectedPickupPoint.visitingAddress.streetName} ${selectedPickupPoint.visitingAddress.streetNumber}
+  ${selectedPickupPoint.visitingAddress.postalCode} ${selectedPickupPoint.visitingAddress.city.toUpperCase()}
+  ${customerDetails.country}`
+        : '';
+    } else if (deliveryOption === 'homeDelivery') {
+      // Use the user's original address as typed, including apartment number
+      deliveryAddressText = `${customerDetails.fullName}
+  ${customerDetails.address}
+  ${customerDetails.postalCode} ${customerDetails.city}
+  ${customerDetails.country}`;
+    }
+
+    return (
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Godkend din ordre</h2>
+
+        {/* Order Summary */}
+        <div className="mb-4">
+          <h3 className="font-bold">Fakturaadresse</h3>
+          <pre>{invoiceAddress}</pre>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Leveringsadresse</h3>
+          <pre>{deliveryAddressText}</pre>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Betalingsmetode</h3>
+          <p>Kreditkort, Viabill, Apple Pay, Google Pay, Klarna eller MobilePay</p>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Leveringsmetode</h3>
+          {deliveryOption === 'pickup' ? (
+            <p>Privatpakke Collect uden omdeling - Vælg selv udleveringssted</p>
+          ) : (
+            <p>Privatpakke Home med omdeling</p>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold">Produkter</h3>
+          {basketItems.map((item, index) => (
+            <div key={index} className="flex justify-between">
+              <p>
+                {item.quantity} × {item.title}
+              </p>
+              <p>{((item.price * item.quantity) / 100).toFixed(2)} kr.</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-4">
+          <p>Varer i alt: {(totalPrice / 100).toFixed(2)} kr.</p>
+          <p>Fragt: {(shippingCost / 100).toFixed(2)} kr.</p>
+          <p>Heraf moms 25%: {((vatAmount) / 100).toFixed(2)} kr.</p>
+          <p>
+            <strong>
+              Total inkl. moms: {(totalPriceWithShipping / 100).toFixed(2)} kr.
+            </strong>
+          </p>
+        </div>
+
+        {/* Terms and Conditions Checkbox */}
+        <div className="mb-4 p-4 border rounded">
+          <p>
+            Jeg har læst og accepteret{' '}
+            <a href="/handelsbetingelser" className="text-blue-500 underline">
+              forretningsvilkår samt persondatapolitik
+            </a>
+            .
+          </p>
+          <div className="mt-2">
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                className="form-checkbox"
+                checked={termsAccepted}
+                onChange={(e) => {
+                  setTermsAccepted(e.target.checked);
+                  if (e.target.checked) setTermsError('');
+                }}
+              />
+              <span className="ml-2">Accepter</span>
+            </label>
+          </div>
+          {termsError && <p className="text-red-500 mt-1">{termsError}</p>}
+        </div>
+
+        <button
+          onClick={handlePayment}
+          className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition"
+        >
+          BETAL
+        </button>
+      </div>
+    );
+  };
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
       {/* Include the BannerSteps component */}
       <BannerSteps currentStep={currentStep} onStepChange={handleStepChange} />
 
       {basketItems.length === 0 ? (
-        <p>Din kurv er tom. Du bliver omdirigeret til forsiden.</p>
+        <Loading />
       ) : (
         <>
           {/* Step 1: Basket Items */}
@@ -360,7 +691,10 @@ export default function Basket() {
                 const packageImage = packageData?.image;
 
                 return (
-                  <div key={index} className="mb-4 p-4 border rounded relative">
+                  <div
+                    key={index}
+                    className="mb-4 p-4 border rounded relative"
+                  >
                     <button
                       onClick={() => removeItem(index)}
                       className="text-red-600 absolute top-0 right-0 mt-2 mr-2"
@@ -374,9 +708,7 @@ export default function Basket() {
                         className="w-24 h-24 object-cover rounded"
                       />
                       <div className="flex-1 mt-4 md:mt-0 md:ml-4">
-                        <h2 className="text-xl font-bold">
-                          {packageData?.title || item.slug}
-                        </h2>
+                        <h2 className="text-xl font-bold">{packageData?.title || item.slug}</h2>
                         <div className="flex items-center mt-2">
                           <button
                             onClick={() => updateQuantity(index, item.quantity - 1)}
@@ -405,10 +737,7 @@ export default function Basket() {
                         <p className="text-gray-700 mt-2">
                           Sukker præference: {item.sugarPreference || 'Ikke valgt'}
                         </p>
-                        <button
-                          onClick={() => toggleExpand(index)}
-                          className="mt-2 text-blue-600"
-                        >
+                        <button onClick={() => toggleExpand(index)} className="mt-2 text-blue-600">
                           {isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
                         </button>
                       </div>
@@ -417,23 +746,21 @@ export default function Basket() {
                     {isExpanded && (
                       <div className="mt-4">
                         {/* Display selected drinks */}
-                        {item.selectedDrinks &&
-                          Object.keys(item.selectedDrinks).map((drinkSlug) => (
-                            <div key={drinkSlug} className="flex items-center mt-2">
-                              <img
-                                src={drinksData[drinkSlug]?.image}
-                                alt={drinksData[drinkSlug]?.name}
-                                className="w-12 h-12 object-cover mr-4"
-                              />
-                              <span>{drinksData[drinkSlug]?.name}</span>
-                              <span className="ml-auto">
-                                Antal: {item.selectedDrinks[drinkSlug]}
-                              </span>
-                            </div>
-                          ))}
+                        {item.selectedDrinks && Object.keys(item.selectedDrinks).map((drinkSlug) => (
+                          <div key={drinkSlug} className="flex items-center mt-2">
+                            <img
+                              src={drinksData[drinkSlug]?.image}
+                              alt={drinksData[drinkSlug]?.name}
+                              className="w-12 h-12 object-cover mr-4"
+                            />
+                            <span>{drinksData[drinkSlug]?.name}</span>
+                            <span className="ml-auto">Antal: {item.selectedDrinks[drinkSlug]}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
+
                 );
               })}
               <div className="text-right mt-4">

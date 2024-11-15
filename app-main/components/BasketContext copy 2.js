@@ -7,7 +7,6 @@ const BasketContext = createContext();
 
 export const BasketProvider = ({ children }) => {
   const [basketItems, setBasketItems] = useState([]);
-  const [isBasketLoaded, setIsBasketLoaded] = useState(false); // New state to track loading
   const [customerDetails, setCustomerDetails] = useState({
     customerType: 'Privat',
     fullName: '',
@@ -15,8 +14,9 @@ export const BasketProvider = ({ children }) => {
     email: '',
     address: '',
     postalCode: '',
-    city: '',
+    city: ''
   });
+  const [isNewItemAdded, setIsNewItemAdded] = useState(false);
 
   const fetchBasketItems = async () => {
     try {
@@ -31,14 +31,17 @@ export const BasketProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching basket items:', error);
-    } finally {
-      setIsBasketLoaded(true); // Indicate that loading has completed
     }
   };
+  
 
   useEffect(() => {
     fetchBasketItems();
   }, []);
+
+  useEffect(() => {
+    console.log('Basket items updated:', basketItems);
+  }, [basketItems]);
 
   const addItemToBasket = async ({ selectionId, quantity }) => {
     try {
@@ -49,6 +52,7 @@ export const BasketProvider = ({ children }) => {
       });
       if (response.data.success) {
         await fetchBasketItems();
+        setIsNewItemAdded(true);
       } else {
         console.error('Failed to add item to basket:', response.data);
         alert('Failed to add item to basket: ' + (response.data.error || 'Unknown error'));
@@ -71,12 +75,7 @@ export const BasketProvider = ({ children }) => {
         itemIndex: index,
       });
       if (response.data.success) {
-        // Update local state immediately
-        setBasketItems((prevItems) => {
-          const newItems = [...prevItems];
-          newItems.splice(index, 1);
-          return newItems;
-        });
+        await fetchBasketItems();
       } else {
         console.error('Failed to remove item from basket:', response.data);
       }
@@ -96,16 +95,7 @@ export const BasketProvider = ({ children }) => {
         quantity: newQuantity,
       });
       if (response.data.success) {
-        // Update local state immediately
-        setBasketItems((prevItems) => {
-          const newItems = [...prevItems];
-          newItems[index].quantity = newQuantity;
-          // Also update totalPrice and totalRecyclingFee if needed
-          newItems[index].totalPrice = newItems[index].pricePerPackage * newQuantity;
-          newItems[index].totalRecyclingFee =
-            newItems[index].recyclingFeePerPackage * newQuantity;
-          return newItems;
-        });
+        await fetchBasketItems();
       } else {
         console.error('Failed to update item quantity:', response.data);
       }
@@ -134,11 +124,12 @@ export const BasketProvider = ({ children }) => {
     <BasketContext.Provider
       value={{
         basketItems,
-        isBasketLoaded, // Expose isBasketLoaded
         addItemToBasket,
         removeItemFromBasket,
         customerDetails,
         updateCustomerDetails,
+        isNewItemAdded,
+        setIsNewItemAdded,
         updateItemQuantity,
       }}
     >
