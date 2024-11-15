@@ -88,21 +88,6 @@ export default function Basket() {
     }
   }, [isBasketLoaded, basketItems, router]);
 
-  // Add the useEffect that triggers address validation when currentStep changes
-  useEffect(() => {
-    if (deliveryOption === 'pickup') {
-      if (currentStep === 3) {
-        setLoading(true);
-        validateAddressWithDAWA();
-      }
-    } else {
-      setLoading(false);
-      // Reset pickup points when not pickup
-      setPickupPoints([]);
-      setSelectedPoint(null);
-    }
-  }, [deliveryOption, currentStep]);
-
   // Fetch drinks data based on selectedDrinks in basket items
   useEffect(() => {
     // Collect all the drink slugs from basket items
@@ -207,36 +192,35 @@ export default function Basket() {
     }
   };
 
-  const fetchPickupPoints = (updatedDetails) => {
+  const fetchPickupPoints = async (updatedDetails) => {
     const { streetName, streetNumber } = splitAddress(updatedDetails.address);
     if (updatedDetails.city && updatedDetails.postalCode && streetNumber) {
-      fetch(
-        `/api/postnord/servicepoints?city=${encodeURIComponent(
-          updatedDetails.city
-        )}&postalCode=${encodeURIComponent(
-          updatedDetails.postalCode
-        )}&streetName=${encodeURIComponent(
-          streetName
-        )}&streetNumber=${encodeURIComponent(streetNumber)}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          const points = data.servicePointInformationResponse?.servicePoints || [];
-          setPickupPoints(points);
-          // Set default selected pickup point
-          if (points.length > 0) {
-            setSelectedPoint(points[0].servicePointId);
-          }
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error('Error fetching PostNord service points:', error);
-          setLoading(false);
-        });
+      try {
+        const res = await fetch(
+          `/api/postnord/servicepoints?city=${encodeURIComponent(
+            updatedDetails.city
+          )}&postalCode=${encodeURIComponent(
+            updatedDetails.postalCode
+          )}&streetName=${encodeURIComponent(
+            streetName
+          )}&streetNumber=${encodeURIComponent(streetNumber)}`
+        );
+        const data = await res.json();
+        const points = data.servicePointInformationResponse?.servicePoints || [];
+        setPickupPoints(points);
+        if (points.length > 0) {
+          setSelectedPoint(points[0].servicePointId);
+        }
+      } catch (error) {
+        console.error('Error fetching PostNord service points:', error);
+      } finally {
+        setLoading(false);
+      }
     } else {
       setLoading(false);
     }
   };
+  
 
   const validateAddressWithDAWA = async () => {
     setIsValidatingAddress(true);
@@ -246,13 +230,13 @@ export default function Basket() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerDetails),
       });
-
+  
       if (!response.ok) {
         throw new Error(`DAWA validation failed with status ${response.status}`);
       }
-
+  
       const data = await response.json();
-
+  
       if (
         !data ||
         !data.dawaResponse ||
@@ -261,21 +245,23 @@ export default function Basket() {
       ) {
         throw new Error('DAWA returned no results');
       }
-
+  
       const bestResult = data.dawaResponse.resultater[0].adresse;
-
+  
       const updatedDetails = {
         ...customerDetails,
         address: `${bestResult.vejnavn} ${bestResult.husnr}`,
         postalCode: bestResult.postnr,
         city: bestResult.postnrnavn,
       };
-
+  
       updateCustomerDetails(updatedDetails);
       updateCustomerDetailsInFirebase(updatedDetails);
-
+  
       // Fetch pickup points after DAWA validation
-      fetchPickupPoints(updatedDetails);
+      await fetchPickupPoints(updatedDetails);
+  
+      return true; // Indicate success
     } catch (error) {
       console.error('Error validating address with DAWA:', error);
       setErrors((prevErrors) => ({
@@ -283,13 +269,15 @@ export default function Basket() {
         address: 'Adressevalidering fejlede. Tjek venligst dine oplysninger.',
       }));
       setLoading(false);
+      return false; // Indicate failure
     } finally {
       setIsValidatingAddress(false);
     }
   };
+  
+  
 
-  // Modify this function to match the working code
-  const handleShowShippingOptions = () => {
+  const handleShowShippingOptions = async () => {
     const newErrors = {};
     if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet';
     if (!customerDetails.mobileNumber) newErrors.mobileNumber = 'Mobilnummer er påkrævet';
@@ -297,17 +285,25 @@ export default function Basket() {
     if (!customerDetails.address) newErrors.address = 'Adresse er påkrævet';
     if (!customerDetails.postalCode) newErrors.postalCode = 'Postnummer er påkrævet';
     if (!customerDetails.city) newErrors.city = 'By er påkrævet';
-
+  
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     } else {
       setErrors({});
     }
-
-    // Move to the next step
-    setCurrentStep(3);
+  
+    setLoading(true);
+    const isValid = await validateAddressWithDAWA();
+    if (isValid) {
+      setCurrentStep(3);
+    } else {
+      // Handle the error case, e.g., display an error message
+      setLoading(false);
+    }
   };
+  
+  
 
   const handleProceedToConfirmation = () => {
     if (deliveryOption === 'pickup') {
@@ -565,10 +561,10 @@ export default function Basket() {
             Hjemmelevering
           </label>
         </div>
-
-        {loading && <LoadingSpinner />}
-
-        {deliveryOption === 'pickup' && !loading && (
+  
+        {loading ? (
+          <LoadingSpinner />
+        ) : deliveryOption === 'pickup' && pickupPoints.length > 0 ? (
           <>
             <h3 className="text-xl font-bold mt-4">Vælg Afhentningssted</h3>
             <PickupPointsList
@@ -576,10 +572,12 @@ export default function Basket() {
               selectedPoint={selectedPoint}
               setSelectedPoint={setSelectedPoint}
             />
-            <MapComponent pickupPoints={pickupPoints} selectedPoint={selectedPoint} />
+            <MapComponent pickupPoints={pickupPoints} selectedPoint={selectedPoint} setSelectedPoint={setSelectedPoint} />
           </>
-        )}
-
+        ) : deliveryOption === 'pickup' && pickupPoints.length === 0 ? (
+          <p className="mt-4 text-red-600">Ingen afhentningssteder fundet for denne adresse.</p>
+        ) : null}
+  
         <div className="mt-4 flex justify-between">
           <LoadingButton
             onClick={() => handleStepChange(2)}
@@ -597,6 +595,7 @@ export default function Basket() {
       </>
     );
   };
+  
 
   const renderOrderConfirmation = () => {
     return (

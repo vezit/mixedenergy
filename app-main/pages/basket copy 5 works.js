@@ -88,7 +88,6 @@ export default function Basket() {
     }
   }, [isBasketLoaded, basketItems, router]);
 
-  // Add the useEffect that triggers address validation when currentStep changes
   useEffect(() => {
     if (deliveryOption === 'pickup') {
       if (currentStep === 3) {
@@ -139,6 +138,7 @@ export default function Basket() {
       [itemIndex]: true,
     }));
   };
+
 
   const updateCustomerDetailsInFirebase = async (updatedDetails) => {
     try {
@@ -288,7 +288,6 @@ export default function Basket() {
     }
   };
 
-  // Modify this function to match the working code
   const handleShowShippingOptions = () => {
     const newErrors = {};
     if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet';
@@ -407,7 +406,6 @@ export default function Basket() {
       setShowPickupPoints(false);
       setTermsAccepted(false);
       setTermsError('');
-      setPickupPoints([]); // Reset pickupPoints to ensure re-fetching
     }
 
     setCurrentStep(step);
@@ -582,7 +580,7 @@ export default function Basket() {
 
         <div className="mt-4 flex justify-between">
           <LoadingButton
-            onClick={() => handleStepChange(2)}
+            onClick={() => setCurrentStep(2)}
             className="bg-gray-500 text-white px-6 py-2 rounded-full shadow hover:bg-gray-600 transition"
           >
             Tilbage
@@ -628,7 +626,7 @@ export default function Basket() {
 
         <div className="mt-4 flex justify-between">
           <LoadingButton
-            onClick={() => handleStepChange(3)}
+            onClick={() => setCurrentStep(3)}
             className="bg-gray-500 text-white px-6 py-2 rounded-full shadow hover:bg-gray-600 transition"
           >
             Tilbage
@@ -652,12 +650,14 @@ export default function Basket() {
 
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
+      {/* Include the BannerSteps component */}
       <BannerSteps currentStep={currentStep} onStepChange={handleStepChange} />
 
       {basketItems.length === 0 ? (
         <p>Din kurv er tom. Du bliver omdirigeret til forsiden.</p>
       ) : (
         <>
+          {/* Step 1: Basket Items */}
           {currentStep === 1 && (
             <>
               <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
@@ -667,88 +667,80 @@ export default function Basket() {
                 const packageImage = packageData?.image;
 
                 return (
-                  <ExplosionEffect
-                    key={index}
-                    trigger={explodedItems[index]}
-                    onComplete={() => removeItem(index)}
-                  >
-                    <div className="mb-4 p-4 border rounded relative">
-                      <button
-                        onClick={() => triggerExplosion(index)}
-                        className="text-red-600 absolute top-2 right-2"
-                      >
-                        Fjern
-                      </button>
-                      <div className="flex flex-col md:flex-row items-start">
-                        <img
-                          src={packageImage}
-                          alt={item.slug}
-                          className="w-24 h-24 object-cover rounded"
-                        />
-                        <div className="flex-1 mt-4 md:mt-0 md:ml-4">
-                          <h2 className="text-xl font-bold">{packageData?.title || item.slug}</h2>
-                          {/* Quantity controls */}
-                          <div className="flex items-center mt-2">
-                            <button
-                              onClick={() => updateQuantity(index, item.quantity - 1)}
-                              className="px-2 py-1 bg-gray-200 rounded-l"
-                            >
-                              -
-                            </button>
-                            <span className="px-4 py-2 bg-gray-100">{item.quantity}</span>
-                            <button
-                              onClick={() => updateQuantity(index, item.quantity + 1)}
-                              className="px-2 py-1 bg-gray-200 rounded-r"
-                            >
-                              +
-                            </button>
-                          </div>
-                          {/* Item details */}
-                          <p className="text-gray-700 mt-2">
-                            Pris pr. pakke: {(item.pricePerPackage / 100).toFixed(2)} kr
-                          </p>
-                          <p className="text-gray-700 mt-2">
-                            Totalpris: {(item.totalPrice / 100).toFixed(2)} kr (pant{' '}
-                            {(item.totalRecyclingFee / 100).toFixed(2)} kr)
-                          </p>
-                          <p className="text-gray-700 mt-2">
-                            Pakke størrelse: {item.packages_size}
-                          </p>
-                          <p className="text-gray-700 mt-2">
-                            Sukker præference: {item.sugarPreference || 'Ikke valgt'}
-                          </p>
+                  <div key={index} className="mb-4 p-4 border rounded relative">
+                    <LoadingButton
+                      onClick={() => removeItem(index)}
+                      className="text-red-600 absolute top-0 right-0 mt-2 mr-2"
+                    >
+                      Fjern
+                    </LoadingButton>
+                    <div className="flex flex-col md:flex-row items-start">
+                      <img
+                        src={packageImage}
+                        alt={item.slug}
+                        className="w-24 h-24 object-cover rounded"
+                      />
+                      <div className="flex-1 mt-4 md:mt-0 md:ml-4">
+                        <h2 className="text-xl font-bold">{packageData?.title || item.slug}</h2>
+                        <div className="flex items-center mt-2">
                           <button
-                            onClick={() => toggleExpand(index)}
-                            className="mt-2 text-blue-600"
+                            onClick={() => updateQuantity(index, item.quantity - 1)}
+                            className="px-2 py-1 bg-gray-200 rounded-l"
                           >
-                            {isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
+                            -
+                          </button>
+                          <span className="px-4 py-2 bg-gray-100">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(index, item.quantity + 1)}
+                            className="px-2 py-1 bg-gray-200 rounded-r"
+                          >
+                            +
                           </button>
                         </div>
+                        <p className="text-gray-700 mt-2">
+                          Pris pr. pakke: {(item.pricePerPackage / 100).toFixed(2)} kr
+                        </p>
+                        <p className="text-gray-700 mt-2">
+                          Totalpris: {(item.totalPrice / 100).toFixed(2)} kr (pant{' '}
+                          {(item.totalRecyclingFee / 100).toFixed(2)} kr)
+                        </p>
+                        <p className="text-gray-700 mt-2">
+                          Pakke størrelse: {item.packages_size}
+                        </p>
+                        <p className="text-gray-700 mt-2">
+                          Sukker præference: {item.sugarPreference || 'Ikke valgt'}
+                        </p>
+                        <button
+                          onClick={() => toggleExpand(index)}
+                          className="mt-2 text-blue-600"
+                        >
+                          {isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
+                        </button>
                       </div>
-                      {/* Expanded item details */}
-                      {isExpanded && (
-                        <div className="mt-4">
-                          {item.selectedDrinks &&
-                            Object.keys(item.selectedDrinks).map((drinkSlug) => (
-                              <div key={drinkSlug} className="flex items-center mt-2">
-                                <img
-                                  src={drinksData[drinkSlug]?.image}
-                                  alt={drinksData[drinkSlug]?.name}
-                                  className="w-12 h-12 object-cover mr-4"
-                                />
-                                <span>{drinksData[drinkSlug]?.name}</span>
-                                <span className="ml-auto">
-                                  Antal: {item.selectedDrinks[drinkSlug]}
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-                      )}
                     </div>
-                  </ExplosionEffect>
+
+                    {isExpanded && (
+                      <div className="mt-4">
+                        {/* Display selected drinks */}
+                        {item.selectedDrinks &&
+                          Object.keys(item.selectedDrinks).map((drinkSlug) => (
+                            <div key={drinkSlug} className="flex items-center mt-2">
+                              <img
+                                src={drinksData[drinkSlug]?.image}
+                                alt={drinksData[drinkSlug]?.name}
+                                className="w-12 h-12 object-cover mr-4"
+                              />
+                              <span>{drinksData[drinkSlug]?.name}</span>
+                              <span className="ml-auto">
+                                Antal: {item.selectedDrinks[drinkSlug]}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
-              {/* Proceed to next step */}
               <div className="text-right mt-4">
                 <LoadingButton
                   onClick={() => setCurrentStep(2)}
@@ -760,9 +752,13 @@ export default function Basket() {
             </>
           )}
 
-          {/* Render other steps */}
+          {/* Step 2: Customer Details */}
           {currentStep === 2 && renderCustomerDetails()}
+
+          {/* Step 3: Shipping and Payment */}
           {currentStep === 3 && renderShippingAndPayment()}
+
+          {/* Step 4: Order Confirmation */}
           {currentStep === 4 && renderOrderConfirmation()}
         </>
       )}
