@@ -1,15 +1,16 @@
-// pages/products/bland-selv-mix/[slug].js
-
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useBasket } from '../../../components/BasketContext';
 import axios from 'axios';
 import Loading from '/components/Loading';
-import LoadingButton from '/components/LoadingButton'; // Import the LoadingButton component
+import LoadingConfettiButton from '/components/LoadingConfettiButton'; // Import LoadingConfettiButton
+import ConfettiAnimation from '/components/ConfettiAnimation';
 
 export default function BlandSelvMixProduct() {
   const router = useRouter();
   const { slug } = router.query;
+
+  const addToCartButtonRef = useRef(null); // Ref for the "Add to Cart" button
 
   const [product, setProduct] = useState(null);
   const [drinksData, setDrinksData] = useState({});
@@ -19,6 +20,7 @@ export default function BlandSelvMixProduct() {
   const [maxProducts, setMaxProducts] = useState(0);
 
   const [isAddingToCart, setIsAddingToCart] = useState(false); // State for Add to Cart button
+  const [showConfetti, setShowConfetti] = useState(false); // State to control confetti animation
 
   const { addItemToBasket } = useBasket(); // Importing addItemToBasket from BasketContext
 
@@ -118,14 +120,8 @@ export default function BlandSelvMixProduct() {
     return Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0);
   };
 
-  // Function to add the selected products to the basket
-  const addToBasket = async () => {
-    if (getTotalSelected() !== maxProducts) {
-      alert(`Please select exactly ${maxProducts} drinks.`);
-      return;
-    }
-
-    setIsAddingToCart(true);
+  // Function to create a temporary selection
+  const createTemporarySelection = async () => {
     try {
       // Create temporary selection using the provided API
       const response = await axios.post('/api/firebase/4-generateRandomSelection', {
@@ -138,29 +134,78 @@ export default function BlandSelvMixProduct() {
 
       if (response.data.success) {
         const selectionId = response.data.selectionId;
-
-        // Use BasketContext to add item to basket
-        await addItemToBasket({ selectionId, quantity: 1 });
-
-        // Clear selected products
-        setSelectedProducts({});
-        // Remove from localStorage
-        const storedData = localStorage.getItem('slugBlandSelvMix');
-        if (storedData) {
-          const allData = JSON.parse(storedData);
-          delete allData[slug];
-          localStorage.setItem('slugBlandSelvMix', JSON.stringify(allData));
-        }
+        return selectionId;
       } else {
         console.error('Failed to create temporary selection:', response.data);
         alert('Failed to create selection. Please try again.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error creating temporary selection:', error);
+      alert('Error creating selection. Please try again.');
+      return null;
+    }
+  };
+
+  // Function to add the selected products to the basket
+  const addToBasket = async () => {
+    if (getTotalSelected() !== maxProducts) {
+      alert(`Please select exactly ${maxProducts} drinks.`);
+      return;
+    }
+
+    setIsAddingToCart(true);
+    try {
+      // Create temporary selection
+      const selectionId = await createTemporarySelection();
+      if (!selectionId) {
+        // Failed to create temporary selection
+        return;
+      }
+
+      // Use BasketContext to add item to basket
+      await addItemToBasket({ selectionId, quantity: 1 });
+      setShowConfetti(true); // Show confetti after successful addition
+
+      // Clear selected products
+      setSelectedProducts({});
+      // Remove from localStorage
+      const storedData = localStorage.getItem('slugBlandSelvMix');
+      if (storedData) {
+        const allData = JSON.parse(storedData);
+        delete allData[slug];
+        localStorage.setItem('slugBlandSelvMix', JSON.stringify(allData));
       }
     } catch (error) {
       console.error('Error adding to basket:', error);
-      alert('Error adding to basket. Please try again.');
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.error === 'Invalid or expired selectionId'
+      ) {
+        // The selectionId is invalid or expired, retry creating a new one
+        const newSelectionId = await createTemporarySelection();
+        if (newSelectionId) {
+          try {
+            await addItemToBasket({ selectionId: newSelectionId, quantity: 1 });
+            setShowConfetti(true); // Show confetti after successful addition
+          } catch (err) {
+            console.error('Error adding to basket with new selectionId:', err);
+            alert('Error adding to basket. Please try again.');
+          }
+        } else {
+          alert('Failed to create a new selection. Please try again.');
+        }
+      } else {
+        alert('Error adding to basket. Please try again.');
+      }
     } finally {
       setIsAddingToCart(false);
     }
+  };
+
+  const handleConfettiEnd = () => {
+    setShowConfetti(false);
   };
 
   if (loading) {
@@ -251,15 +296,21 @@ export default function BlandSelvMixProduct() {
           </div>
 
           {/* Add to Basket Button */}
-          <LoadingButton
+          <LoadingConfettiButton
+            ref={addToCartButtonRef}
             onClick={addToBasket}
             loading={isAddingToCart}
             className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full"
           >
             Add Mixed Package to Cart
-          </LoadingButton>
+          </LoadingConfettiButton>
         </div>
       </div>
+
+      {/* Render Confetti */}
+      {showConfetti && (
+        <ConfettiAnimation onAnimationEnd={handleConfettiEnd} buttonRef={addToCartButtonRef} />
+      )}
     </div>
   );
 }
