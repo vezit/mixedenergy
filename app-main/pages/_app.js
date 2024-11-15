@@ -52,7 +52,12 @@ function MyApp({ Component, pageProps }) {
   return (
     <BasketProvider>
       <div className="flex flex-col min-h-screen">
-        {/* Warning message displayed above the header */}
+        {/* Development Warning */}
+        <div className="bg-orange-500 text-white text-center p-2">
+          This website is still under development.
+        </div>
+
+        {/* Cookie/Local Storage Warning */}
         {!isStorageEnabled && (
           <div className="bg-red-500 text-white text-center p-2">
             Our website requires cookies and local storage to function properly. Please enable cookies and local storage in your browser settings.

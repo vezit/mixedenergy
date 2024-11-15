@@ -1,5 +1,7 @@
 // next.config.js
 
+const isLocal = process.env.NODE_ENV === 'development';
+
 export default {
   images: {
     domains: ['firebasestorage.googleapis.com'],
@@ -10,13 +12,14 @@ export default {
     }
     return config;
   },
-  // Function configuration
-  functions: {
-    // Key is the API route path relative to the 'pages' directory
-    'api/cron/deleteOldSessions': {
-      memory: 256,
-      maxDuration: 60,
-    },
-  },
-  // ...other configurations
+  ...(isLocal
+    ? {} // Local environment: no additional configuration
+    : {
+        functions: {
+          'api/cron/deleteOldSessions': {
+            memory: 256,
+            maxDuration: 60,
+          },
+        },
+      }),
 };
