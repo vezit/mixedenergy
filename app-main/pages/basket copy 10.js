@@ -142,7 +142,7 @@ export default function Basket() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'updateDeliveryDetails',
-          deliveryOption: deliveryOption,
+          deliveryOption: deliveryOption === 'pickup' ? 'pickupPoint' : 'homeDelivery',
           deliveryAddress,
           providerDetails,
         }),
@@ -151,10 +151,27 @@ export default function Basket() {
       console.error('Error updating delivery details:', error);
     }
   };
+  
 
   const debouncedUpdateDeliveryDetailsInBackend = useRef(
     debounce(updateDeliveryDetailsInBackend, 500)
   ).current;
+
+  // Update delivery details when deliveryOption changes
+  useEffect(() => {
+    if (deliveryOption === 'pickup') {
+      updateDeliveryDetailsInBackend();
+    } else if (deliveryOption === 'homeDelivery') {
+      debouncedUpdateDeliveryDetailsInBackend();
+    }
+  }, [deliveryOption]);
+
+  // Update delivery details when selectedPoint changes
+  useEffect(() => {
+    if (deliveryOption === 'pickup') {
+      updateDeliveryDetailsInBackend();
+    }
+  }, [selectedPoint]);
 
   // Update delivery details when customerDetails change (for home delivery)
   useEffect(() => {
@@ -404,14 +421,6 @@ export default function Basket() {
     }));
   };
 
-  // Function to handle selected pickup point change
-  const handleSelectedPointChange = (newSelectedPoint) => {
-    setSelectedPoint(newSelectedPoint);
-    if (deliveryOption === 'pickup') {
-      updateDeliveryDetailsInBackend();
-    }
-  };
-
   // Modify this function to match the working code
   const handleShowShippingOptions = () => {
     const newErrors = {};
@@ -623,7 +632,7 @@ export default function Basket() {
               type="text"
               name="city"
               value={customerDetails.city || ''}
-              onChange={handleInputChange}
+              onChange={handleIupdateDeliveryDetailsputChange}
               className="w-full px-3 py-2 border rounded"
             />
             {errors.city && <p className="text-red-600">{errors.city}</p>}
@@ -698,12 +707,12 @@ export default function Basket() {
             <PickupPointsList
               pickupPoints={pickupPoints}
               selectedPoint={selectedPoint}
-              setSelectedPoint={handleSelectedPointChange}
+              setSelectedPoint={setSelectedPoint}
             />
             <MapComponent
               pickupPoints={pickupPoints}
               selectedPoint={selectedPoint}
-              setSelectedPoint={handleSelectedPointChange}
+              setSelectedPoint={setSelectedPoint}
             />
           </>
         )}

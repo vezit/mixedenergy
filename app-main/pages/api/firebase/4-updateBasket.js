@@ -3,6 +3,7 @@
 import { admin, db } from '../../../lib/firebaseAdmin';
 import cookie from 'cookie';
 import { calculatePrice } from '../../../lib/priceCalculations';
+import { DELIVERY_PRICES } from '../../../lib/constants'; // Import the delivery prices
 
 export default async (req, res) => {
   try {
@@ -39,16 +40,19 @@ export default async (req, res) => {
       // Handle 'updateDeliveryDetails' action
       const { deliveryOption, deliveryAddress, providerDetails } = req.body;
 
+
       if (!deliveryOption || !deliveryAddress || !providerDetails) {
         return res.status(400).json({ error: 'Missing delivery details' });
       }
+
+      const deliveryFee = DELIVERY_PRICES[deliveryOption];
 
       const deliveryDetails = {
         provider: 'postnord', // Assuming PostNord is the provider
         trackingNumber: null, // This will be updated later when the shipment is created
         estimatedDeliveryDate: null, // To be updated later
         deliveryType: deliveryOption, // 'homeDelivery' or 'pickupPoint'
-        deliveryFee: null, // Calculate if needed
+        deliveryFee: deliveryFee, // Calculate if needed
         currency: 'DKK',
         deliveryAddress: deliveryAddress,
         providerDetails: providerDetails,
