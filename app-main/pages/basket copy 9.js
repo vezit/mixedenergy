@@ -85,58 +85,69 @@ export default function Basket() {
   // Function to update delivery details in the backend
   const updateDeliveryDetailsInBackend = async () => {
     try {
+      // Prepare deliveryAddress and providerDetails
       let deliveryAddress = {};
       let providerDetails = {};
-  
+
       if (deliveryOption === 'pickup') {
-        if (selectedPoint) {
-          const selectedPickupPoint = pickupPoints.find(
-            (point) => point.servicePointId === selectedPoint
-          );
-          if (selectedPickupPoint) {
-            deliveryAddress = {
-              name: selectedPickupPoint.name,
-              streetName: selectedPickupPoint.visitingAddress.streetName,
-              streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
-              postalCode: selectedPickupPoint.visitingAddress.postalCode,
-              city: selectedPickupPoint.visitingAddress.city,
-              country: 'Danmark',
-            };
-            providerDetails = {
-              postnord: {
-                servicePointId: selectedPickupPoint.servicePointId,
-                deliveryMethod: 'pickupPoint',
-              },
-            };
-          }
+        if (!selectedPoint) {
+          // Do not proceed if selectedPoint is not available
+          return;
         }
+        const selectedPickupPoint = pickupPoints.find(
+          (point) => point.servicePointId === selectedPoint
+        );
+        if (!selectedPickupPoint) {
+          // Do not proceed if selectedPickupPoint is not found
+          return;
+        }
+        deliveryAddress = {
+          name: selectedPickupPoint.name,
+          streetName: selectedPickupPoint.visitingAddress.streetName,
+          streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
+          postalCode: selectedPickupPoint.visitingAddress.postalCode,
+          city: selectedPickupPoint.visitingAddress.city,
+          country: 'Danmark',
+        };
+        providerDetails = {
+          postnord: {
+            servicePointId: selectedPickupPoint.servicePointId,
+            deliveryMethod: 'pickupPoint',
+          },
+        };
       } else if (deliveryOption === 'homeDelivery') {
+        // Use sanitized customer address
         const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
         if (
-          customerDetails.fullName &&
-          streetName &&
-          streetNumber &&
-          customerDetails.postalCode &&
-          customerDetails.city
+          !customerDetails.fullName ||
+          !streetName ||
+          !streetNumber ||
+          !customerDetails.postalCode ||
+          !customerDetails.city
         ) {
-          deliveryAddress = {
-            name: customerDetails.fullName,
-            streetName: streetName,
-            streetNumber: streetNumber,
-            postalCode: customerDetails.postalCode,
-            city: customerDetails.city,
-            country: 'Danmark',
-          };
-          providerDetails = {
-            postnord: {
-              servicePointId: null,
-              deliveryMethod: 'homeDelivery',
-            },
-          };
+          // Do not proceed if customer address is incomplete
+          return;
         }
+        deliveryAddress = {
+          name: customerDetails.fullName,
+          streetName: streetName,
+          streetNumber: streetNumber,
+          postalCode: customerDetails.postalCode,
+          city: customerDetails.city,
+          country: 'Danmark',
+        };
+        providerDetails = {
+          postnord: {
+            servicePointId: null,
+            deliveryMethod: 'homeDelivery',
+          },
+        };
+      } else {
+        // Unknown deliveryOption
+        return;
       }
-  
-      // Send delivery details to the backend regardless of completeness
+
+      // Send delivery details to the backend
       await fetch('/api/firebase/4-updateBasket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -149,9 +160,9 @@ export default function Basket() {
       });
     } catch (error) {
       console.error('Error updating delivery details:', error);
+      // Optionally, display an error to the user
     }
   };
-  
 
   const debouncedUpdateDeliveryDetailsInBackend = useRef(
     debounce(updateDeliveryDetailsInBackend, 500)
