@@ -31,7 +31,7 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
 
       mapInstance.current = new Map(mapRef.current, {
         center,
-        zoom: 12,
+        zoom: 18,
         mapId: 'ba67a4a565ab9000',
       });
 
@@ -59,18 +59,19 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
       });
       markersRef.current = {};
       infoWindowsRef.current = {};
-
+  
       addMarkers(pickupPoints);
-
-      // Center the map on the first pickup point
-      const firstPoint = pickupPoints[0];
-      if (firstPoint) {
-        const lat = parseFloat(firstPoint.coordinates[0].northing);
-        const lng = parseFloat(firstPoint.coordinates[0].easting);
+  
+      // Center the map on the selected pickup point
+      const pointToCenter =
+        pickupPoints.find((p) => p.servicePointId === selectedPoint) || pickupPoints[0];
+      if (pointToCenter) {
+        const lat = parseFloat(pointToCenter.coordinates[0].northing);
+        const lng = parseFloat(pointToCenter.coordinates[0].easting);
         mapInstance.current.setCenter({ lat, lng });
       }
     }
-  }, [pickupPoints]);
+  }, [pickupPoints, selectedPoint]); // Add selectedPoint to dependency array
 
   // Function to add markers to the map
   const addMarkers = (points) => {
@@ -102,7 +103,6 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
       // Add event listener for marker click
       marker.addListener('click', () => {
         setSelectedPoint(point.servicePointId);
-        openInfoWindow(point.servicePointId);
       });
     });
 
@@ -116,15 +116,19 @@ const MapComponent = ({ pickupPoints, selectedPoint, setSelectedPoint }) => {
   const openInfoWindow = (servicePointId) => {
     // Close all InfoWindows
     Object.values(infoWindowsRef.current).forEach((infoWindow) => infoWindow.close());
-
+  
     // Open the InfoWindow for the selectedPoint
-    if (infoWindowsRef.current[servicePointId]) {
+    const marker = markersRef.current[servicePointId];
+    if (infoWindowsRef.current[servicePointId] && marker) {
       infoWindowsRef.current[servicePointId].open({
-        anchor: markersRef.current[servicePointId],
+        anchor: marker,
         map: mapInstance.current,
       });
+      // Pan to marker position
+      mapInstance.current.panTo(marker.position);
     }
   };
+  
 
   // Open InfoWindow when selectedPoint changes
   useEffect(() => {

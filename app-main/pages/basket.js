@@ -568,7 +568,7 @@ export default function Basket() {
 
         {loading && <LoadingSpinner />}
 
-        {deliveryOption === 'pickup' && !loading && (
+        {deliveryOption === 'pickup' && !loading && selectedPoint && (
           <>
             <h3 className="text-xl font-bold mt-4">Vælg Afhentningssted</h3>
             <PickupPointsList
@@ -576,7 +576,11 @@ export default function Basket() {
               selectedPoint={selectedPoint}
               setSelectedPoint={setSelectedPoint}
             />
-            <MapComponent pickupPoints={pickupPoints} selectedPoint={selectedPoint} />
+            <MapComponent
+              pickupPoints={pickupPoints}
+              selectedPoint={selectedPoint}
+              setSelectedPoint={setSelectedPoint}
+            />
           </>
         )}
 
