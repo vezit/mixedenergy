@@ -49,9 +49,6 @@ export default function Basket() {
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // State for basket summary
-  const [basketSummary, setBasketSummary] = useState(null);
-
   // Debounce function to prevent excessive API calls
   const debounce = (func, delay) => {
     let timeoutId;
@@ -410,21 +407,6 @@ export default function Basket() {
     }
   }, [basketItems]);
 
-  // Fetch basket summary when on confirmation step
-  useEffect(() => {
-    if (currentStep === 4) {
-      // Fetch basket summary
-      fetch('/api/firebase/5-getBasket')
-        .then((res) => res.json())
-        .then((data) => {
-          setBasketSummary(data.basketDetails);
-        })
-        .catch((error) => {
-          console.error('Error fetching basket summary:', error);
-        });
-    }
-  }, [currentStep]);
-
   const triggerExplosion = (itemIndex) => {
     setExplodedItems((prev) => ({
       ...prev,
@@ -751,73 +733,7 @@ export default function Basket() {
       <>
         <h2 className="text-2xl font-bold mb-4">Bekræft Ordre</h2>
         {/* Order Summary */}
-        {basketSummary ? (
-          <div className="mb-8">
-            <h3 className="text-xl font-bold mb-4">Ordreoversigt</h3>
-            {/* Display the summary */}
-            <div className="mb-4">
-              <h4 className="font-bold">Leveringstype:</h4>
-              <p>
-                {basketSummary.deliveryDetails.deliveryType === 'pickupPoint'
-                  ? 'Afhentningssted'
-                  : 'Hjemmelevering'}
-              </p>
-            </div>
-            <div className="mb-4">
-              <h4 className="font-bold">Leveringsadresse:</h4>
-              <p>{basketSummary.deliveryDetails.deliveryAddress.name}</p>
-              <p>
-                {basketSummary.deliveryDetails.deliveryAddress.streetName}{' '}
-                {basketSummary.deliveryDetails.deliveryAddress.streetNumber}
-              </p>
-              <p>
-                {basketSummary.deliveryDetails.deliveryAddress.postalCode}{' '}
-                {basketSummary.deliveryDetails.deliveryAddress.city}
-              </p>
-            </div>
-            <div className="mb-4">
-              <h4 className="font-bold">Kundeoplysninger:</h4>
-              <p>Navn: {basketSummary.customerDetails.fullName}</p>
-              <p>Email: {basketSummary.customerDetails.email}</p>
-              <p>Telefon: {basketSummary.customerDetails.mobileNumber}</p>
-            </div>
-            <div className="mb-4">
-              <h4 className="font-bold">Ordre Detaljer:</h4>
-              <p>
-                Antal pakker:{' '}
-                {basketSummary.items.reduce((acc, item) => acc + item.quantity, 0)}
-              </p>
-              <p>
-                Total pris:{' '}
-                {(
-                  basketSummary.items.reduce(
-                    (acc, item) => acc + item.totalPrice,
-                    0
-                  ) / 100
-                ).toFixed(2)}{' '}
-                kr
-              </p>
-              <p>
-                Total pant:{' '}
-                {(
-                  basketSummary.items.reduce(
-                    (acc, item) => acc + item.totalRecyclingFee,
-                    0
-                  ) / 100
-                ).toFixed(2)}{' '}
-                kr
-              </p>
-              <p>
-                Leveringsgebyr:{' '}
-                {basketSummary.deliveryDetails.deliveryFee
-                  ? (basketSummary.deliveryDetails.deliveryFee / 100).toFixed(2) + ' kr'
-                  : 'Gratis'}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <p>Indlæser ordreoversigt...</p>
-        )}
+        {/* ... Display order summary here ... */}
 
         {/* Terms and Conditions */}
         <div className="mt-4">

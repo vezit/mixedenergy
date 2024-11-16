@@ -34,7 +34,34 @@ export default async (req, res) => {
     const basketDetails = sessionData.basketDetails || {};
     let items = basketDetails.items || [];
 
-    if (action === 'addItem') {
+
+    if (action === 'updateDeliveryDetails') {
+      // Handle 'updateDeliveryDetails' action
+      const { deliveryOption, deliveryAddress, providerDetails } = req.body;
+
+      if (!deliveryOption || !deliveryAddress || !providerDetails) {
+        return res.status(400).json({ error: 'Missing delivery details' });
+      }
+
+      const deliveryDetails = {
+        provider: 'postnord', // Assuming PostNord is the provider
+        trackingNumber: null, // This will be updated later when the shipment is created
+        estimatedDeliveryDate: null, // To be updated later
+        deliveryType: deliveryOption, // 'homeDelivery' or 'pickupPoint'
+        deliveryFee: null, // Calculate if needed
+        currency: 'DKK',
+        deliveryAddress: deliveryAddress,
+        providerDetails: providerDetails,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Update the deliveryDetails in the session
+      await sessionDocRef.update({
+        'basketDetails.deliveryDetails': deliveryDetails,
+      });
+
+      res.status(200).json({ success: true });
+    } else if (action === 'addItem') {
       // Handle 'addItem' action
       const { selectionId, quantity } = req.body;
 

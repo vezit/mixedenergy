@@ -47,157 +47,118 @@ export default function Basket() {
 
   // Loading states for buttons
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
+  const [isProceedingToShipping, setIsProceedingToShipping] = useState(false);
+  const [isProceedingToConfirmation, setIsProceedingToConfirmation] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // State for basket summary
-  const [basketSummary, setBasketSummary] = useState(null);
-
-  // Debounce function to prevent excessive API calls
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return function (...args) {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
+  useEffect(() => {
+    // Collect all the package slugs from basket items
+    const packageSlugsSet = new Set();
+    basketItems.forEach((item) => {
+      if (item.slug) {
+        packageSlugsSet.add(item.slug);
       }
-      timeoutId = setTimeout(() => {
-        func(...args);
-      }, delay);
-    };
-  };
+    });
+    const packageSlugs = Array.from(packageSlugsSet);
 
-  // Function to split address into streetName and streetNumber
-  const splitAddress = (address) => {
-    const regex = /^(.*?)(\s+\d+\S*)$/;
-    const match = address.match(regex);
-    if (match) {
-      return {
-        streetName: match[1].trim(),
-        streetNumber: match[2].trim(),
-      };
-    } else {
-      return {
-        streetName: address,
-        streetNumber: '',
-      };
+    if (packageSlugs.length > 0) {
+      // Fetch packages data
+      fetch('/api/firebase/2-getPackages')
+        .then((res) => res.json())
+        .then((data) => {
+          const packages = data.packages;
+          const packagesBySlug = {};
+          packages.forEach((pkg) => {
+            if (packageSlugs.includes(pkg.slug)) {
+              packagesBySlug[pkg.slug] = pkg;
+            }
+          });
+          setPackagesData(packagesBySlug);
+        })
+        .catch((error) => {
+          console.error('Error fetching packages data:', error);
+        });
     }
-  };
+  }, [basketItems]);
 
-  // Function to update delivery details in the backend
-  const updateDeliveryDetailsInBackend = async () => {
-    try {
-      // Prepare deliveryAddress and providerDetails
-      let deliveryAddress = {};
-      let providerDetails = {};
-
-      if (deliveryOption === 'pickup') {
-        if (!selectedPoint) {
-          // Do not proceed if selectedPoint is not available
-          return;
-        }
-        const selectedPickupPoint = pickupPoints.find(
-          (point) => point.servicePointId === selectedPoint
-        );
-        if (!selectedPickupPoint) {
-          // Do not proceed if selectedPickupPoint is not found
-          return;
-        }
-        deliveryAddress = {
-          name: selectedPickupPoint.name,
-          streetName: selectedPickupPoint.visitingAddress.streetName,
-          streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
-          postalCode: selectedPickupPoint.visitingAddress.postalCode,
-          city: selectedPickupPoint.visitingAddress.city,
-          country: 'Danmark',
-        };
-        providerDetails = {
-          postnord: {
-            servicePointId: selectedPickupPoint.servicePointId,
-            deliveryMethod: 'pickupPoint',
-          },
-        };
-      } else if (deliveryOption === 'homeDelivery') {
-        // Use sanitized customer address
-        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
-        if (
-          !customerDetails.fullName ||
-          !streetName ||
-          !streetNumber ||
-          !customerDetails.postalCode ||
-          !customerDetails.city
-        ) {
-          // Do not proceed if customer address is incomplete
-          return;
-        }
-        deliveryAddress = {
-          name: customerDetails.fullName,
-          streetName: streetName,
-          streetNumber: streetNumber,
-          postalCode: customerDetails.postalCode,
-          city: customerDetails.city,
-          country: 'Danmark',
-        };
-        providerDetails = {
-          postnord: {
-            servicePointId: null,
-            deliveryMethod: 'homeDelivery',
-          },
-        };
-      } else {
-        // Unknown deliveryOption
-        return;
-      }
-
-      // Send delivery details to the backend
-      await fetch('/api/firebase/4-updateBasket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'updateDeliveryDetails',
-          deliveryOption: deliveryOption === 'pickup' ? 'pickupPoint' : 'homeDelivery',
-          deliveryAddress,
-          providerDetails,
-        }),
-      });
-    } catch (error) {
-      console.error('Error updating delivery details:', error);
-      // Optionally, display an error to the user
+  useEffect(() => {
+    if (isBasketLoaded && basketItems.length === 0) {
+      // Redirect immediately when basket is empty and data has loaded
+      router.push('/');
     }
-  };
+  }, [isBasketLoaded, basketItems, router]);
 
-  const debouncedUpdateDeliveryDetailsInBackend = useRef(
-    debounce(updateDeliveryDetailsInBackend, 500)
-  ).current;
-
-  // Update delivery details when deliveryOption changes
+  // Add the useEffect that triggers address validation when currentStep changes
   useEffect(() => {
     if (deliveryOption === 'pickup') {
-      updateDeliveryDetailsInBackend();
-    } else if (deliveryOption === 'homeDelivery') {
-      debouncedUpdateDeliveryDetailsInBackend();
+      if (currentStep === 3) {
+        setLoading(true);
+        validateAddressWithDAWA();
+      }
+    } else {
+      setLoading(false);
+      // Reset pickup points when not pickup
+      setPickupPoints([]);
+      setSelectedPoint(null);
     }
-  }, [deliveryOption]);
+  }, [deliveryOption, currentStep]);
 
-  // Update delivery details when selectedPoint changes
+  // Fetch drinks data based on selectedDrinks in basket items
+  useEffect(() => {
+    // Collect all the drink slugs from basket items
+    const drinkSlugsSet = new Set();
+    basketItems.forEach((item) => {
+      if (item.selectedDrinks) {
+        Object.keys(item.selectedDrinks).forEach((slug) => {
+          drinkSlugsSet.add(slug);
+        });
+      }
+    });
+    const drinkSlugs = Array.from(drinkSlugsSet);
+
+    if (drinkSlugs.length > 0) {
+      // Fetch drinks data
+      fetch('/api/firebase/3-getDrinksBySlugs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugs: drinkSlugs }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setDrinksData(data.drinks);
+        })
+        .catch((error) => {
+          console.error('Error fetching drinks data:', error);
+        });
+    }
+  }, [basketItems]);
+
+  const triggerExplosion = (itemIndex) => {
+    setExplodedItems((prev) => ({
+      ...prev,
+      [itemIndex]: true,
+    }));
+  };
+
+
   useEffect(() => {
     if (deliveryOption === 'pickup') {
       updateDeliveryDetailsInBackend();
     }
   }, [selectedPoint]);
 
-  // Update delivery details when customerDetails change (for home delivery)
+  const handleDeliveryOptionChange = (option) => {
+    setDeliveryOption(option);
+  };
+  
+  
   useEffect(() => {
     if (deliveryOption === 'homeDelivery') {
       debouncedUpdateDeliveryDetailsInBackend();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerDetails]);
-
-  // Function to handle delivery option change
-  const handleDeliveryOptionChange = (option) => {
-    setDeliveryOption(option);
-  };
-
-  // Function to update customer details in Firebase
+  
   const updateCustomerDetailsInFirebase = async (updatedDetails) => {
     try {
       await fetch('/api/firebase/4-updateBasket', {
@@ -248,8 +209,25 @@ export default function Basket() {
     updateItemQuantity(itemIndex, newQuantity);
   };
 
+  // Function to split address into streetName and streetNumber
+  const splitAddress = (address) => {
+    const regex = /^(.*?)(\s+\d+\S*)$/;
+    const match = address.match(regex);
+    if (match) {
+      return {
+        streetName: match[1].trim(),
+        streetNumber: match[2].trim(),
+      };
+    } else {
+      return {
+        streetName: address,
+        streetNumber: '',
+      };
+    }
+  };
+
   const fetchPickupPoints = (updatedDetails) => {
-    const { streetName, streetNumber } = splitAddress(updatedDetails.address || '');
+    const { streetName, streetNumber } = splitAddress(updatedDetails.address);
     if (updatedDetails.city && updatedDetails.postalCode && streetNumber) {
       fetch(
         `/api/postnord/servicepoints?city=${encodeURIComponent(
@@ -329,108 +307,105 @@ export default function Basket() {
     }
   };
 
-  // Fetch package data when basket items change
-  useEffect(() => {
-    // Collect all the package slugs from basket items
-    const packageSlugsSet = new Set();
-    basketItems.forEach((item) => {
-      if (item.slug) {
-        packageSlugsSet.add(item.slug);
+
+
+  const updateDeliveryDetailsInBackend = async () => {
+    try {
+      // Prepare deliveryAddress and providerDetails
+      let deliveryAddress = {};
+      let providerDetails = {};
+
+      if (deliveryOption === 'pickup') {
+        if (!selectedPoint) {
+          // Do not proceed if selectedPoint is not available
+          return;
+        }
+        const selectedPickupPoint = pickupPoints.find(
+          (point) => point.servicePointId === selectedPoint
+        );
+        if (!selectedPickupPoint) {
+          // Do not proceed if selectedPickupPoint is not found
+          return;
+        }
+        deliveryAddress = {
+          name: selectedPickupPoint.name,
+          streetName: selectedPickupPoint.visitingAddress.streetName,
+          streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
+          postalCode: selectedPickupPoint.visitingAddress.postalCode,
+          city: selectedPickupPoint.visitingAddress.city,
+          country: 'Danmark',
+        };
+        providerDetails = {
+          postnord: {
+            servicePointId: selectedPickupPoint.servicePointId,
+            deliveryMethod: 'pickupPoint',
+          },
+        };
+      } else if (deliveryOption === 'homeDelivery') {
+        // Use sanitized customer address
+        const { streetName, streetNumber } = splitAddress(customerDetails.address);
+        if (
+          !customerDetails.fullName ||
+          !streetName ||
+          !streetNumber ||
+          !customerDetails.postalCode ||
+          !customerDetails.city
+        ) {
+          // Do not proceed if customer address is incomplete
+          return;
+        }
+        deliveryAddress = {
+          name: customerDetails.fullName,
+          streetName: streetName,
+          streetNumber: streetNumber,
+          postalCode: customerDetails.postalCode,
+          city: customerDetails.city,
+          country: 'Danmark',
+        };
+        providerDetails = {
+          postnord: {
+            servicePointId: null,
+            deliveryMethod: 'homeDelivery',
+          },
+        };
+      } else {
+        // Unknown deliveryOption
+        return;
       }
-    });
-    const packageSlugs = Array.from(packageSlugsSet);
 
-    if (packageSlugs.length > 0) {
-      // Fetch packages data
-      fetch('/api/firebase/2-getPackages')
-        .then((res) => res.json())
-        .then((data) => {
-          const packages = data.packages;
-          const packagesBySlug = {};
-          packages.forEach((pkg) => {
-            if (packageSlugs.includes(pkg.slug)) {
-              packagesBySlug[pkg.slug] = pkg;
-            }
-          });
-          setPackagesData(packagesBySlug);
-        })
-        .catch((error) => {
-          console.error('Error fetching packages data:', error);
-        });
-    }
-  }, [basketItems]);
-
-  useEffect(() => {
-    if (isBasketLoaded && basketItems.length === 0) {
-      // Redirect immediately when basket is empty and data has loaded
-      router.push('/');
-    }
-  }, [isBasketLoaded, basketItems, router]);
-
-  // Add the useEffect that triggers address validation when currentStep changes
-  useEffect(() => {
-    if (currentStep === 3) {
-      setLoading(true);
-      validateAddressWithDAWA();
-    } else {
-      setLoading(false);
-      // Reset pickup points when not on step 3
-      setPickupPoints([]);
-      setSelectedPoint(null);
-    }
-  }, [currentStep]);
-
-  // Fetch drinks data based on selectedDrinks in basket items
-  useEffect(() => {
-    // Collect all the drink slugs from basket items
-    const drinkSlugsSet = new Set();
-    basketItems.forEach((item) => {
-      if (item.selectedDrinks) {
-        Object.keys(item.selectedDrinks).forEach((slug) => {
-          drinkSlugsSet.add(slug);
-        });
-      }
-    });
-    const drinkSlugs = Array.from(drinkSlugsSet);
-
-    if (drinkSlugs.length > 0) {
-      // Fetch drinks data
-      fetch('/api/firebase/3-getDrinksBySlugs', {
+      // Send delivery details to the backend
+      await fetch('/api/firebase/4-updateBasket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugs: drinkSlugs }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setDrinksData(data.drinks);
-        })
-        .catch((error) => {
-          console.error('Error fetching drinks data:', error);
-        });
+        body: JSON.stringify({
+          action: 'updateDeliveryDetails',
+          deliveryOption: deliveryOption === 'pickup' ? 'pickupPoint' : 'homeDelivery',
+          deliveryAddress,
+          providerDetails,
+        }),
+      });
+    } catch (error) {
+      console.error('Error updating delivery details:', error);
+      // Optionally, display an error to the user
     }
-  }, [basketItems]);
-
-  // Fetch basket summary when on confirmation step
-  useEffect(() => {
-    if (currentStep === 4) {
-      // Fetch basket summary
-      fetch('/api/firebase/5-getBasket')
-        .then((res) => res.json())
-        .then((data) => {
-          setBasketSummary(data.basketDetails);
-        })
-        .catch((error) => {
-          console.error('Error fetching basket summary:', error);
-        });
-    }
-  }, [currentStep]);
-
-  const triggerExplosion = (itemIndex) => {
-    setExplodedItems((prev) => ({
-      ...prev,
-      [itemIndex]: true,
-    }));
   };
+
+
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return function (...args) {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    };
+  };
+
+  const debouncedUpdateDeliveryDetailsInBackend = useRef(
+    debounce(updateDeliveryDetailsInBackend, 500)
+  ).current;
 
   // Modify this function to match the working code
   const handleShowShippingOptions = () => {
@@ -465,6 +440,7 @@ export default function Basket() {
     setCurrentStep(4);
   };
 
+
   const handlePayment = async () => {
     if (!termsAccepted) {
       setTermsError(
@@ -493,7 +469,7 @@ export default function Basket() {
         };
       } else if (deliveryOption === 'homeDelivery') {
         // Use sanitized customer address
-        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
+        const { streetName, streetNumber } = splitAddress(customerDetails.address);
         deliveryAddress = {
           name: customerDetails.fullName,
           streetName: streetName,
@@ -751,73 +727,7 @@ export default function Basket() {
       <>
         <h2 className="text-2xl font-bold mb-4">Bekræft Ordre</h2>
         {/* Order Summary */}
-        {basketSummary ? (
-          <div className="mb-8">
-            <h3 className="text-xl font-bold mb-4">Ordreoversigt</h3>
-            {/* Display the summary */}
-            <div className="mb-4">
-              <h4 className="font-bold">Leveringstype:</h4>
-              <p>
-                {basketSummary.deliveryDetails.deliveryType === 'pickupPoint'
-                  ? 'Afhentningssted'
-                  : 'Hjemmelevering'}
-              </p>
-            </div>
-            <div className="mb-4">
-              <h4 className="font-bold">Leveringsadresse:</h4>
-              <p>{basketSummary.deliveryDetails.deliveryAddress.name}</p>
-              <p>
-                {basketSummary.deliveryDetails.deliveryAddress.streetName}{' '}
-                {basketSummary.deliveryDetails.deliveryAddress.streetNumber}
-              </p>
-              <p>
-                {basketSummary.deliveryDetails.deliveryAddress.postalCode}{' '}
-                {basketSummary.deliveryDetails.deliveryAddress.city}
-              </p>
-            </div>
-            <div className="mb-4">
-              <h4 className="font-bold">Kundeoplysninger:</h4>
-              <p>Navn: {basketSummary.customerDetails.fullName}</p>
-              <p>Email: {basketSummary.customerDetails.email}</p>
-              <p>Telefon: {basketSummary.customerDetails.mobileNumber}</p>
-            </div>
-            <div className="mb-4">
-              <h4 className="font-bold">Ordre Detaljer:</h4>
-              <p>
-                Antal pakker:{' '}
-                {basketSummary.items.reduce((acc, item) => acc + item.quantity, 0)}
-              </p>
-              <p>
-                Total pris:{' '}
-                {(
-                  basketSummary.items.reduce(
-                    (acc, item) => acc + item.totalPrice,
-                    0
-                  ) / 100
-                ).toFixed(2)}{' '}
-                kr
-              </p>
-              <p>
-                Total pant:{' '}
-                {(
-                  basketSummary.items.reduce(
-                    (acc, item) => acc + item.totalRecyclingFee,
-                    0
-                  ) / 100
-                ).toFixed(2)}{' '}
-                kr
-              </p>
-              <p>
-                Leveringsgebyr:{' '}
-                {basketSummary.deliveryDetails.deliveryFee
-                  ? (basketSummary.deliveryDetails.deliveryFee / 100).toFixed(2) + ' kr'
-                  : 'Gratis'}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <p>Indlæser ordreoversigt...</p>
-        )}
+        {/* ... Display order summary here ... */}
 
         {/* Terms and Conditions */}
         <div className="mt-4">
