@@ -77,10 +77,7 @@ function PackagesTable({
   const handleCellClick = (pkg, key) => {
     if (key === 'collectionsDrinks') {
       setCurrentPackage(pkg);
-      const drinksArray = Array.isArray(pkg.collectionsDrinks)
-        ? pkg.collectionsDrinks
-        : [];
-      setSelectedDrinks(drinksArray);
+      setSelectedDrinks(pkg.collectionsDrinks || []);
       setModalType('drinksSelection');
     } else if (key === 'packages') {
       // Handle editing nested packages array
@@ -129,6 +126,13 @@ function PackagesTable({
 
   // Packages Editing Modal state
   const [packagesData, setPackagesData] = useState([]);
+
+  // Open Packages Editing Modal
+  const handleOpenPackagesModal = (pkg) => {
+    setCurrentPackage(pkg);
+    setPackagesData(pkg.packages || []);
+    setModalType('packagesEditing');
+  };
 
   return (
     <div className="mb-8">
@@ -281,9 +285,8 @@ function PackagesTable({
               return (
                 <div key={key}>
                   <label
-                    className={`block text-sm font-medium ${
-                      isPrivate ? 'text-red-500' : 'text-gray-700'
-                    }`}
+                    className={`block text-sm font-medium ${isPrivate ? 'text-red-500' : 'text-gray-700'
+                      }`}
                   >
                     {key.startsWith('_') ? key.substring(1) : key}
                   </label>
@@ -387,23 +390,23 @@ function PackagesTable({
               <h3 className="text-lg font-bold mb-2">Available Drinks</h3>
               <div className="border h-64 overflow-y-scroll">
                 <ul>
-                  {drinks
-                    .filter((drink) => !selectedDrinks.includes(drink.docId))
-                    .map((drink) => (
+                  {Object.keys(drinks)
+                    .filter((drinkSlug) => !selectedDrinks.includes(drinkSlug))
+                    .map((drinkSlug) => (
                       <li
-                        key={drink.docId}
+                        key={drinkSlug}
                         onDoubleClick={() => {
-                          setSelectedDrinks([...selectedDrinks, drink.docId]);
+                          setSelectedDrinks([...selectedDrinks, drinkSlug]);
                         }}
                         className="p-2 hover:bg-gray-200 cursor-pointer"
                       >
-                        {drink.name}
+                        {drinks[drinkSlug].name}
                       </li>
                     ))}
                 </ul>
               </div>
               <button
-                onClick={() => setSelectedDrinks(drinks.map((drink) => drink.docId))}
+                onClick={() => setSelectedDrinks(Object.keys(drinks))}
                 className="mt-2 bg-blue-500 text-white px-2 py-1 rounded"
               >
                 Choose All
@@ -413,14 +416,14 @@ function PackagesTable({
               <h3 className="text-lg font-bold mb-2">Selected Drinks</h3>
               <div className="border h-64 overflow-y-scroll">
                 <ul>
-                  {selectedDrinks.map((drinkDocId) => {
-                    const drink = drinks.find((d) => d.docId === drinkDocId);
+                  {selectedDrinks.map((drinkSlug) => {
+                    const drink = drinks[drinkSlug];
                     return (
                       <li
-                        key={drinkDocId}
+                        key={drinkSlug}
                         onDoubleClick={() => {
                           setSelectedDrinks(
-                            selectedDrinks.filter((id) => id !== drinkDocId)
+                            selectedDrinks.filter((slug) => slug !== drinkSlug)
                           );
                         }}
                         className="p-2 hover:bg-gray-200 cursor-pointer"
@@ -443,11 +446,7 @@ function PackagesTable({
             <button
               onClick={() => {
                 if (modalType === 'drinksSelection') {
-                  onPackageChange(
-                    currentPackage.docId || null,
-                    ['collectionsDrinks'],
-                    selectedDrinks
-                  );
+                  onPackageChange(currentPackage.docId || null, ['collectionsDrinks'], selectedDrinks);
                 } else {
                   updateNewPackageField('collectionsDrinks', selectedDrinks);
                 }

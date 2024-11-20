@@ -122,7 +122,7 @@ export default function AdminPage() {
 
     try {
       await setDoc(drinkRef, drinkData);
-      alert('Drink saved successfully');
+      // alert('Drink saved successfully');
     } catch (error) {
       console.error('Error saving drink:', error);
       alert('Error saving drink.');

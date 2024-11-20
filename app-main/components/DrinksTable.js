@@ -227,10 +227,14 @@ function DrinksTable({
                             value={key === 'isSugarFree' ? undefined : value || ''}
                             checked={key === 'isSugarFree' ? value || false : undefined}
                             onChange={(e) => {
-                              const newValue =
-                                e.target.type === 'checkbox'
-                                  ? e.target.checked
-                                  : e.target.value;
+                              let newValue;
+                              if (e.target.type === 'checkbox') {
+                                newValue = e.target.checked;
+                              } else if (e.target.type === 'number') {
+                                newValue = e.target.valueAsNumber; // Use valueAsNumber for number inputs
+                              } else {
+                                newValue = e.target.value;
+                              }
                               if (key !== 'docId') {
                                 onDrinkChange(drink.docId, [key], newValue);
                               }
