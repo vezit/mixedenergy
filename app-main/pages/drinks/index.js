@@ -12,10 +12,10 @@ export default function DrinksList() {
   useEffect(() => {
     const fetchDrinks = async () => {
       try {
-        const response = await axios.get('/api/getDrinks');
-        const drinksData = Object.keys(response.data.drinks).map((docID) => ({
-          docID,
-          ...response.data.drinks[docID],
+        const response = await axios.get('/api/firebase/1-getDrinks');
+        const drinksData = Object.keys(response.data.drinks).map((slug) => ({
+          slug,
+          ...response.data.drinks[slug],
         }));
         setDrinks(drinksData);
       } catch (error) {
@@ -37,9 +37,9 @@ export default function DrinksList() {
       <h1 className="text-4xl font-bold mb-8">Available Drinks</h1>
       <ul>
         {drinks.map((drink) => {
-          const slug = drink.docID; // Use the document docID, e.g., "faxe-kondi-booster-original"
+          const slug = drink.slug;
           return (
-            <li key={drink.docID} className="mb-4">
+            <li key={drink.slug} className="mb-4">
               <Link href={`/drinks/${slug}`}>
                 <a className="text-2xl text-blue-500 hover:underline">
                   {drink.name} - {drink.size}

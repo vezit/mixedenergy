@@ -1,3 +1,5 @@
+// pages/drinks/[slug].js
+
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -46,9 +48,9 @@ export default function DrinkDetail() {
       <Image
         src={imageUrl}
         alt={drink.name}
-        width={463}
-        height={775}
-        className="rounded-lg shadow-lg object-cover"
+        width={400}
+        height={400}
+        className="rounded-lg shadow-lg"
         onError={() => setImageError(true)} // Handle image load errors
       />
       <p className="text-xl text-gray-700 mt-4">Size: {drink.size}</p>
