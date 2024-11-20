@@ -51,7 +51,7 @@ export default async (req, res) => {
         provider: 'postnord', // Assuming PostNord is the provider
         trackingNumber: null, // This will be updated later when the shipment is created
         estimatedDeliveryDate: null, // To be updated later
-        deliveryType: deliveryOption,
+        deliveryType: deliveryOption === 'pickup' ? 'pickupPoint' : deliveryOption,
         deliveryFee: deliveryFee, // Calculate if needed
         currency: 'DKK',
         deliveryAddress: deliveryAddress,

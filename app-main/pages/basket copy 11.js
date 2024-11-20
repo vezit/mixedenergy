@@ -37,7 +37,7 @@ export default function Basket() {
   const [termsError, setTermsError] = useState('');
 
   // State for delivery option
-  const [deliveryOption, setDeliveryOption] = useState('pickupPoint');
+  const [deliveryOption, setDeliveryOption] = useState('pickup'); // 'pickup' or 'homeDelivery'
 
   // State for expanded items
   const [expandedItems, setExpandedItems] = useState({});
@@ -48,10 +48,6 @@ export default function Basket() {
   // Loading states for buttons
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
-  // Compute total price and total recycling fee
-  const totalPrice = basketItems.reduce((sum, item) => sum + item.totalPrice, 0);
-  const totalRecyclingFee = basketItems.reduce((sum, item) => sum + item.totalRecyclingFee, 0);
 
   // State for basket summary
   const [basketSummary, setBasketSummary] = useState(null);
@@ -87,12 +83,12 @@ export default function Basket() {
   };
 
   // Function to update delivery details in the backend
-  const updateDeliveryDetailsInBackend = async (option = deliveryOption) => {
+  const updateDeliveryDetailsInBackend = async () => {
     try {
       let deliveryAddress = {};
       let providerDetails = {};
   
-      if (option === 'pickupPoint') {
+      if (deliveryOption === 'pickup') {
         if (selectedPoint) {
           const selectedPickupPoint = pickupPoints.find(
             (point) => point.servicePointId === selectedPoint
@@ -146,7 +142,7 @@ export default function Basket() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'updateDeliveryDetails',
-          deliveryOption: option,
+          deliveryOption: deliveryOption,
           deliveryAddress,
           providerDetails,
         }),
@@ -171,7 +167,6 @@ export default function Basket() {
   // Function to handle delivery option change
   const handleDeliveryOptionChange = (option) => {
     setDeliveryOption(option);
-    updateDeliveryDetailsInBackend(option);
   };
 
   // Function to update customer details in Firebase
@@ -401,10 +396,6 @@ export default function Basket() {
         });
     }
   }, [currentStep]);
-
-  useEffect(() => {
-    updateDeliveryDetailsInBackend();
-  }, [deliveryOption]);
 
   const triggerExplosion = (itemIndex) => {
     setExplodedItems((prev) => ({
@@ -681,9 +672,9 @@ export default function Basket() {
             <input
               type="radio"
               name="deliveryOption"
-              value="pickupPoint"
-              checked={deliveryOption === 'pickupPoint'}
-              onChange={() => handleDeliveryOptionChange('pickupPoint')}
+              value="pickup"
+              checked={deliveryOption === 'pickup'}
+              onChange={() => handleDeliveryOptionChange('pickup')}
             />
             Afhentningssted
           </label>
@@ -951,21 +942,6 @@ export default function Basket() {
                   </ExplosionEffect>
                 );
               })}
-
-{/* Total Price Summary Card */}
-<div className="mb-4 p-4 border rounded">
-      <h2 className="text-xl font-bold">Sammendrag</h2>
-      <p className="text-gray-700 mt-2">
-        Total pris for pakker: {(totalPrice / 100).toFixed(2)} kr
-      </p>
-      <p className="text-gray-700 mt-2">
-        Pant: {(totalRecyclingFee / 100).toFixed(2)} kr
-      </p>
-      <p className="text-gray-700 mt-2 font-bold">
-        Samlet pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr
-      </p>
-    </div>
-
               {/* Proceed to next step */}
               <div className="text-right mt-4">
                 <LoadingButton
