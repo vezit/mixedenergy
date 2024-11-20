@@ -257,7 +257,7 @@ export default function BlandSelvMixProduct() {
           </div>
 
           {/* Scrollable Drinks Selection */}
-          <div className="mt-4 overflow-y-auto pr-4 max-h-96">
+          <div className="mt-4">
             <p>Select drinks (exactly {maxProducts}):</p>
             {Object.keys(drinksData).map((drinkSlug, index) => (
               <div key={index} className="flex items-center justify-between mt-2">
