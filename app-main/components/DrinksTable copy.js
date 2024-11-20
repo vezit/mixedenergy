@@ -30,29 +30,15 @@ function DrinksTable({
   // Define the desired column order
   const columnOrder = [
     'name',
-    '_stock', // Adjusted to match new data structure
+    'stock',
     'size',
     'isSugarFree',
     'image',
     '_purchasePrice',
-    '_salePrice',
-    'nutrition',
-    'recyclingFee', // Added if needed
-  ];
+    '_salePrice', // Prefix with '_'
 
-  // Process the drinks prop into an array
-  const drinksArray = React.useMemo(() => {
-    if (Array.isArray(drinks)) {
-      return drinks;
-    } else if (drinks && typeof drinks === 'object') {
-      return Object.keys(drinks).map((docId) => ({
-        ...drinks[docId],
-        docId,
-      }));
-    } else {
-      return [];
-    }
-  }, [drinks]);
+    'nutrition',
+  ];
 
   // Function to handle sorting
   const requestSort = (key) => {
@@ -65,7 +51,7 @@ function DrinksTable({
 
   // Apply sorting to drinks data
   const sortedDrinks = React.useMemo(() => {
-    let sortableDrinks = [...drinksArray];
+    let sortableDrinks = [...drinks];
     if (sortConfig.key !== null) {
       sortableDrinks.sort((a, b) => {
         const aValue = a[sortConfig.key];
@@ -86,20 +72,19 @@ function DrinksTable({
       });
     }
     return sortableDrinks;
-  }, [drinksArray, sortConfig]);
+  }, [drinks, sortConfig]);
 
   // Handle adding a new drink
   const handleAddDrink = () => {
     setNewDrink({
       name: '',
-      _stock: 0,
+      stock: 0,
       size: '',
       isSugarFree: false,
       image: '',
       _salePrice: 0,
       _purchasePrice: 0,
       nutrition: {},
-      recyclingFee: 0,
     });
     setShowAddModal(true);
   };

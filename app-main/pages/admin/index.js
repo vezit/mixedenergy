@@ -15,7 +15,7 @@ import {
   setDoc,
   getDoc,
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes } from 'firebase/storage';
 import { useRouter } from 'next/router';
 import { firebaseApp } from '../../lib/firebase';
 import DrinksTable from '../../components/DrinksTable';
@@ -50,89 +50,21 @@ export default function AdminPage() {
   }, [auth, router]);
 
   const fetchData = async () => {
-    // Fetch drinks_public collection
-    const drinksPublicSnapshot = await getDocs(collection(db, 'drinks_public'));
-    const drinksPublic = drinksPublicSnapshot.docs.map((doc) => ({
+    // Fetch drinks collection
+    const drinksSnapshot = await getDocs(collection(db, 'drinks'));
+    const drinksData = drinksSnapshot.docs.map((doc) => ({
       ...doc.data(),
       docId: doc.id,
     }));
+    setDrinks(drinksData);
 
-    // Fetch drinks_private collection
-    const drinksPrivateSnapshot = await getDocs(collection(db, 'drinks_private'));
-    const drinksPrivate = drinksPrivateSnapshot.docs.map((doc) => ({
+    // Fetch packages collection
+    const packagesSnapshot = await getDocs(collection(db, 'packages'));
+    const packagesData = packagesSnapshot.docs.map((doc) => ({
       ...doc.data(),
       docId: doc.id,
     }));
-
-    // Merge public and private data for drinks
-    const drinksMap = {};
-    drinksPublic.forEach((drink) => {
-      drinksMap[drink.docId] = { ...drink };
-    });
-
-    drinksPrivate.forEach((drink) => {
-      if (drinksMap[drink.docId]) {
-        // Merge private fields into the drink object, prefixing private fields with '_'
-        Object.keys(drink).forEach((key) => {
-          if (key !== 'docId') {
-            drinksMap[drink.docId][`_${key}`] = drink[key];
-          }
-        });
-      } else {
-        // Private data without public data
-        drinksMap[drink.docId] = { docId: drink.docId };
-        Object.keys(drink).forEach((key) => {
-          if (key !== 'docId') {
-            drinksMap[drink.docId][`_${key}`] = drink[key];
-          }
-        });
-      }
-    });
-
-    const mergedDrinks = Object.values(drinksMap);
-    setDrinks(mergedDrinks);
-
-    // Fetch packages_public collection
-    const packagesPublicSnapshot = await getDocs(collection(db, 'packages_public'));
-    const packagesPublic = packagesPublicSnapshot.docs.map((doc) => ({
-      ...doc.data(),
-      docId: doc.id,
-    }));
-
-    // Fetch packages_private collection
-    const packagesPrivateSnapshot = await getDocs(collection(db, 'packages_private'));
-    const packagesPrivate = packagesPrivateSnapshot.docs.map((doc) => ({
-      ...doc.data(),
-      docId: doc.id,
-    }));
-
-    // Merge public and private data for packages
-    const packagesMap = {};
-    packagesPublic.forEach((pkg) => {
-      packagesMap[pkg.docId] = { ...pkg };
-    });
-
-    packagesPrivate.forEach((pkg) => {
-      if (packagesMap[pkg.docId]) {
-        // Merge private fields into the package object, prefixing private fields with '_'
-        Object.keys(pkg).forEach((key) => {
-          if (key !== 'docId') {
-            packagesMap[pkg.docId][`_${key}`] = pkg[key];
-          }
-        });
-      } else {
-        // Private data without public data
-        packagesMap[pkg.docId] = { docId: pkg.docId };
-        Object.keys(pkg).forEach((key) => {
-          if (key !== 'docId') {
-            packagesMap[pkg.docId][`_${key}`] = pkg[key];
-          }
-        });
-      }
-    });
-
-    const mergedPackages = Object.values(packagesMap);
-    setPackages(mergedPackages);
+    setPackages(packagesData);
   };
 
   // Recursive function to update nested data
@@ -163,21 +95,17 @@ export default function AdminPage() {
   const saveDrink = async (drink) => {
     const { docId } = drink;
 
-    // Separate public and private fields
-    const publicFields = {};
-    const privateFields = {};
-
     // Handle image upload if the image field is a File object
     if (drink.image instanceof File) {
       try {
-        const storageRef = ref(storage, `drinks_public/${docId}.png`);
+        const storageRef = ref(storage, `public/images/drinks/${docId}.png`);
         await uploadBytes(storageRef, drink.image);
-    
+
         // Manually construct the download URL without the token
         const bucketName = storage.app.options.storageBucket;
-        const encodedPath = encodeURIComponent(`drinks_public/${docId}.png`);
+        const encodedPath = encodeURIComponent(`public/images/drinks/${docId}.png`);
         const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
-    
+
         drink.image = downloadURL; // Replace the File object with the download URL without token
       } catch (error) {
         console.error('Error uploading image:', error);
@@ -186,22 +114,14 @@ export default function AdminPage() {
       }
     }
 
-    Object.keys(drink).forEach((key) => {
-      if (key === 'docId') return;
-      if (key.startsWith('_')) {
-        // Private field
-        privateFields[key.substring(1)] = drink[key];
-      } else {
-        publicFields[key] = drink[key];
-      }
-    });
+    // Remove 'docId' from the drink object before saving
+    const drinkData = { ...drink };
+    delete drinkData.docId;
 
-    const drinkPublicRef = doc(db, 'drinks_public', docId);
-    const drinkPrivateRef = doc(db, 'drinks_private', docId);
+    const drinkRef = doc(db, 'drinks', docId);
 
     try {
-      await setDoc(drinkPublicRef, publicFields);
-      await setDoc(drinkPrivateRef, privateFields);
+      await setDoc(drinkRef, drinkData);
       alert('Drink saved successfully');
     } catch (error) {
       console.error('Error saving drink:', error);
@@ -212,9 +132,8 @@ export default function AdminPage() {
   const deleteDrink = async (drinkDocId) => {
     if (confirm('Are you sure you want to delete this drink?')) {
       try {
-        // Delete the drink document from both collections
-        await deleteDoc(doc(db, 'drinks_public', drinkDocId));
-        await deleteDoc(doc(db, 'drinks_private', drinkDocId));
+        // Delete the drink document from 'drinks' collection
+        await deleteDoc(doc(db, 'drinks', drinkDocId));
 
         // Remove the drink from the local state
         setDrinks(drinks.filter((drink) => drink.docId !== drinkDocId));
@@ -253,12 +172,10 @@ export default function AdminPage() {
       }
 
       // Check if a drink with the same docId already exists
-      const drinkPublicRef = doc(db, 'drinks_public', docId);
-      const drinkPrivateRef = doc(db, 'drinks_private', docId);
-      const drinkPublicSnap = await getDoc(drinkPublicRef);
-      const drinkPrivateSnap = await getDoc(drinkPrivateRef);
+      const drinkRef = doc(db, 'drinks', docId);
+      const drinkSnap = await getDoc(drinkRef);
 
-      if (drinkPublicSnap.exists() || drinkPrivateSnap.exists()) {
+      if (drinkSnap.exists()) {
         alert(`docID: ${docId} already exists. Please choose a different name.`);
         return;
       }
@@ -266,9 +183,12 @@ export default function AdminPage() {
       // Handle image upload if the image field is a File object
       if (newDrink.image instanceof File) {
         try {
-          const storageRef = ref(storage, `drinks_public/${docId}.png`);
+          const storageRef = ref(storage, `public/images/drinks/${docId}.png`);
           await uploadBytes(storageRef, newDrink.image);
-          const downloadURL = await getDownloadURL(storageRef);
+          // Manually construct the download URL without the token
+          const bucketName = storage.app.options.storageBucket;
+          const encodedPath = encodeURIComponent(`public/images/drinks/${docId}.png`);
+          const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
           newDrink.image = downloadURL; // Replace the File object with the download URL
         } catch (error) {
           console.error('Error uploading image:', error);
@@ -277,20 +197,12 @@ export default function AdminPage() {
         }
       }
 
-      // Split the drink data into public and private fields
-      const publicData = {};
-      const privateData = {};
-      Object.keys(newDrink).forEach((key) => {
-        if (key.startsWith('_')) {
-          privateData[key.substring(1)] = newDrink[key];
-        } else {
-          publicData[key] = newDrink[key];
-        }
-      });
+      // Remove 'docId' from the drink object before saving
+      const drinkData = { ...newDrink };
+      delete drinkData.docId;
 
       // Add the new drink to Firestore using docId
-      await setDoc(drinkPublicRef, publicData);
-      await setDoc(drinkPrivateRef, privateData);
+      await setDoc(drinkRef, drinkData);
 
       // Update local state to include the new drink
       setDrinks([...drinks, { ...newDrink, docId }]);
@@ -318,17 +230,18 @@ export default function AdminPage() {
   const savePackage = async (pkg) => {
     const { docId } = pkg;
 
-    // Separate public and private fields
-    const publicFields = {};
-    const privateFields = {};
-
     // Handle image upload if the image field is a File object
     if (pkg.image instanceof File) {
       try {
-        const storageRef = ref(storage, `packages_public/${docId}.png`);
+        const storageRef = ref(storage, `public/images/packages/${docId}.png`);
         await uploadBytes(storageRef, pkg.image);
-        const downloadURL = await getDownloadURL(storageRef);
-        pkg.image = downloadURL; // Replace the File object with the download URL
+
+        // Manually construct the download URL without the token
+        const bucketName = storage.app.options.storageBucket;
+        const encodedPath = encodeURIComponent(`public/images/packages/${docId}.png`);
+        const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
+
+        pkg.image = downloadURL; // Replace the File object with the download URL without token
       } catch (error) {
         console.error('Error uploading image:', error);
         alert('Error uploading image.');
@@ -336,22 +249,14 @@ export default function AdminPage() {
       }
     }
 
-    Object.keys(pkg).forEach((key) => {
-      if (key === 'docId') return;
-      if (key.startsWith('_')) {
-        // Private field
-        privateFields[key.substring(1)] = pkg[key];
-      } else {
-        publicFields[key] = pkg[key];
-      }
-    });
+    // Remove 'docId' from the pkg object before saving
+    const packageData = { ...pkg };
+    delete packageData.docId;
 
-    const packagePublicRef = doc(db, 'packages_public', docId);
-    const packagePrivateRef = doc(db, 'packages_private', docId);
+    const packageRef = doc(db, 'packages', docId);
 
     try {
-      await setDoc(packagePublicRef, publicFields);
-      await setDoc(packagePrivateRef, privateFields);
+      await setDoc(packageRef, packageData);
       alert('Package saved successfully');
     } catch (error) {
       console.error('Error saving package:', error);
@@ -362,9 +267,8 @@ export default function AdminPage() {
   const deletePackage = async (packageDocId) => {
     if (confirm('Are you sure you want to delete this package?')) {
       try {
-        // Delete the package document from both collections
-        await deleteDoc(doc(db, 'packages_public', packageDocId));
-        await deleteDoc(doc(db, 'packages_private', packageDocId));
+        // Delete the package document from 'packages' collection
+        await deleteDoc(doc(db, 'packages', packageDocId));
 
         // Remove the package from the local state
         setPackages(packages.filter((pkg) => pkg.docId !== packageDocId));
@@ -389,12 +293,10 @@ export default function AdminPage() {
       const docId = newPackage.slug;
 
       // Check if a package with the same docId already exists
-      const packagePublicRef = doc(db, 'packages_public', docId);
-      const packagePrivateRef = doc(db, 'packages_private', docId);
-      const packagePublicSnap = await getDoc(packagePublicRef);
-      const packagePrivateSnap = await getDoc(packagePrivateRef);
+      const packageRef = doc(db, 'packages', docId);
+      const packageSnap = await getDoc(packageRef);
 
-      if (packagePublicSnap.exists() || packagePrivateSnap.exists()) {
+      if (packageSnap.exists()) {
         alert(`docID: ${docId} already exists. Please choose a different slug.`);
         return;
       }
@@ -402,9 +304,12 @@ export default function AdminPage() {
       // Handle image upload if the image field is a File object
       if (newPackage.image instanceof File) {
         try {
-          const storageRef = ref(storage, `packages_public/${docId}.png`);
+          const storageRef = ref(storage, `public/images/packages/${docId}.png`);
           await uploadBytes(storageRef, newPackage.image);
-          const downloadURL = await getDownloadURL(storageRef);
+          // Manually construct the download URL without the token
+          const bucketName = storage.app.options.storageBucket;
+          const encodedPath = encodeURIComponent(`public/images/packages/${docId}.png`);
+          const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
           newPackage.image = downloadURL; // Replace the File object with the download URL
         } catch (error) {
           console.error('Error uploading image:', error);
@@ -413,20 +318,12 @@ export default function AdminPage() {
         }
       }
 
-      // Split the package data into public and private fields
-      const publicData = {};
-      const privateData = {};
-      Object.keys(newPackage).forEach((key) => {
-        if (key.startsWith('_')) {
-          privateData[key.substring(1)] = newPackage[key];
-        } else {
-          publicData[key] = newPackage[key];
-        }
-      });
+      // Remove 'docId' from the package object before saving
+      const packageData = { ...newPackage };
+      delete packageData.docId;
 
       // Add the new package to Firestore using docId
-      await setDoc(packagePublicRef, publicData);
-      await setDoc(packagePrivateRef, privateData);
+      await setDoc(packageRef, packageData);
 
       // Update local state to include the new package
       setPackages([...packages, { ...newPackage, docId }]);
@@ -444,10 +341,10 @@ export default function AdminPage() {
 
       // Fetch collections and assemble data
       const collectionsToExport = [
-        'drinks_public',
-        'drinks_private',
-        'packages_public',
-        'packages_private',
+        'drinks',
+        'orders',
+        'packages',
+        'sessions',
         // Add other collections if needed
       ];
 

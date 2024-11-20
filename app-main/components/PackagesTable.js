@@ -36,7 +36,8 @@ function PackagesTable({
     'category',
     'image',
     '_salePrice', // Private field
-    'collection_drinks_public'
+    'collectionsDrinks',
+    'packages',
   ];
 
   // Function to handle sorting
@@ -74,13 +75,14 @@ function PackagesTable({
   }, [packages, sortConfig]);
 
   const handleCellClick = (pkg, key) => {
-    if (key === 'collection_drinks_public') {
+    if (key === 'collectionsDrinks') {
       setCurrentPackage(pkg);
-      setSelectedDrinks(pkg.collection_drinks_public || []);
+      setSelectedDrinks(pkg.collectionsDrinks || []);
       setModalType('drinksSelection');
     } else if (key === 'packages') {
       // Handle editing nested packages array
       setCurrentPackage(pkg);
+      setPackagesData(pkg.packages || []);
       setModalType('packagesEditing');
     }
   };
@@ -94,7 +96,7 @@ function PackagesTable({
       category: '',
       image: '',
       '_salePrice': 0,
-      collection_drinks_public: [],
+      collectionsDrinks: [],
       packages: [],
     });
     setShowAddModal(true);
@@ -104,6 +106,32 @@ function PackagesTable({
     onAddPackage(newPackage);
     setShowAddModal(false);
     setNewPackage({});
+  };
+
+  // Function to update newPackage state
+  const updateNewPackageField = (key, value) => {
+    setNewPackage((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  // Function to update currentPackage state (for editing)
+  const updateCurrentPackageField = (key, value) => {
+    const updatedPackage = { ...currentPackage };
+    updatedPackage[key] = value;
+    onPackageChange(currentPackage.docId, [key], value);
+    setCurrentPackage(updatedPackage);
+  };
+
+  // Packages Editing Modal state
+  const [packagesData, setPackagesData] = useState([]);
+
+  // Open Packages Editing Modal
+  const handleOpenPackagesModal = (pkg) => {
+    setCurrentPackage(pkg);
+    setPackagesData(pkg.packages || []);
+    setModalType('packagesEditing');
   };
 
   return (
@@ -184,12 +212,12 @@ function PackagesTable({
                               />
                             )}
                           </div>
-                        ) : key === 'collection_drinks_public' || key === 'packages' ? (
+                        ) : key === 'collectionsDrinks' || key === 'packages' ? (
                           <button
                             className="text-blue-500 underline"
                             onClick={() => handleCellClick(pkg, key)}
                           >
-                            {key === 'collection_drinks_public'
+                            {key === 'collectionsDrinks'
                               ? 'Manage Drinks'
                               : 'Edit Packages'}
                           </button>
@@ -269,26 +297,26 @@ function PackagesTable({
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             const file = e.target.files[0];
-                            setNewPackage({
-                              ...newPackage,
-                              [key]: file,
-                            });
+                            updateNewPackageField(key, file);
                           }
                         }}
                       />
                     </div>
-                  ) : key === 'collection_drinks_public' || key === 'packages' ? (
+                  ) : key === 'collectionsDrinks' || key === 'packages' ? (
                     <button
                       className="text-blue-500 underline"
                       onClick={() => {
                         setCurrentPackage(newPackage);
-                        if (key === 'collection_drinks_public') {
-                          setSelectedDrinks(newPackage.collection_drinks_public || []);
-                          setModalType('drinksSelection');
+                        if (key === 'collectionsDrinks') {
+                          setSelectedDrinks(newPackage.collectionsDrinks || []);
+                          setModalType('drinksSelectionForNewPackage');
+                        } else if (key === 'packages') {
+                          setPackagesData(newPackage.packages || []);
+                          setModalType('packagesEditingForNewPackage');
                         }
                       }}
                     >
-                      {key === 'collection_drinks_public'
+                      {key === 'collectionsDrinks'
                         ? 'Manage Drinks'
                         : 'Edit Packages'}
                     </button>
@@ -298,10 +326,7 @@ function PackagesTable({
                       onChange={(e) => {
                         try {
                           const parsedValue = JSON.parse(e.target.value);
-                          setNewPackage({
-                            ...newPackage,
-                            [key]: parsedValue,
-                          });
+                          updateNewPackageField(key, parsedValue);
                         } catch (error) {
                           console.error('Invalid JSON');
                         }
@@ -315,10 +340,7 @@ function PackagesTable({
                       value={value || ''}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setNewPackage({
-                          ...newPackage,
-                          [key]: val,
-                        });
+                        updateNewPackageField(key, val);
                       }}
                       className={`border p-1 w-full ${isPrivate ? 'text-red-500' : ''}`}
                     />
@@ -345,7 +367,7 @@ function PackagesTable({
       )}
 
       {/* Drinks Selection Modal */}
-      {modalType === 'drinksSelection' && (
+      {(modalType === 'drinksSelection' || modalType === 'drinksSelectionForNewPackage') && (
         <Modal
           isOpen={true}
           onClose={() => {
@@ -359,23 +381,23 @@ function PackagesTable({
               <h3 className="text-lg font-bold mb-2">Available Drinks</h3>
               <div className="border h-64 overflow-y-scroll">
                 <ul>
-                  {drinks
-                    .filter((drink) => !selectedDrinks.includes(drink.docId))
-                    .map((drink) => (
+                  {Object.keys(drinks)
+                    .filter((drinkSlug) => !selectedDrinks.includes(drinkSlug))
+                    .map((drinkSlug) => (
                       <li
-                        key={drink.docId}
+                        key={drinkSlug}
                         onDoubleClick={() => {
-                          setSelectedDrinks([...selectedDrinks, drink.docId]);
+                          setSelectedDrinks([...selectedDrinks, drinkSlug]);
                         }}
                         className="p-2 hover:bg-gray-200 cursor-pointer"
                       >
-                        {drink.name}
+                        {drinks[drinkSlug].name}
                       </li>
                     ))}
                 </ul>
               </div>
               <button
-                onClick={() => setSelectedDrinks(drinks.map((drink) => drink.docId))}
+                onClick={() => setSelectedDrinks(Object.keys(drinks))}
                 className="mt-2 bg-blue-500 text-white px-2 py-1 rounded"
               >
                 Choose All
@@ -385,14 +407,14 @@ function PackagesTable({
               <h3 className="text-lg font-bold mb-2">Selected Drinks</h3>
               <div className="border h-64 overflow-y-scroll">
                 <ul>
-                  {selectedDrinks.map((drinkDocId) => {
-                    const drink = drinks.find((d) => d.docId === drinkDocId);
+                  {selectedDrinks.map((drinkSlug) => {
+                    const drink = drinks[drinkSlug];
                     return (
                       <li
-                        key={drinkDocId}
+                        key={drinkSlug}
                         onDoubleClick={() => {
                           setSelectedDrinks(
-                            selectedDrinks.filter((id) => id !== drinkDocId)
+                            selectedDrinks.filter((slug) => slug !== drinkSlug)
                           );
                         }}
                         className="p-2 hover:bg-gray-200 cursor-pointer"
@@ -414,7 +436,11 @@ function PackagesTable({
           <div className="flex justify-end mt-4">
             <button
               onClick={() => {
-                onPackageChange(currentPackage.docId || null, ['collection_drinks_public'], selectedDrinks);
+                if (modalType === 'drinksSelection') {
+                  onPackageChange(currentPackage.docId || null, ['collectionsDrinks'], selectedDrinks);
+                } else {
+                  updateNewPackageField('collectionsDrinks', selectedDrinks);
+                }
                 setModalType(null);
                 setSelectedDrinks([]);
               }}
@@ -426,6 +452,104 @@ function PackagesTable({
               onClick={() => {
                 setModalType(null);
                 setSelectedDrinks([]);
+              }}
+              className="bg-gray-300 px-4 py-2 rounded"
+            >
+              Cancel
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Packages Editing Modal */}
+      {(modalType === 'packagesEditing' || modalType === 'packagesEditingForNewPackage') && (
+        <Modal
+          isOpen={true}
+          onClose={() => {
+            setModalType(null);
+            setPackagesData([]);
+          }}
+          title="Edit Packages"
+        >
+          <div className="space-y-4">
+            {packagesData.map((pkgItem, index) => (
+              <div key={index} className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Size"
+                  value={pkgItem.size}
+                  onChange={(e) => {
+                    const updatedPackages = [...packagesData];
+                    updatedPackages[index].size = parseInt(e.target.value);
+                    setPackagesData(updatedPackages);
+                  }}
+                  className="border p-1 w-full"
+                />
+                <input
+                  type="number"
+                  placeholder="Round Up Or Down"
+                  value={pkgItem.roundUpOrDown}
+                  onChange={(e) => {
+                    const updatedPackages = [...packagesData];
+                    updatedPackages[index].roundUpOrDown = parseInt(e.target.value);
+                    setPackagesData(updatedPackages);
+                  }}
+                  className="border p-1 w-full"
+                />
+                <input
+                  type="number"
+                  placeholder="Discount"
+                  value={pkgItem.discount}
+                  onChange={(e) => {
+                    const updatedPackages = [...packagesData];
+                    updatedPackages[index].discount = parseFloat(e.target.value);
+                    setPackagesData(updatedPackages);
+                  }}
+                  className="border p-1 w-full"
+                />
+                <button
+                  onClick={() => {
+                    const updatedPackages = [...packagesData];
+                    updatedPackages.splice(index, 1);
+                    setPackagesData(updatedPackages);
+                  }}
+                  className="bg-red-500 text-white px-2 py-1 rounded"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => {
+                setPackagesData([
+                  ...packagesData,
+                  { size: 0, roundUpOrDown: 0, discount: 1 },
+                ]);
+              }}
+              className="bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Add Package
+            </button>
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => {
+                if (modalType === 'packagesEditing') {
+                  onPackageChange(currentPackage.docId || null, ['packages'], packagesData);
+                } else {
+                  updateNewPackageField('packages', packagesData);
+                }
+                setModalType(null);
+                setPackagesData([]);
+              }}
+              className="bg-green-500 text-white px-4 py-2 rounded mr-2"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setModalType(null);
+                setPackagesData([]);
               }}
               className="bg-gray-300 px-4 py-2 rounded"
             >
