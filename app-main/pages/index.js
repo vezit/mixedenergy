@@ -78,7 +78,7 @@ export default function Home() {
                 </div>
                 <div className="p-4 flex-grow">
                   <h2 className="text-xl font-bold">{product.title}</h2>
-                  <p className="text-gray-700">{product.description}</p>
+                  {/* <p className="text-gray-700">{product.description}</p> */}
                 </div>
               </div>
             </a>
@@ -108,7 +108,7 @@ export default function Home() {
                 </div>
                 <div className="p-4 flex-grow">
                   <h2 className="text-xl font-bold">{product.title}</h2>
-                  <p className="text-gray-700">{product.description}</p>
+                  
                 </div>
               </div>
             </a>
