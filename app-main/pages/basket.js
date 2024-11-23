@@ -424,12 +424,12 @@ export default function Basket() {
   // Modify this function to match the working code
   const handleShowShippingOptions = () => {
     const newErrors = {};
-    if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet';
-    if (!customerDetails.mobileNumber) newErrors.mobileNumber = 'Mobilnummer er påkrævet';
-    if (!customerDetails.email) newErrors.email = 'E-mail er påkrævet';
-    if (!customerDetails.address) newErrors.address = 'Adresse er påkrævet';
-    if (!customerDetails.postalCode) newErrors.postalCode = 'Postnummer er påkrævet';
-    if (!customerDetails.city) newErrors.city = 'By er påkrævet';
+    if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet'; // string
+    if (!customerDetails.mobileNumber) newErrors.mobileNumber = 'Mobilnummer er påkrævet';  // string
+    if (!customerDetails.email) newErrors.email = 'E-mail er påkrævet'; // email
+    if (!customerDetails.address) newErrors.address = 'Adresse er påkrævet'; // string
+    if (!customerDetails.postalCode) newErrors.postalCode = 'Postnummer er påkrævet'; // int
+    if (!customerDetails.city) newErrors.city = 'By er påkrævet'; // string
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
