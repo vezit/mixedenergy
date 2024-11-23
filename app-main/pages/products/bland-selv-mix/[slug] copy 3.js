@@ -5,7 +5,6 @@ import axios from 'axios';
 import Loading from '/components/Loading';
 import LoadingConfettiButton from '/components/LoadingConfettiButton'; // Import LoadingConfettiButton
 import ConfettiAnimation from '/components/ConfettiAnimation';
-import Image from 'next/image';
 
 export default function BlandSelvMixProduct() {
   const router = useRouter();
@@ -223,94 +222,90 @@ export default function BlandSelvMixProduct() {
       <h1 className="text-4xl font-bold text-center mb-8">{product.title}</h1>
 
       <div className="flex flex-col md:flex-row items-center">
-        {/* Left Column: Image and Description */}
-        <div className="md:w-1/2">
-          <img src={product.image} alt={product.title} className="w-full h-auto" />
+  {/* Left Column: Image and Description */}
+  <div className="md:w-1/2">
+    <img src={product.image} alt={product.title} className="w-full h-auto" />
 
-          {/* Description */}
-          <div className="mt-6">
-            <h2 className="text-2xl font-bold mb-2">Description</h2>
-            <p className="text-lg text-gray-700">{product.description}</p>
+    {/* Description */}
+    <div className="mt-6">
+      <h2 className="text-2xl font-bold mb-2">Description</h2>
+      <p className="text-lg text-gray-700">{product.description}</p>
+    </div>
+  </div>
+
+  {/* Right Column: Selection and Actions */}
+  <div className="md:w-1/2 md:pl-8">
+    {/* Package Size Selection */}
+    <div className="mt-4">
+      <p>Select Package Size:</p>
+      {product.packages ? (
+        product.packages.map((pkg) => (
+          <label key={pkg.size} className="mr-4">
+            <input
+              type="radio"
+              name="size"
+              value={pkg.size}
+              checked={selectedSize === pkg.size}
+              onChange={() => setSelectedSize(pkg.size)}
+            />
+            {pkg.size} pcs
+          </label>
+        ))
+      ) : (
+        <p>No package sizes available.</p>
+      )}
+    </div>
+
+    {/* Scrollable Drinks Selection */}
+    <div className="mt-4">
+      <p>Select drinks (exactly {maxProducts}):</p>
+      {Object.keys(drinksData).map((drinkSlug, index) => (
+        <div key={index} className="flex items-center justify-between mt-2">
+          <a href={`/drinks/${drinkSlug}`} className="flex items-center">
+            <img
+              src={drinksData[drinkSlug]?.image}
+              alt={drinksData[drinkSlug]?.name || drinkSlug}
+              className="w-12 h-12 object-cover mr-4"
+            />
+            <span>{drinksData[drinkSlug]?.name || drinkSlug}</span>
+          </a>
+          <div className="flex items-center">
+            <button
+              onClick={() => handleProductQuantityChange(drinkSlug, 'decrement')}
+              className="px-2 py-1 bg-gray-200 rounded-l"
+              disabled={!selectedProducts[drinkSlug]}
+            >
+              -
+            </button>
+            <span className="px-4 py-2 bg-gray-100">
+              {selectedProducts[drinkSlug] || 0}
+            </span>
+            <button
+              onClick={() => handleProductQuantityChange(drinkSlug, 'increment')}
+              className="px-2 py-1 bg-gray-200 rounded-r"
+              disabled={getTotalSelected() >= maxProducts}
+            >
+              +
+            </button>
           </div>
         </div>
+      ))}
+      <p className="mt-2 text-red-600">
+        You have selected {getTotalSelected()} out of {maxProducts} drinks.
+      </p>
+    </div>
 
-        {/* Right Column: Selection and Actions */}
-        <div className="md:w-1/2 md:pl-8">
-          {/* Package Size Selection */}
-          <div className="mt-4">
-            <p>Select Package Size:</p>
-            {product.packages ? (
-              product.packages.map((pkg) => (
-                <label key={pkg.size} className="mr-4">
-                  <input
-                    type="radio"
-                    name="size"
-                    value={pkg.size}
-                    checked={selectedSize === pkg.size}
-                    onChange={() => setSelectedSize(pkg.size)}
-                  />
-                  {pkg.size} pcs
-                </label>
-              ))
-            ) : (
-              <p>No package sizes available.</p>
-            )}
-          </div>
-
-          {/* Scrollable Drinks Selection */}
-          <div className="mt-4">
-            <p>Select drinks (exactly {maxProducts}):</p>
-            {Object.keys(drinksData).map((drinkSlug, index) => (
-              <div key={index} className="flex items-center justify-between mt-2">
-                <a href={`/drinks/${drinkSlug}`} className="flex items-center">
-                <div className="w-12 aspect-[463/775] relative mr-4">
-                <Image
-                    src={drinksData[drinkSlug]?.image}
-                    alt={drinksData[drinkSlug]?.name || drinkSlug}
-                    layout="fill"
-                    className="w-12 h-12 object-cover mr-4"
-                  />
-                </div>
-
-                  <span>{drinksData[drinkSlug]?.name || drinkSlug}</span>
-                </a>
-                <div className="flex items-center">
-                  <button
-                    onClick={() => handleProductQuantityChange(drinkSlug, 'decrement')}
-                    className="px-2 py-1 bg-gray-200 rounded-l"
-                    disabled={!selectedProducts[drinkSlug]}
-                  >
-                    -
-                  </button>
-                  <span className="px-4 py-2 bg-gray-100">
-                    {selectedProducts[drinkSlug] || 0}
-                  </span>
-                  <button
-                    onClick={() => handleProductQuantityChange(drinkSlug, 'increment')}
-                    className="px-2 py-1 bg-gray-200 rounded-r"
-                    disabled={getTotalSelected() >= maxProducts}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))}
-            <p className="mt-2 text-red-600">
-              You have selected {getTotalSelected()} out of {maxProducts} drinks.
-            </p>
-          </div>
-
-          {/* Add to Basket Button */}
-          <LoadingConfettiButton
-            ref={addToCartButtonRef}
-            onClick={addToBasket}
-            loading={isAddingToCart}
-            className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full"
-          >
-            Add Mixed Package to Cart
-          </LoadingConfettiButton>
-        </div>
-      </div>
+    {/* Add to Basket Button */}
+    <LoadingConfettiButton
+      ref={addToCartButtonRef}
+      onClick={addToBasket}
+      loading={isAddingToCart}
+      className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full"
+    >
+      Add Mixed Package to Cart
+    </LoadingConfettiButton>
+  </div>
+</div>
 
       {/* Render Confetti */}
       {showConfetti && (
