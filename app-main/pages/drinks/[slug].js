@@ -1,3 +1,4 @@
+// pages/drinks/[slug].js
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';

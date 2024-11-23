@@ -1,3 +1,5 @@
+// pages/products/bland-selv-mix/[slug].js
+
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { useBasket } from '../../../components/BasketContext';
@@ -269,7 +271,6 @@ export default function BlandSelvMixProduct() {
                     alt={drinksData[drinkSlug]?.name || drinkSlug}
                     layout="fill"
                     className="w-12 h-12 object-cover mr-4"
-                    unoptimized
                   />
                 </div>
 

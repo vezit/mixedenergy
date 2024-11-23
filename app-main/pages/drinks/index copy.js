@@ -1,8 +1,10 @@
+// pages/drinks/index.js
+
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Loading from '/components/Loading';
-import Image from 'next/image'; // Import Image
+import Image from 'next/image';
 
 export default function DrinksList() {
   const [drinks, setDrinks] = useState([]);
@@ -38,23 +40,10 @@ export default function DrinksList() {
         {drinks.map((drink) => {
           const slug = drink.slug;
           return (
-            <li key={drink.slug} className="mb-4 flex items-center">
+            <li key={drink.slug} className="mb-4">
               <Link href={`/drinks/${slug}`}>
-                <a className="flex items-center">
-                  {/* Image Container */}
-                  <div className="w-12 aspect-[463/775] relative mr-4">
-                    <Image
-                      src={drink.image}
-                      alt={drink.name}
-                      layout="fill"
-                      objectFit="cover"
-                      className="rounded"
-                    />
-                  </div>
-                  {/* Drink Name and Size */}
-                  <span className="text-2xl text-blue-500 hover:underline">
-                    {drink.name} - {drink.size}
-                  </span>
+                <a className="text-2xl text-blue-500 hover:underline">
+                  {drink.name} - {drink.size}
                 </a>
               </Link>
             </li>
