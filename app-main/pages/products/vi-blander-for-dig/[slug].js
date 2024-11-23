@@ -371,6 +371,7 @@ export default function ViBlanderForDigProduct() {
                           alt={drinksData[drinkSlug]?.name || drinkSlug}
                           layout="fill"
                           className="object-cover rounded-lg"
+                          unoptimized
                         />
                       </div>
                       <span>{drinksData[drinkSlug]?.name || drinkSlug} (x{qty})</span>

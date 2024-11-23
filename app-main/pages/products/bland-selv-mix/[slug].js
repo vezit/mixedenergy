@@ -269,6 +269,7 @@ export default function BlandSelvMixProduct() {
                     alt={drinksData[drinkSlug]?.name || drinkSlug}
                     layout="fill"
                     className="w-12 h-12 object-cover mr-4"
+                    unoptimized
                   />
                 </div>
 

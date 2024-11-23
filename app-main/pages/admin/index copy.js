@@ -102,7 +102,11 @@ export default function AdminPage() {
         await uploadBytes(storageRef, drink.image);
 
         // Manually construct the download URL without the token
-        const downloadURL = await getDownloadURL(storageRef);
+        const bucketName = storage.app.options.storageBucket;
+        const encodedPath = encodeURIComponent(`public/images/drinks/${docId}.png`);
+        const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
+
+        // example inside firebase storage: https://firebasestorage.googleapis.com/v0/b/mixedenergy-dk.appspot.com/o/public%2Fimages%2Fdrinks%2Fmonster-energy-the-doctor.png?alt=media&token=dad88b23-d20a-4e1d-b5f7-4dd5c7b389d8
 
         drink.image = downloadURL; // Replace the File object with the download URL without token
       } catch (error) {
