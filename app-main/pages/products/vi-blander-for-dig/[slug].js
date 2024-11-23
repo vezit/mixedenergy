@@ -1,3 +1,4 @@
+// /pages/products/vi-blander-for-dig/[slug].js,
 // Import statements
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
@@ -7,6 +8,9 @@ import Loading from '/components/Loading';
 import LoadingButton from '/components/LoadingButton'; // Import LoadingButton
 import LoadingConfettiButton from '/components/LoadingConfettiButton'; // Keep LoadingConfettiButton
 import ConfettiAnimation from '/components/ConfettiAnimation';
+import Link from 'next/link';
+import Image from 'next/image';
+
 
 // Component definition
 export default function ViBlanderForDigProduct() {
@@ -158,11 +162,11 @@ export default function ViBlanderForDigProduct() {
         isMysteryBox: false,
         sugarPreference,
       });
-  
+
       if (response.data.success) {
         const newSelectionId = response.data.selectionId;
         setSelectionId(newSelectionId);
-  
+
         // Update the selections in state and localStorage
         const selectionKey = getSelectionKey();
         const newSelections = {
@@ -170,13 +174,13 @@ export default function ViBlanderForDigProduct() {
           [selectionKey]: { selectedProducts: randomSelection, selectionId: newSelectionId },
         };
         setSelections(newSelections);
-  
+
         // Save to localStorage
         const storedData = localStorage.getItem('slugViBlander');
         const allSelections = storedData ? JSON.parse(storedData) : {};
         allSelections[slug] = newSelections;
         localStorage.setItem('slugViBlander', JSON.stringify(allSelections));
-  
+
         return newSelectionId;
       } else {
         console.error('Failed to create temporary selection:', response.data);
@@ -189,7 +193,7 @@ export default function ViBlanderForDigProduct() {
       return null;
     }
   };
-  
+
 
 
   const fetchPrice = async (selection) => {
@@ -224,14 +228,14 @@ export default function ViBlanderForDigProduct() {
       alert('Please generate a package first.');
       return;
     }
-  
+
     setIsAddingToCart(true);
     try {
       const mixedProduct = {
         selectionId,
         quantity: parseInt(quantity),
       };
-  
+
       await addItemToBasket(mixedProduct);
       setShowConfetti(true); // Trigger confetti
     } catch (error) {
@@ -266,7 +270,7 @@ export default function ViBlanderForDigProduct() {
       setIsAddingToCart(false);
     }
   };
-  
+
 
   if (loading) {
     return <Loading />;
@@ -353,14 +357,24 @@ export default function ViBlanderForDigProduct() {
             </div>
 
             {/* Display Random Package */}
-            <div className="mt-4 h-[30rem] pr-4 border border-gray-300 rounded overflow-y-auto">
+            <div className="mt-4 pr-4 border border-gray-300 rounded">
               <h2 className="text-xl font-bold text-center mt-4">
                 {`Your Random ${product.title}`}
               </h2>
               <ul className="list-disc list-inside mt-4 px-4">
                 {Object.entries(randomSelection).map(([drinkSlug, qty], index) => (
-                  <li key={index}>
-                    {drinksData[drinkSlug]?.name || drinkSlug} (x{qty})
+                  <li key={index} className="flex items-center mb-2">
+                    <a href={`/drinks/${drinkSlug}`} className="flex items-center">
+                      <div className="w-12 aspect-[463/775] relative mr-4">
+                        <Image
+                          src={drinksData[drinkSlug]?.image}
+                          alt={drinksData[drinkSlug]?.name || drinkSlug}
+                          layout="fill"
+                          className="object-cover rounded-lg"
+                        />
+                      </div>
+                      <span>{drinksData[drinkSlug]?.name || drinkSlug} (x{qty})</span>
+                    </a>
                   </li>
                 ))}
               </ul>
