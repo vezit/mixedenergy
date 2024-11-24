@@ -644,7 +644,6 @@ export default function Basket() {
               name="email"
               id="email"
               value={customerDetails.email || ''}
-              onBlur={() => handleFieldBlur('email')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -660,7 +659,7 @@ export default function Basket() {
             >
               E-mail *
             </label>
-            {touchedFields.email && errors.email ? (
+            {errors.email ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
             ) : customerDetails.email ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
@@ -674,7 +673,6 @@ export default function Basket() {
               name="address"
               id="address"
               value={customerDetails.address || ''}
-              onblur={() => handleFieldBlur('address')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -690,7 +688,7 @@ export default function Basket() {
             >
               Adresse *
             </label>
-            {touchedFields.address && errors.address ? (
+            {errors.address ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
             ) : customerDetails.address ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
@@ -704,7 +702,6 @@ export default function Basket() {
               name="postalCode"
               id="postalCode"
               value={customerDetails.postalCode || ''}
-              onBlur={() => handleFieldBlur('postalCode')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -720,7 +717,7 @@ export default function Basket() {
             >
               Postnummer *
             </label>
-            {touchedFields.postalCode && errors.postalCode ? (
+            {errors.postalCode ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
             ) : customerDetails.postalCode ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
@@ -734,7 +731,6 @@ export default function Basket() {
               name="city"
               id="city"
               value={customerDetails.city || ''}
-              onBlur={() => handleFieldBlur('city')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -750,7 +746,7 @@ export default function Basket() {
             >
               By *
             </label>
-            {touchedFields.city && errors.city ? (
+            {errors.city ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
             ) : customerDetails.city ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />

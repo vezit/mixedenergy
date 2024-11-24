@@ -49,8 +49,6 @@ export default function Basket() {
   // State for drinks data
   const [drinksData, setDrinksData] = useState({});
 
-  const [touchedFields, setTouchedFields] = useState({});
-
   // Loading states for buttons
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -74,10 +72,6 @@ export default function Basket() {
         func(...args);
       }, delay);
     };
-  };
-
-  const handleFieldBlur = (fieldName) => {
-    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
   };
 
   // Function to update customer details in Firebase
@@ -576,227 +570,241 @@ export default function Basket() {
       <>
         <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
         <form>
-          {/* Full Name */}
-          <div className="mb-5 relative">
-            <input
-              type="text"
-              name="fullName"
-              id="fullName"
-              value={customerDetails.fullName || ''}
-              onBlur={() => handleFieldBlur('fullName')}
-              onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
-            />
-            <label
-              htmlFor="fullName"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-              ${customerDetails.fullName
-                        ? 'top-0 text-xs'
-                        : 'top-2 text-base'
-                      }
-            `}
-            >
-              Navn *
-            </label>
-            {/* SVG icon */}
-            {touchedFields.fullName && errors.fullName ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.fullName ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
-          </div>
-
-          {/* Mobile Number */}
-          <div className="mb-5 relative">
-            <input
-              type="text"
-              name="mobileNumber"
-              id="mobileNumber"
-              value={customerDetails.mobileNumber || ''}
-              onBlur={() => handleFieldBlur('mobileNumber')}
-              onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
-            />
-            <label
-              htmlFor="mobileNumber"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.mobileNumber
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
+  {/* Full Name */}
+  <div className="mb-4 relative">
+    <input
+      type="text"
+      name="fullName"
+      id="fullName"
+      value={customerDetails.fullName || ''}
+      onChange={handleInputChange}
+      className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold ${
+        errors.fullName ? 'border-red-500' : ''
+      } focus:outline-none`}
+      placeholder=" "
+    />
+    <label
+      htmlFor="fullName"
+      className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
+        ${
+          customerDetails.fullName
+            ? 'top-0 text-xs'
+            : 'top-2 text-base'
+        }
       `}
-            >
-              Mobilnummer *
-            </label>
-            {touchedFields.mobileNumber && errors.mobileNumber ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.mobileNumber ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
-          </div>
+    >
+      Navn *
+    </label>
+    {/* SVG icon */}
+    {errors.fullName ? (
+      <ExclamationCircleIcon className="absolute right-3 top-4 h-6 w-6 text-red-600" />
+    ) : customerDetails.fullName ? (
+      <CheckCircleIcon className="absolute right-3 top-4 h-6 w-6 text-green-500" />
+    ) : null}
+  </div>
 
-          {/* Email */}
-          <div className="mb-5 relative">
-            <input
-              type="email"
-              name="email"
-              id="email"
-              value={customerDetails.email || ''}
-              onBlur={() => handleFieldBlur('email')}
-              onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
-            />
-            <label
-              htmlFor="email"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.email
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
+  {/* Mobile Number */}
+  <div className="mb-4 relative">
+    <input
+      type="text"
+      name="mobileNumber"
+      id="mobileNumber"
+      value={customerDetails.mobileNumber || ''}
+      onChange={handleInputChange}
+      className={`peer w-full px-3 pt-6 pb-2 border rounded font-semibold ${
+        errors.mobileNumber ? 'border-red-500' : ''
+      } focus:outline-none`}
+      placeholder=" "
+    />
+    <label
+      htmlFor="mobileNumber"
+      className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
+        ${
+          customerDetails.mobileNumber
+            ? 'top-2 text-xs'
+            : 'top-6 text-base'
+        }
       `}
-            >
-              E-mail *
-            </label>
-            {touchedFields.email && errors.email ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.email ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
-          </div>
+    >
+      Mobilnummer *
+    </label>
+    {errors.mobileNumber ? (
+      <ExclamationCircleIcon className="absolute right-3 top-4 h-6 w-6 text-red-600" />
+    ) : customerDetails.mobileNumber ? (
+      <CheckCircleIcon className="absolute right-3 top-4 h-6 w-6 text-green-500" />
+    ) : null}
+  </div>
 
-          {/* Address */}
-          <div className="mb-5 relative">
-            <input
-              type="text"
-              name="address"
-              id="address"
-              value={customerDetails.address || ''}
-              onblur={() => handleFieldBlur('address')}
-              onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
-            />
-            <label
-              htmlFor="address"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.address
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
+  {/* Email */}
+  <div className="mb-4 relative">
+    <input
+      type="email"
+      name="email"
+      id="email"
+      value={customerDetails.email || ''}
+      onChange={handleInputChange}
+      className={`peer w-full px-3 pt-6 pb-2 border rounded font-semibold ${
+        errors.email ? 'border-red-500' : ''
+      } focus:outline-none`}
+      placeholder=" "
+    />
+    <label
+      htmlFor="email"
+      className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
+        ${
+          customerDetails.email
+            ? 'top-2 text-xs'
+            : 'top-6 text-base'
+        }
       `}
-            >
-              Adresse *
-            </label>
-            {touchedFields.address && errors.address ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.address ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
-          </div>
+    >
+      E-mail *
+    </label>
+    {errors.email ? (
+      <ExclamationCircleIcon className="absolute right-3 top-4 h-6 w-6 text-red-600" />
+    ) : customerDetails.email ? (
+      <CheckCircleIcon className="absolute right-3 top-4 h-6 w-6 text-green-500" />
+    ) : null}
+  </div>
 
-          {/* Postal Code */}
-          <div className="mb-5 relative">
-            <input
-              type="text"
-              name="postalCode"
-              id="postalCode"
-              value={customerDetails.postalCode || ''}
-              onBlur={() => handleFieldBlur('postalCode')}
-              onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
-            />
-            <label
-              htmlFor="postalCode"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.postalCode
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
+  {/* Address */}
+  <div className="mb-4 relative">
+    <input
+      type="text"
+      name="address"
+      id="address"
+      value={customerDetails.address || ''}
+      onChange={handleInputChange}
+      className={`peer w-full px-3 pt-6 pb-2 border rounded font-semibold ${
+        errors.address ? 'border-red-500' : ''
+      } focus:outline-none`}
+      placeholder=" "
+    />
+    <label
+      htmlFor="address"
+      className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
+        ${
+          customerDetails.address
+            ? 'top-2 text-xs'
+            : 'top-6 text-base'
+        }
       `}
-            >
-              Postnummer *
-            </label>
-            {touchedFields.postalCode && errors.postalCode ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.postalCode ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
-          </div>
+    >
+      Adresse *
+    </label>
+    {errors.address ? (
+      <ExclamationCircleIcon className="absolute right-3 top-4 h-6 w-6 text-red-600" />
+    ) : customerDetails.address ? (
+      <CheckCircleIcon className="absolute right-3 top-4 h-6 w-6 text-green-500" />
+    ) : null}
+  </div>
 
-          {/* City */}
-          <div className="mb-5 relative">
-            <input
-              type="text"
-              name="city"
-              id="city"
-              value={customerDetails.city || ''}
-              onBlur={() => handleFieldBlur('city')}
-              onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
-            />
-            <label
-              htmlFor="city"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.city
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
+  {/* Postal Code */}
+  <div className="mb-4 relative">
+    <input
+      type="text"
+      name="postalCode"
+      id="postalCode"
+      value={customerDetails.postalCode || ''}
+      onChange={handleInputChange}
+      className={`peer w-full px-3 pt-6 pb-2 border rounded font-semibold ${
+        errors.postalCode ? 'border-red-500' : ''
+      } focus:outline-none`}
+      placeholder=" "
+    />
+    <label
+      htmlFor="postalCode"
+      className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
+        ${
+          customerDetails.postalCode
+            ? 'top-2 text-xs'
+            : 'top-6 text-base'
+        }
       `}
-            >
-              By *
-            </label>
-            {touchedFields.city && errors.city ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.city ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
-          </div>
+    >
+      Postnummer *
+    </label>
+    {errors.postalCode ? (
+      <ExclamationCircleIcon className="absolute right-3 top-4 h-6 w-6 text-red-600" />
+    ) : customerDetails.postalCode ? (
+      <CheckCircleIcon className="absolute right-3 top-4 h-6 w-6 text-green-500" />
+    ) : null}
+  </div>
 
-          {/* Country */}
-          <div className="mb-5 relative">
-            <input
-              type="text"
-              name="country"
-              id="country"
-              value='Danmark'
-              onChange={handleInputChange}
-              className="w-full px-3 pt-2 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
-              disabled
-            />
-            <label
-              htmlFor="country"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.country
-                  ? 'top-0 text-xs'
-                  : 'top-0 text-xs'
-                }
+  {/* City */}
+  <div className="mb-4 relative">
+    <input
+      type="text"
+      name="city"
+      id="city"
+      value={customerDetails.city || ''}
+      onChange={handleInputChange}
+      className={`peer w-full px-3 pt-6 pb-2 border rounded font-semibold ${
+        errors.city ? 'border-red-500' : ''
+      } focus:outline-none`}
+      placeholder=" "
+    />
+    <label
+      htmlFor="city"
+      className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
+        ${
+          customerDetails.city
+            ? 'top-2 text-xs'
+            : 'top-6 text-base'
+        }
       `}
-            >
-              Land
-            </label>
-          </div>
+    >
+      By *
+    </label>
+    {errors.city ? (
+      <ExclamationCircleIcon className="absolute right-3 top-4 h-6 w-6 text-red-600" />
+    ) : customerDetails.city ? (
+      <CheckCircleIcon className="absolute right-3 top-4 h-6 w-6 text-green-500" />
+    ) : null}
+  </div>
 
-          {/* Buttons */}
-          <div className="mt-4 flex justify-between">
-            <LoadingButton
-              onClick={() => setCurrentStep(1)}
-              className="bg-gray-500 text-white px-6 py-2 rounded-full shadow hover:bg-gray-600 transition"
-            >
-              Tilbage
-            </LoadingButton>
-            <LoadingButton
-              onClick={handleShowShippingOptions}
-              className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
-            >
-              Næste: Vælg levering
-            </LoadingButton>
-          </div>
-        </form>
+  {/* Country */}
+  <div className="mb-4 relative">
+    <input
+      type="text"
+      name="country"
+      id="country"
+      value={customerDetails.country || 'Danmark'}
+      onChange={handleInputChange}
+      className="w-full px-3 pt-6 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
+      disabled
+      placeholder=" "
+    />
+    <label
+      htmlFor="country"
+      className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
+        ${
+          customerDetails.country
+            ? 'top-2 text-xs'
+            : 'top-6 text-base'
+        }
+      `}
+    >
+      Land
+    </label>
+  </div>
+
+  {/* Buttons */}
+  <div className="mt-4 flex justify-between">
+    <LoadingButton
+      onClick={() => setCurrentStep(1)}
+      className="bg-gray-500 text-white px-6 py-2 rounded-full shadow hover:bg-gray-600 transition"
+    >
+      Tilbage
+    </LoadingButton>
+    <LoadingButton
+      onClick={handleShowShippingOptions}
+      className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+    >
+      Næste: Vælg levering
+    </LoadingButton>
+  </div>
+</form>
 
 
       </>

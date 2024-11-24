@@ -11,10 +11,6 @@ import Loading from '../components/Loading';
 import LoadingButton from '../components/LoadingButton';
 import { getCookie } from '../lib/cookies';
 import ExplosionEffect from '../components/ExplosionEffect';
-import { useCallback } from 'react';
-import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
-
-
 
 export default function Basket() {
   const {
@@ -49,8 +45,6 @@ export default function Basket() {
   // State for drinks data
   const [drinksData, setDrinksData] = useState({});
 
-  const [touchedFields, setTouchedFields] = useState({});
-
   // Loading states for buttons
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -63,7 +57,6 @@ export default function Basket() {
   const [basketSummary, setBasketSummary] = useState(null);
 
   // Debounce function to prevent excessive API calls
-  // Debounce function
   const debounce = (func, delay) => {
     let timeoutId;
     return function (...args) {
@@ -74,56 +67,6 @@ export default function Basket() {
         func(...args);
       }, delay);
     };
-  };
-
-  const handleFieldBlur = (fieldName) => {
-    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
-  };
-
-  // Function to update customer details in Firebase
-  const updateCustomerDetailsInFirebase = async (updatedDetails) => {
-    try {
-      const response = await fetch('/api/firebase/4-updateBasket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'updateCustomerDetails',
-          customerDetails: updatedDetails,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle errors returned from the server
-        setErrors(data.errors || {});
-        throw new Error(data.error || 'Error updating customer details');
-      } else {
-        // Clear errors if any
-        setErrors({});
-      }
-    } catch (error) {
-      console.error('Error updating customer details in Firebase:', error);
-    }
-  };
-
-  // Now you can use updateCustomerDetailsInFirebase
-  const debouncedUpdateCustomerDetailsInFirebase = useCallback(
-    debounce(updateCustomerDetailsInFirebase, 500),
-    []
-  );
-
-  // Rest of your code...
-
-
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const updatedDetails = { ...customerDetails, [name]: value };
-    updateCustomerDetails(updatedDetails); // Updates the context
-
-    // Save to Firebase with debouncing
-    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
   };
 
   // Function to split address into streetName and streetNumber
@@ -148,7 +91,7 @@ export default function Basket() {
     try {
       let deliveryAddress = {};
       let providerDetails = {};
-
+  
       if (option === 'pickupPoint') {
         if (selectedPoint) {
           const selectedPickupPoint = pickupPoints.find(
@@ -196,7 +139,7 @@ export default function Basket() {
           };
         }
       }
-
+  
       // Send delivery details to the backend regardless of completeness
       await fetch('/api/firebase/4-updateBasket', {
         method: 'POST',
@@ -231,7 +174,48 @@ export default function Basket() {
     updateDeliveryDetailsInBackend(option);
   };
 
+  // Function to update customer details in Firebase
+  const updateCustomerDetailsInFirebase = async (updatedDetails) => {
+    try {
+      await fetch('/api/firebase/4-updateBasket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCustomerDetails',
+          customerDetails: updatedDetails,
+        }),
+      });
+    } catch (error) {
+      console.error('Error updating customer details in Firebase:', error);
+    }
+  };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const updatedDetails = { ...customerDetails, [name]: value };
+    updateCustomerDetails(updatedDetails); // This updates the context
+
+    // Save to Firebase
+    updateCustomerDetailsInFirebase(updatedDetails);
+
+    // Additional logic for postal code
+    if (name === 'postalCode' && value.length === 4 && /^\d{4}$/.test(value)) {
+      fetch(`https://api.dataforsyningen.dk/postnumre/${value}`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          updateCustomerDetails({ ...updatedDetails, city: data.navn || '' });
+          updateCustomerDetailsInFirebase({ ...updatedDetails, city: data.navn || '' });
+        })
+        .catch((error) => {
+          console.error('Error fetching city name:', error);
+          updateCustomerDetails({ ...updatedDetails, city: '' });
+          updateCustomerDetailsInFirebase({ ...updatedDetails, city: '' });
+        });
+    }
+  };
 
   const removeItem = (itemIndex) => {
     removeItemFromBasket(itemIndex);
@@ -577,208 +561,94 @@ export default function Basket() {
         <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
         <form>
           {/* Full Name */}
-          <div className="mb-5 relative">
+          <div className="mb-4">
+            <label className="block text-gray-700">Fulde navn</label>
             <input
               type="text"
               name="fullName"
-              id="fullName"
               value={customerDetails.fullName || ''}
-              onBlur={() => handleFieldBlur('fullName')}
               onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
+              className="w-full px-3 py-2 border rounded"
             />
-            <label
-              htmlFor="fullName"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-              ${customerDetails.fullName
-                        ? 'top-0 text-xs'
-                        : 'top-2 text-base'
-                      }
-            `}
-            >
-              Navn *
-            </label>
-            {/* SVG icon */}
-            {touchedFields.fullName && errors.fullName ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.fullName ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
+            {errors.fullName && <p className="text-red-600">{errors.fullName}</p>}
           </div>
 
           {/* Mobile Number */}
-          <div className="mb-5 relative">
+          <div className="mb-4">
+            <label className="block text-gray-700">Mobilnummer</label>
             <input
               type="text"
               name="mobileNumber"
-              id="mobileNumber"
               value={customerDetails.mobileNumber || ''}
-              onBlur={() => handleFieldBlur('mobileNumber')}
               onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
+              className="w-full px-3 py-2 border rounded"
             />
-            <label
-              htmlFor="mobileNumber"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.mobileNumber
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
-      `}
-            >
-              Mobilnummer *
-            </label>
-            {touchedFields.mobileNumber && errors.mobileNumber ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.mobileNumber ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
+            {errors.mobileNumber && <p className="text-red-600">{errors.mobileNumber}</p>}
           </div>
 
           {/* Email */}
-          <div className="mb-5 relative">
+          <div className="mb-4">
+            <label className="block text-gray-700">E-mail</label>
             <input
               type="email"
               name="email"
-              id="email"
               value={customerDetails.email || ''}
-              onBlur={() => handleFieldBlur('email')}
               onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
+              className="w-full px-3 py-2 border rounded"
             />
-            <label
-              htmlFor="email"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.email
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
-      `}
-            >
-              E-mail *
-            </label>
-            {touchedFields.email && errors.email ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.email ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
+            {errors.email && <p className="text-red-600">{errors.email}</p>}
           </div>
 
           {/* Address */}
-          <div className="mb-5 relative">
+          <div className="mb-4">
+            <label className="block text-gray-700">Adresse</label>
             <input
               type="text"
               name="address"
-              id="address"
               value={customerDetails.address || ''}
-              onblur={() => handleFieldBlur('address')}
               onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
+              className="w-full px-3 py-2 border rounded"
             />
-            <label
-              htmlFor="address"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.address
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
-      `}
-            >
-              Adresse *
-            </label>
-            {touchedFields.address && errors.address ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.address ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
+            {errors.address && <p className="text-red-600">{errors.address}</p>}
           </div>
 
           {/* Postal Code */}
-          <div className="mb-5 relative">
+          <div className="mb-4">
+            <label className="block text-gray-700">Postnummer</label>
             <input
               type="text"
               name="postalCode"
-              id="postalCode"
               value={customerDetails.postalCode || ''}
-              onBlur={() => handleFieldBlur('postalCode')}
               onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
+              className="w-full px-3 py-2 border rounded"
             />
-            <label
-              htmlFor="postalCode"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.postalCode
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
-      `}
-            >
-              Postnummer *
-            </label>
-            {touchedFields.postalCode && errors.postalCode ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.postalCode ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
+            {errors.postalCode && <p className="text-red-600">{errors.postalCode}</p>}
           </div>
 
           {/* City */}
-          <div className="mb-5 relative">
+          <div className="mb-4">
+            <label className="block text-gray-700">By</label>
             <input
               type="text"
               name="city"
-              id="city"
               value={customerDetails.city || ''}
-              onBlur={() => handleFieldBlur('city')}
               onChange={handleInputChange}
-              className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
-              placeholder=" "
+              className="w-full px-3 py-2 border rounded"
             />
-            <label
-              htmlFor="city"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.city
-                  ? 'top-0 text-xs'
-                  : 'top-2 text-base'
-                }
-      `}
-            >
-              By *
-            </label>
-            {touchedFields.city && errors.city ? (
-              <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : customerDetails.city ? (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            ) : null}
+            {errors.city && <p className="text-red-600">{errors.city}</p>}
           </div>
 
           {/* Country */}
-          <div className="mb-5 relative">
+          <div className="mb-4">
+            <label className="block text-gray-700">Land</label>
             <input
               type="text"
               name="country"
-              id="country"
-              value='Danmark'
+              value={customerDetails.country || 'Danmark'}
               onChange={handleInputChange}
-              className="w-full px-3 pt-2 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
+              className="w-full px-3 py-2 border rounded"
               disabled
             />
-            <label
-              htmlFor="country"
-              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-        ${customerDetails.country
-                  ? 'top-0 text-xs'
-                  : 'top-0 text-xs'
-                }
-      `}
-            >
-              Land
-            </label>
           </div>
 
           {/* Buttons */}
@@ -797,8 +667,6 @@ export default function Basket() {
             </LoadingButton>
           </div>
         </form>
-
-
       </>
     );
   };
@@ -1084,19 +952,19 @@ export default function Basket() {
                 );
               })}
 
-              {/* Total Price Summary Card */}
-              <div className="mb-4 p-4 border rounded">
-                <h2 className="text-xl font-bold">Sammendrag</h2>
-                <p className="text-gray-700 mt-2">
-                  Total pris for pakker: {(totalPrice / 100).toFixed(2)} kr
-                </p>
-                <p className="text-gray-700 mt-2">
-                  Pant: {(totalRecyclingFee / 100).toFixed(2)} kr
-                </p>
-                <p className="text-gray-700 mt-2 font-bold">
-                  Samlet pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr
-                </p>
-              </div>
+{/* Total Price Summary Card */}
+<div className="mb-4 p-4 border rounded">
+      <h2 className="text-xl font-bold">Sammendrag</h2>
+      <p className="text-gray-700 mt-2">
+        Total pris for pakker: {(totalPrice / 100).toFixed(2)} kr
+      </p>
+      <p className="text-gray-700 mt-2">
+        Pant: {(totalRecyclingFee / 100).toFixed(2)} kr
+      </p>
+      <p className="text-gray-700 mt-2 font-bold">
+        Samlet pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr
+      </p>
+    </div>
 
               {/* Proceed to next step */}
               <div className="text-right mt-4">
