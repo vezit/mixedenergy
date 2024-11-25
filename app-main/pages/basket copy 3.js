@@ -1,16 +1,20 @@
 // pages/basket.js
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import router from 'next/router';
 import { useBasket } from '../components/BasketContext';
 import PickupPointsList from '../components/PickupPointsList';
 import MapComponent from '../components/MapComponent';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BannerSteps from '../components/BannerSteps';
 import Loading from '../components/Loading';
 import LoadingButton from '../components/LoadingButton';
 import { getCookie } from '../lib/cookies';
 import ExplosionEffect from '../components/ExplosionEffect';
+import { useCallback } from 'react';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
+
+
 
 export default function Basket() {
   const {
@@ -25,9 +29,12 @@ export default function Basket() {
   const [errors, setErrors] = useState({});
   const [pickupPoints, setPickupPoints] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showPickupPoints, setShowPickupPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [packagesData, setPackagesData] = useState({});
   const [explodedItems, setExplodedItems] = useState({});
+  // State for step management
+  const [currentStep, setCurrentStep] = useState(1);
 
   // State for terms acceptance
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -45,6 +52,7 @@ export default function Basket() {
   const [touchedFields, setTouchedFields] = useState({});
 
   // Loading states for buttons
+  const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Compute total price and total recycling fee
@@ -66,7 +74,7 @@ export default function Basket() {
       }, delay);
     };
   };
-
+  
   const allFieldsValid = () => {
     const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
     return requiredFields.every(
@@ -172,180 +180,49 @@ export default function Basket() {
   // Function to handle selected pickup point change
   const handleSelectedPointChange = (newSelectedPoint) => {
     setSelectedPoint(newSelectedPoint);
-    if (deliveryOption === 'pickupPoint') {
+    if (deliveryOption === 'pickup') {
       updateDeliveryDetailsInBackend();
     }
   };
 
-  // Function to toggle expansion of a basket item
-  const toggleExpand = (index) => {
-    setExpandedItems((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
-  };
+  // Modify this function to match the working code
+  const handleShowShippingOptions = () => {
+    const newErrors = {};
+    if (!customerDetails.fullName) newErrors.fullName = 'Fulde navn er påkrævet'; // string
+    if (!customerDetails.mobileNumber) newErrors.mobileNumber = 'Mobilnummer er påkrævet';  // string
+    if (!customerDetails.email) newErrors.email = 'E-mail er påkrævet'; // email
+    if (!customerDetails.address) newErrors.address = 'Adresse er påkrævet'; // string
+    if (!customerDetails.postalCode) newErrors.postalCode = 'Postnummer er påkrævet'; // int
+    if (!customerDetails.city) newErrors.city = 'By er påkrævet'; // string
 
-  // Function to update customer details in Firebase
-  const updateCustomerDetailsInFirebase = async (updatedDetails) => {
-    try {
-      console.log('Updating customer details in Firebase:', updatedDetails);
-      const response = await fetch('/api/firebase/4-updateBasket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'updateCustomerDetails',
-          customerDetails: updatedDetails,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle errors returned from the server
-        setErrors(data.errors || {});
-        throw new Error(data.error || 'Error updating customer details');
-      } else {
-        // Clear errors if any
-        setErrors({});
-      }
-    } catch (error) {
-      console.error('Error updating customer details in Firebase:', error);
-    }
-  };
-
-  // Debounced function
-  const debouncedUpdateCustomerDetailsInFirebase = useCallback(
-    debounce(updateCustomerDetailsInFirebase, 1000),
-    []
-  );
-
-  const validateField = (name, value) => {
-    if (name === 'fullName') {
-      if (!value || !value.trim()) {
-        return 'Fulde navn er påkrævet';
-      } else {
-        return null;
-      }
-    } else if (name === 'mobileNumber') {
-      const mobileNumberRegex = /^\d{8}$/;
-      if (!value || !value.trim()) {
-        return 'Mobilnummer er påkrævet';
-      } else if (!mobileNumberRegex.test(value.trim())) {
-        return 'Mobilnummer skal være 8 cifre';
-      } else {
-        return null;
-      }
-    } else if (name === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!value || !value.trim()) {
-        return 'E-mail er påkrævet';
-      } else if (!emailRegex.test(value.trim())) {
-        return 'E-mail format er ugyldigt';
-      } else {
-        return null;
-      }
-    } else if (name === 'address') {
-      if (!value || !value.trim()) {
-        return 'Adresse er påkrævet';
-      } else {
-        return null;
-      }
-    } else if (name === 'postalCode') {
-      const postalCodeRegex = /^\d{4}$/;
-      if (!value || !value.trim()) {
-        return 'Postnummer er påkrævet';
-      } else if (!postalCodeRegex.test(value.trim())) {
-        return 'Postnummer skal være 4 cifre';
-      } else {
-        return null;
-      }
-    } else if (name === 'city') {
-      if (!value || !value.trim()) {
-        return 'By er påkrævet';
-      } else {
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const updatedDetails = { ...customerDetails, [name]: value };
-    updateCustomerDetails(updatedDetails); // Updates the context
-
-    // Perform client-side validation
-    const error = validateField(name, value);
-    setErrors((prevErrors) => ({ ...prevErrors, [name]: error }));
-  };
-
-  const handleInputBlur = (fieldName) => {
-    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
-
-    // Get the updated customerDetails from context
-    const updatedDetails = customerDetails;
-
-    // Perform client-side validation
-    const error = validateField(fieldName, updatedDetails[fieldName]);
-    setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
-
-    // Make API call to update customer details
-    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
-
-    // If delivery option is homeDelivery, update delivery details
-    if (deliveryOption === 'homeDelivery') {
-      debouncedUpdateDeliveryDetailsInBackend();
-    }
-  };
-
-  // Function to split address into streetName and streetNumber
-  const splitAddress = (address) => {
-    const regex = /^(.*?)(\s+\d+\S*)$/;
-    const match = address.match(regex);
-    if (match) {
-      return {
-        streetName: match[1].trim(),
-        streetNumber: match[2].trim(),
-      };
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
     } else {
-      return {
-        streetName: address,
-        streetNumber: '',
-      };
+      setErrors({});
     }
+
+    // Move to the next step
+    setCurrentStep(3);
+  };
+
+  const handleProceedToConfirmation = () => {
+    if (deliveryOption === 'pickup') {
+      if (!selectedPoint) {
+        alert('Vælg venligst et afhentningssted.');
+        return;
+      }
+    }
+
+    // Move to the next step
+    setCurrentStep(4);
   };
 
   const handlePayment = async () => {
-    // Validate customer details
-    const newErrors = {};
-    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    requiredFields.forEach((field) => {
-      const error = validateField(field, customerDetails[field]);
-      if (error) {
-        newErrors[field] = error;
-      }
-    });
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      // Scroll to the customer details section
-      document.getElementById('customer-details').scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
-    // Validate delivery option
-    if (deliveryOption === 'pickupPoint' && !selectedPoint) {
-      alert('Vælg venligst et afhentningssted.');
-      // Scroll to shipping section
-      document.getElementById('shipping-and-payment').scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
     if (!termsAccepted) {
       setTermsError(
         'Du skal acceptere vores forretningsvilkår før du kan fortsætte, sæt flueben i boksen herover.'
       );
-      // Scroll to terms section
-      document.getElementById('order-confirmation').scrollIntoView({ behavior: 'smooth' });
       return;
     }
 
@@ -354,7 +231,7 @@ export default function Basket() {
       // Prepare deliveryAddress
       let deliveryAddress = {};
 
-      if (deliveryOption === 'pickupPoint') {
+      if (deliveryOption === 'pickup') {
         const selectedPickupPoint = pickupPoints.find(
           (point) => point.servicePointId === selectedPoint
         );
@@ -416,122 +293,168 @@ export default function Basket() {
     }
   };
 
-  // Fetch package data when basket items change
-  useEffect(() => {
-    // Collect all the package slugs from basket items
-    const packageSlugsSet = new Set();
-    basketItems.forEach((item) => {
-      if (item.slug) {
-        packageSlugsSet.add(item.slug);
-      }
-    });
-    const packageSlugs = Array.from(packageSlugsSet);
+  const handleStepChange = (step) => {
+    // Prevent users from accessing steps they shouldn't
+    if (step > currentStep) return;
 
-    if (packageSlugs.length > 0) {
-      // Fetch packages data
-      fetch('/api/firebase/2-getPackages')
-        .then((res) => res.json())
-        .then((data) => {
-          const packages = data.packages;
-          const packagesBySlug = {};
-          packages.forEach((pkg) => {
-            if (packageSlugs.includes(pkg.slug)) {
-              packagesBySlug[pkg.slug] = pkg;
-            }
-          });
-          setPackagesData(packagesBySlug);
-        })
-        .catch((error) => {
-          console.error('Error fetching packages data:', error);
-        });
+    // If moving back to step 2, reset steps 3 and 4
+    if (step <= 2) {
+      setDeliveryOption('pickup');
+      setSelectedPoint(null);
+      setShowPickupPoints(false);
+      setTermsAccepted(false);
+      setTermsError('');
+      setPickupPoints([]); // Reset pickupPoints to ensure re-fetching
     }
-  }, [basketItems]);
 
-  useEffect(() => {
-    if (isBasketLoaded && basketItems.length === 0) {
-      // Redirect immediately when basket is empty and data has loaded
-      router.push('/');
-    }
-  }, [isBasketLoaded, basketItems, router]);
+    setCurrentStep(step);
+  };
 
-  // Fetch drinks data based on selectedDrinks in basket items
-  useEffect(() => {
-    // Collect all the drink slugs from basket items
-    const drinkSlugsSet = new Set();
-    basketItems.forEach((item) => {
-      if (item.selectedDrinks) {
-        Object.keys(item.selectedDrinks).forEach((slug) => {
-          drinkSlugsSet.add(slug);
-        });
-      }
-    });
-    const drinkSlugs = Array.from(drinkSlugsSet);
+  // Function to toggle expansion of a basket item
+  const toggleExpand = (index) => {
+    setExpandedItems((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
 
-    if (drinkSlugs.length > 0) {
-      // Fetch drinks data
-      fetch('/api/firebase/3-getDrinksBySlugs', {
+  // Function to update customer details in Firebase
+  const updateCustomerDetailsInFirebase = async (updatedDetails) => {
+    try {
+      console.log('Updating customer details in Firebase:', updatedDetails);
+      const response = await fetch('/api/firebase/4-updateBasket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugs: drinkSlugs }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setDrinksData(data.drinks);
-        })
-        .catch((error) => {
-          console.error('Error fetching drinks data:', error);
-        });
-    }
-  }, [basketItems]);
-
-  // Fetch basket summary
-  useEffect(() => {
-    // Fetch basket summary
-    fetch('/api/firebase/5-getBasket')
-      .then((res) => res.json())
-      .then((data) => {
-        setBasketSummary(data.basketDetails);
-      })
-      .catch((error) => {
-        console.error('Error fetching basket summary:', error);
+        body: JSON.stringify({
+          action: 'updateCustomerDetails',
+          customerDetails: updatedDetails,
+        }),
       });
-  }, []);
 
-  useEffect(() => {
-    updateDeliveryDetailsInBackend();
-  }, [deliveryOption]);
+      const data = await response.json();
 
-  useEffect(() => {
-    if (!customerDetails) return; // Ensure customerDetails is available
-
-    const fields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    const newTouchedFields = {};
-    const newErrors = {};
-
-    fields.forEach((field) => {
-      const value = customerDetails[field];
-      if (value !== undefined && value !== null && value !== '') {
-        newTouchedFields[field] = true;
-        const error = validateField(field, value);
-        if (error) {
-          newErrors[field] = error;
-        }
+      if (!response.ok) {
+        // Handle errors returned from the server
+        setErrors(data.errors || {});
+        throw new Error(data.error || 'Error updating customer details');
+      } else {
+        // Clear errors if any
+        setErrors({});
       }
-    });
+    } catch (error) {
+      console.error('Error updating customer details in Firebase:', error);
+    }
+  };
 
-    setTouchedFields((prev) => ({ ...prev, ...newTouchedFields }));
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-  }, [customerDetails]); // Run whenever customerDetails changes
+  // Debounced function
+  const debouncedUpdateCustomerDetailsInFirebase = useCallback(
+    debounce(updateCustomerDetailsInFirebase, 1000),
+    []
+  );
 
-  // Conditional rendering based on loading state
-  if (!isBasketLoaded) {
-    return <Loading />;
-  }
+  
 
-  // Render functions for each section
+  const validateField = (name, value) => {
+    if (name === 'fullName') {
+      if (!value || !value.trim()) {
+        return 'Fulde navn er påkrævet';
+      } else {
+        return null;
+      }
+    } else if (name === 'mobileNumber') {
+      const mobileNumberRegex = /^\d{8}$/;
+      if (!value || !value.trim()) {
+        return 'Mobilnummer er påkrævet';
+      } else if (!mobileNumberRegex.test(value.trim())) {
+        return 'Mobilnummer skal være 8 cifre';
+      } else {
+        return null;
+      }
+    } else if (name === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!value || !value.trim()) {
+        return 'E-mail er påkrævet';
+      } else if (!emailRegex.test(value.trim())) {
+        return 'E-mail format er ugyldigt';
+      } else {
+        return null;
+      }
+    } else if (name === 'address') {
+      if (!value || !value.trim()) {
+        return 'Adresse er påkrævet';
+      } else {
+        return null;
+      }
+    } else if (name === 'postalCode') {
+      const postalCodeRegex = /^\d{4}$/;
+      if (!value || !value.trim()) {
+        return 'Postnummer er påkrævet';
+      } else if (!postalCodeRegex.test(value.trim())) {
+        return 'Postnummer skal være 4 cifre';
+      } else {
+        return null;
+      }
+    } else if (name === 'city') {
+      if (!value || !value.trim()) {
+        return 'By er påkrævet';
+      } else {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const updatedDetails = { ...customerDetails, [name]: value };
+    updateCustomerDetails(updatedDetails); // Updates the context
+
+    // Perform client-side validation
+    const error = validateField(name, value);
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: error }));
+  };
+
+
+  const handleInputBlur = (fieldName) => {
+    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
+  
+    // Get the updated customerDetails from context
+    const updatedDetails = customerDetails;
+  
+    // Perform client-side validation
+    const error = validateField(fieldName, updatedDetails[fieldName]);
+    setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
+  
+    // Make API call to update customer details
+    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
+  
+    // If delivery option is homeDelivery, update delivery details
+    if (deliveryOption === 'homeDelivery') {
+      debouncedUpdateDeliveryDetailsInBackend();
+    }
+  };
+
+  // Function to split address into streetName and streetNumber
+  const splitAddress = (address) => {
+    const regex = /^(.*?)(\s+\d+\S*)$/;
+    const match = address.match(regex);
+    if (match) {
+      return {
+        streetName: match[1].trim(),
+        streetNumber: match[2].trim(),
+      };
+    } else {
+      return {
+        streetName: address,
+        streetNumber: '',
+      };
+    }
+  };
+
+  // Render functions for each step
   const renderCustomerDetails = () => {
     return (
-      <div id="customer-details">
+      <>
         <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
         <form>
           {/* Full Name */}
@@ -561,7 +484,7 @@ export default function Basket() {
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-
+  
           {/* Mobile Number */}
           <div className="mb-5 relative">
             <input
@@ -588,7 +511,7 @@ export default function Basket() {
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-
+  
           {/* Email */}
           <div className="mb-5 relative">
             <input
@@ -615,7 +538,7 @@ export default function Basket() {
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-
+  
           {/* Address */}
           <div className="mb-5 relative">
             <input
@@ -642,7 +565,7 @@ export default function Basket() {
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-
+  
           {/* Postal Code */}
           <div className="mb-5 relative">
             <input
@@ -669,7 +592,7 @@ export default function Basket() {
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-
+  
           {/* City */}
           <div className="mb-5 relative">
             <input
@@ -696,7 +619,7 @@ export default function Basket() {
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-
+  
           {/* Country */}
           <div className="mb-5 relative">
             <input
@@ -719,14 +642,31 @@ export default function Basket() {
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             )}
           </div>
+  
+          {/* Buttons */}
+          <div className="mt-4 flex justify-between">
+            <LoadingButton
+              onClick={() => setCurrentStep(1)}
+              className="bg-gray-500 text-white px-6 py-2 rounded-full shadow hover:bg-gray-600 transition"
+            >
+              Tilbage
+            </LoadingButton>
+            <LoadingButton
+              onClick={handleShowShippingOptions}
+              className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+            >
+              Næste: Vælg levering
+            </LoadingButton>
+          </div>
         </form>
-      </div>
+      </>
     );
-  };
+  }
+  
 
   const renderShippingAndPayment = () => {
     return (
-      <div id="shipping-and-payment">
+      <>
         <h2 className="text-2xl font-bold mb-4">Leveringsmuligheder</h2>
         {/* Delivery Options */}
         <div className="mt-4">
@@ -754,7 +694,7 @@ export default function Basket() {
 
         {loading && <LoadingSpinner />}
 
-        {deliveryOption === 'pickupPoint' && (
+        {deliveryOption === 'pickup' && !loading && selectedPoint && (
           <>
             <h3 className="text-xl font-bold mt-4">Vælg Afhentningssted</h3>
             <PickupPointsList
@@ -769,13 +709,28 @@ export default function Basket() {
             />
           </>
         )}
-      </div>
+
+        <div className="mt-4 flex justify-between">
+          <LoadingButton
+            onClick={() => handleStepChange(2)}
+            className="bg-gray-500 text-white px-6 py-2 rounded-full shadow hover:bg-gray-600 transition"
+          >
+            Tilbage
+          </LoadingButton>
+          <LoadingButton
+            onClick={handleProceedToConfirmation}
+            className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+          >
+            Næste: Bekræft ordre
+          </LoadingButton>
+        </div>
+      </>
     );
   };
 
   const renderOrderConfirmation = () => {
     return (
-      <div id="order-confirmation">
+      <>
         <h2 className="text-2xl font-bold mb-4">Bekræft Ordre</h2>
         {/* Order Summary */}
         {basketSummary ? (
@@ -817,14 +772,20 @@ export default function Basket() {
               <p>
                 Total pris:{' '}
                 {(
-                  basketSummary.items.reduce((acc, item) => acc + item.totalPrice, 0) / 100
+                  basketSummary.items.reduce(
+                    (acc, item) => acc + item.totalPrice,
+                    0
+                  ) / 100
                 ).toFixed(2)}{' '}
                 kr
               </p>
               <p>
                 Total pant:{' '}
                 {(
-                  basketSummary.items.reduce((acc, item) => acc + item.totalRecyclingFee, 0) / 100
+                  basketSummary.items.reduce(
+                    (acc, item) => acc + item.totalRecyclingFee,
+                    0
+                  ) / 100
                 ).toFixed(2)}{' '}
                 kr
               </p>
@@ -861,7 +822,13 @@ export default function Basket() {
           {termsError && <p className="text-red-600">{termsError}</p>}
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-between">
+          <LoadingButton
+            onClick={() => handleStepChange(3)}
+            className="bg-gray-500 text-white px-6 py-2 rounded-full shadow hover:bg-gray-600 transition"
+          >
+            Tilbage
+          </LoadingButton>
           <LoadingButton
             onClick={handlePayment}
             loading={isProcessingPayment}
@@ -870,127 +837,255 @@ export default function Basket() {
             Gå til betaling
           </LoadingButton>
         </div>
-      </div>
+      </>
     );
   };
 
+
+  // Fetch package data when basket items change
+  useEffect(() => {
+    // Collect all the package slugs from basket items
+    const packageSlugsSet = new Set();
+    basketItems.forEach((item) => {
+      if (item.slug) {
+        packageSlugsSet.add(item.slug);
+      }
+    });
+    const packageSlugs = Array.from(packageSlugsSet);
+
+    if (packageSlugs.length > 0) {
+      // Fetch packages data
+      fetch('/api/firebase/2-getPackages')
+        .then((res) => res.json())
+        .then((data) => {
+          const packages = data.packages;
+          const packagesBySlug = {};
+          packages.forEach((pkg) => {
+            if (packageSlugs.includes(pkg.slug)) {
+              packagesBySlug[pkg.slug] = pkg;
+            }
+          });
+          setPackagesData(packagesBySlug);
+        })
+        .catch((error) => {
+          console.error('Error fetching packages data:', error);
+        });
+    }
+  }, [basketItems]);
+
+  useEffect(() => {
+    if (isBasketLoaded && basketItems.length === 0) {
+      // Redirect immediately when basket is empty and data has loaded
+      router.push('/');
+    }
+  }, [isBasketLoaded, basketItems, router]);
+
+
+  // Fetch drinks data based on selectedDrinks in basket items
+  useEffect(() => {
+    // Collect all the drink slugs from basket items
+    const drinkSlugsSet = new Set();
+    basketItems.forEach((item) => {
+      if (item.selectedDrinks) {
+        Object.keys(item.selectedDrinks).forEach((slug) => {
+          drinkSlugsSet.add(slug);
+        });
+      }
+    });
+    const drinkSlugs = Array.from(drinkSlugsSet);
+
+    if (drinkSlugs.length > 0) {
+      // Fetch drinks data
+      fetch('/api/firebase/3-getDrinksBySlugs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugs: drinkSlugs }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setDrinksData(data.drinks);
+        })
+        .catch((error) => {
+          console.error('Error fetching drinks data:', error);
+        });
+    }
+  }, [basketItems]);
+
+  // Fetch basket summary when on confirmation step
+  useEffect(() => {
+    if (currentStep === 4) {
+      // Fetch basket summary
+      fetch('/api/firebase/5-getBasket')
+        .then((res) => res.json())
+        .then((data) => {
+          setBasketSummary(data.basketDetails);
+        })
+        .catch((error) => {
+          console.error('Error fetching basket summary:', error);
+        });
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    updateDeliveryDetailsInBackend();
+  }, [deliveryOption]);
+
+  useEffect(() => {
+    if (!customerDetails) return; // Ensure customerDetails is available
+
+    const fields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
+    const newTouchedFields = {};
+    const newErrors = {};
+
+    fields.forEach((field) => {
+      const value = customerDetails[field];
+      if (value !== undefined && value !== null && value !== '') {
+        newTouchedFields[field] = true;
+        const error = validateField(field, value);
+        if (error) {
+          newErrors[field] = error;
+        }
+      }
+    });
+
+    setTouchedFields((prev) => ({ ...prev, ...newTouchedFields }));
+    setErrors((prev) => ({ ...prev, ...newErrors }));
+  }, [customerDetails]); // Run whenever customerDetails changes
+
+  // Conditional rendering based on loading state
+  if (!isBasketLoaded) {
+    return <Loading />;
+  }
+
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
+      <BannerSteps currentStep={currentStep} onStepChange={handleStepChange} />
+
       {basketItems.length === 0 ? (
         <p>Din kurv er tom. Du bliver omdirigeret til forsiden.</p>
       ) : (
         <>
-          <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
-          {basketItems.map((item, index) => {
-            const isExpanded = expandedItems[index];
-            const packageData = packagesData[item.slug];
-            const packageImage = packageData?.image;
+          {currentStep === 1 && (
+            <>
+              <h1 className="text-3xl font-bold mb-8">Min Kurv</h1>
+              {basketItems.map((item, index) => {
+                const isExpanded = expandedItems[index];
+                const packageData = packagesData[item.slug];
+                const packageImage = packageData?.image;
 
-            return (
-              <ExplosionEffect
-                key={index}
-                trigger={explodedItems[index]}
-                onComplete={() => removeItem(index)}
-              >
-                <div className="mb-4 p-4 border rounded relative">
-                  <button
-                    onClick={() => triggerExplosion(index)}
-                    className="text-red-600 absolute top-2 right-2"
+                return (
+                  <ExplosionEffect
+                    key={index}
+                    trigger={explodedItems[index]}
+                    onComplete={() => removeItem(index)}
                   >
-                    Fjern
-                  </button>
-                  <div className="flex flex-col md:flex-row items-start">
-                    <img
-                      src={packageImage}
-                      alt={item.slug}
-                      className="w-24 h-24 object-cover rounded"
-                    />
-                    <div className="flex-1 mt-4 md:mt-0 md:ml-4">
-                      <h2 className="text-xl font-bold">{packageData?.title || item.slug}</h2>
-                      {/* Quantity controls */}
-                      <div className="flex items-center mt-2">
-                        <button
-                          onClick={() => updateQuantity(index, item.quantity - 1)}
-                          className="px-2 py-1 bg-gray-200 rounded-l"
-                        >
-                          -
-                        </button>
-                        <span className="px-4 py-2 bg-gray-100">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(index, item.quantity + 1)}
-                          className="px-2 py-1 bg-gray-200 rounded-r"
-                        >
-                          +
-                        </button>
-                      </div>
-                      {/* Item details */}
-                      <p className="text-gray-700 mt-2">
-                        Pris pr. pakke: {(item.pricePerPackage / 100).toFixed(2)} kr
-                      </p>
-                      <p className="text-gray-700 mt-2">
-                        Totalpris: {(item.totalPrice / 100).toFixed(2)} kr (pant{' '}
-                        {(item.totalRecyclingFee / 100).toFixed(2)} kr)
-                      </p>
-                      <p className="text-gray-700 mt-2">
-                        Pakke størrelse: {item.packages_size}
-                      </p>
-                      <p className="text-gray-700 mt-2">
-                        Sukker præference: {item.sugarPreference || 'Ikke valgt'}
-                      </p>
+                    <div className="mb-4 p-4 border rounded relative">
                       <button
-                        onClick={() => toggleExpand(index)}
-                        className="mt-2 text-blue-600"
+                        onClick={() => triggerExplosion(index)}
+                        className="text-red-600 absolute top-2 right-2"
                       >
-                        {isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
+                        Fjern
                       </button>
-                    </div>
-                  </div>
-                  {/* Expanded item details */}
-                  {isExpanded && (
-                    <div className="mt-4">
-                      {item.selectedDrinks &&
-                        Object.keys(item.selectedDrinks).map((drinkSlug) => (
-                          <div key={drinkSlug} className="flex items-center mt-2">
-                            <img
-                              src={drinksData[drinkSlug]?.image}
-                              alt={drinksData[drinkSlug]?.name}
-                              className="w-12 h-12 object-cover mr-4"
-                            />
-                            <span>{drinksData[drinkSlug]?.name}</span>
-                            <span className="ml-auto">
-                              Antal: {item.selectedDrinks[drinkSlug]}
-                            </span>
+                      <div className="flex flex-col md:flex-row items-start">
+                        <img
+                          src={packageImage}
+                          alt={item.slug}
+                          className="w-24 h-24 object-cover rounded"
+                        />
+                        <div className="flex-1 mt-4 md:mt-0 md:ml-4">
+                          <h2 className="text-xl font-bold">{packageData?.title || item.slug}</h2>
+                          {/* Quantity controls */}
+                          <div className="flex items-center mt-2">
+                            <button
+                              onClick={() => updateQuantity(index, item.quantity - 1)}
+                              className="px-2 py-1 bg-gray-200 rounded-l"
+                            >
+                              -
+                            </button>
+                            <span className="px-4 py-2 bg-gray-100">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(index, item.quantity + 1)}
+                              className="px-2 py-1 bg-gray-200 rounded-r"
+                            >
+                              +
+                            </button>
                           </div>
-                        ))}
+                          {/* Item details */}
+                          <p className="text-gray-700 mt-2">
+                            Pris pr. pakke: {(item.pricePerPackage / 100).toFixed(2)} kr
+                          </p>
+                          <p className="text-gray-700 mt-2">
+                            Totalpris: {(item.totalPrice / 100).toFixed(2)} kr (pant{' '}
+                            {(item.totalRecyclingFee / 100).toFixed(2)} kr)
+                          </p>
+                          <p className="text-gray-700 mt-2">
+                            Pakke størrelse: {item.packages_size}
+                          </p>
+                          <p className="text-gray-700 mt-2">
+                            Sukker præference: {item.sugarPreference || 'Ikke valgt'}
+                          </p>
+                          <button
+                            onClick={() => toggleExpand(index)}
+                            className="mt-2 text-blue-600"
+                          >
+                            {isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
+                          </button>
+                        </div>
+                      </div>
+                      {/* Expanded item details */}
+                      {isExpanded && (
+                        <div className="mt-4">
+                          {item.selectedDrinks &&
+                            Object.keys(item.selectedDrinks).map((drinkSlug) => (
+                              <div key={drinkSlug} className="flex items-center mt-2">
+                                <img
+                                  src={drinksData[drinkSlug]?.image}
+                                  alt={drinksData[drinkSlug]?.name}
+                                  className="w-12 h-12 object-cover mr-4"
+                                />
+                                <span>{drinksData[drinkSlug]?.name}</span>
+                                <span className="ml-auto">
+                                  Antal: {item.selectedDrinks[drinkSlug]}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </ExplosionEffect>
-            );
-          })}
+                  </ExplosionEffect>
+                );
+              })}
 
-          {/* Total Price Summary Card */}
-          <div className="mb-4 p-4 border rounded">
-            <h2 className="text-xl font-bold">Sammendrag</h2>
-            <p className="text-gray-700 mt-2">
-              Total pris for pakker: {(totalPrice / 100).toFixed(2)} kr
-            </p>
-            <p className="text-gray-700 mt-2">
-              Pant: {(totalRecyclingFee / 100).toFixed(2)} kr
-            </p>
-            <p className="text-gray-700 mt-2 font-bold">
-              Samlet pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr
-            </p>
-          </div>
+              {/* Total Price Summary Card */}
+              <div className="mb-4 p-4 border rounded">
+                <h2 className="text-xl font-bold">Sammendrag</h2>
+                <p className="text-gray-700 mt-2">
+                  Total pris for pakker: {(totalPrice / 100).toFixed(2)} kr
+                </p>
+                <p className="text-gray-700 mt-2">
+                  Pant: {(totalRecyclingFee / 100).toFixed(2)} kr
+                </p>
+                <p className="text-gray-700 mt-2 font-bold">
+                  Samlet pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr
+                </p>
+              </div>
 
-          {/* Render customer details */}
-          {renderCustomerDetails()}
+              {/* Proceed to next step */}
+              <div className="text-right mt-4">
+                <LoadingButton
+                  onClick={() => setCurrentStep(2)}
+                  className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition"
+                >
+                  Næste: Kundeoplysninger
+                </LoadingButton>
+              </div>
+            </>
+          )}
 
-          {/* Render shipping and payment */}
-          {renderShippingAndPayment()}
-
-          {/* Render order confirmation */}
-          {renderOrderConfirmation()}
+          {/* Render other steps */}
+          {currentStep === 2 && renderCustomerDetails()}
+          {currentStep === 3 && renderShippingAndPayment()}
+          {currentStep === 4 && renderOrderConfirmation()}
         </>
       )}
     </div>
