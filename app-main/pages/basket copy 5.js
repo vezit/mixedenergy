@@ -415,9 +415,6 @@ export default function Basket() {
 
 
   const handleInputBlur = (fieldName) => {
-    // Avoid setting touchedFields if already touched
-    if (touchedFields[fieldName]) return;
-
     setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
 
     // Get the updated customerDetails from context
@@ -427,12 +424,15 @@ export default function Basket() {
     const error = validateField(fieldName, updatedDetails[fieldName]);
     setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
 
-    // Update Firebase regardless of validation errors to clear invalid fields
-    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
+    // Only proceed if the specific field has no errors
+    if (!error) {
+      // Make API call to update customer details
+      debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
 
-    // If delivery option is homeDelivery, update delivery details
-    if (deliveryOption === 'homeDelivery') {
-      debouncedUpdateDeliveryDetailsInBackend();
+      // If delivery option is homeDelivery, update delivery details
+      if (deliveryOption === 'homeDelivery') {
+        debouncedUpdateDeliveryDetailsInBackend();
+      }
     }
   };
 
@@ -932,27 +932,6 @@ export default function Basket() {
     updateDeliveryDetailsInBackend();
   }, [deliveryOption]);
 
-  useEffect(() => {
-    if (!customerDetails) return; // Ensure customerDetails is available
-
-    const fields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    const newTouchedFields = {};
-    const newErrors = {};
-
-    fields.forEach((field) => {
-      const value = customerDetails[field];
-      if (value !== undefined && value !== null && value !== '') {
-        newTouchedFields[field] = true;
-        const error = validateField(field, value);
-        if (error) {
-          newErrors[field] = error;
-        }
-      }
-    });
-
-    setTouchedFields((prev) => ({ ...prev, ...newTouchedFields }));
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-  }, [customerDetails]); // Run whenever customerDetails changes
 
   // Conditional rendering based on loading state
   if (!isBasketLoaded) {

@@ -63,6 +63,7 @@ export default function Basket() {
   const [basketSummary, setBasketSummary] = useState(null);
 
   // Debounce function to prevent excessive API calls
+  // Debounce function
   const debounce = (func, delay) => {
     let timeoutId;
     return function (...args) {
@@ -74,12 +75,72 @@ export default function Basket() {
       }, delay);
     };
   };
-  
-  const allFieldsValid = () => {
-    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    return requiredFields.every(
-      (field) => !errors[field] && customerDetails[field] && customerDetails[field].trim()
-    );
+
+  const handleFieldBlur = (fieldName) => {
+    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
+  };
+
+  // Function to update customer details in Firebase
+  const updateCustomerDetailsInFirebase = async (updatedDetails) => {
+    try {
+      const response = await fetch('/api/firebase/4-updateBasket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCustomerDetails',
+          customerDetails: updatedDetails,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle errors returned from the server
+        setErrors(data.errors || {});
+        throw new Error(data.error || 'Error updating customer details');
+      } else {
+        // Clear errors if any
+        setErrors({});
+      }
+    } catch (error) {
+      console.error('Error updating customer details in Firebase:', error);
+    }
+  };
+
+  // Now you can use updateCustomerDetailsInFirebase
+  const debouncedUpdateCustomerDetailsInFirebase = useCallback(
+    debounce(updateCustomerDetailsInFirebase, 500),
+    []
+  );
+
+  // Rest of your code...
+
+
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const updatedDetails = { ...customerDetails, [name]: value };
+    updateCustomerDetails(updatedDetails); // Updates the context
+
+    // Save to Firebase with debouncing
+    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
+  };
+
+  // Function to split address into streetName and streetNumber
+  const splitAddress = (address) => {
+    const regex = /^(.*?)(\s+\d+\S*)$/;
+    const match = address.match(regex);
+    if (match) {
+      return {
+        streetName: match[1].trim(),
+        streetNumber: match[2].trim(),
+      };
+    } else {
+      return {
+        streetName: address,
+        streetNumber: '',
+      };
+    }
   };
 
   // Function to update delivery details in the backend
@@ -110,7 +171,7 @@ export default function Basket() {
             };
           }
         }
-      } else if (option === 'homeDelivery') {
+      } else if (deliveryOption === 'homeDelivery') {
         const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
         if (
           customerDetails.fullName &&
@@ -156,11 +217,21 @@ export default function Basket() {
     debounce(updateDeliveryDetailsInBackend, 500)
   ).current;
 
+  // Update delivery details when customerDetails change (for home delivery)
+  useEffect(() => {
+    if (deliveryOption === 'homeDelivery') {
+      debouncedUpdateDeliveryDetailsInBackend();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerDetails]);
+
   // Function to handle delivery option change
   const handleDeliveryOptionChange = (option) => {
     setDeliveryOption(option);
     updateDeliveryDetailsInBackend(option);
   };
+
+
 
   const removeItem = (itemIndex) => {
     removeItemFromBasket(itemIndex);
@@ -169,6 +240,187 @@ export default function Basket() {
   const updateQuantity = (itemIndex, newQuantity) => {
     updateItemQuantity(itemIndex, newQuantity);
   };
+
+  const fetchPickupPoints = (updatedDetails) => {
+    const { streetName, streetNumber } = splitAddress(updatedDetails.address || '');
+    if (updatedDetails.city && updatedDetails.postalCode && streetNumber) {
+      fetch(
+        `/api/postnord/servicepoints?city=${encodeURIComponent(
+          updatedDetails.city
+        )}&postalCode=${encodeURIComponent(
+          updatedDetails.postalCode
+        )}&streetName=${encodeURIComponent(
+          streetName
+        )}&streetNumber=${encodeURIComponent(streetNumber)}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          const points = data.servicePointInformationResponse?.servicePoints || [];
+          setPickupPoints(points);
+          // Set default selected pickup point
+          if (points.length > 0) {
+            setSelectedPoint(points[0].servicePointId);
+          }
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error('Error fetching PostNord service points:', error);
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  };
+
+  const validateAddressWithDAWA = async () => {
+    setIsValidatingAddress(true);
+    try {
+      const response = await fetch('/api/dawa/datavask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customerDetails),
+      });
+
+      if (!response.ok) {
+        throw new Error(`DAWA validation failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (
+        !data ||
+        !data.dawaResponse ||
+        !data.dawaResponse.resultater ||
+        data.dawaResponse.resultater.length === 0
+      ) {
+        throw new Error('DAWA returned no results');
+      }
+
+      const bestResult = data.dawaResponse.resultater[0].adresse;
+
+      const updatedDetails = {
+        ...customerDetails,
+        address: `${bestResult.vejnavn} ${bestResult.husnr}`,
+        postalCode: bestResult.postnr,
+        city: bestResult.postnrnavn,
+      };
+
+      updateCustomerDetails(updatedDetails);
+      updateCustomerDetailsInFirebase(updatedDetails);
+
+      // Fetch pickup points after DAWA validation
+      fetchPickupPoints(updatedDetails);
+    } catch (error) {
+      console.error('Error validating address with DAWA:', error);
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        address: 'Adressevalidering fejlede. Tjek venligst dine oplysninger.',
+      }));
+      setLoading(false);
+    } finally {
+      setIsValidatingAddress(false);
+    }
+  };
+
+  // Fetch package data when basket items change
+  useEffect(() => {
+    // Collect all the package slugs from basket items
+    const packageSlugsSet = new Set();
+    basketItems.forEach((item) => {
+      if (item.slug) {
+        packageSlugsSet.add(item.slug);
+      }
+    });
+    const packageSlugs = Array.from(packageSlugsSet);
+
+    if (packageSlugs.length > 0) {
+      // Fetch packages data
+      fetch('/api/firebase/2-getPackages')
+        .then((res) => res.json())
+        .then((data) => {
+          const packages = data.packages;
+          const packagesBySlug = {};
+          packages.forEach((pkg) => {
+            if (packageSlugs.includes(pkg.slug)) {
+              packagesBySlug[pkg.slug] = pkg;
+            }
+          });
+          setPackagesData(packagesBySlug);
+        })
+        .catch((error) => {
+          console.error('Error fetching packages data:', error);
+        });
+    }
+  }, [basketItems]);
+
+  useEffect(() => {
+    if (isBasketLoaded && basketItems.length === 0) {
+      // Redirect immediately when basket is empty and data has loaded
+      router.push('/');
+    }
+  }, [isBasketLoaded, basketItems, router]);
+
+  // Add the useEffect that triggers address validation when currentStep changes
+  useEffect(() => {
+    if (currentStep === 3) {
+      setLoading(true);
+      validateAddressWithDAWA();
+    } else {
+      setLoading(false);
+      // Reset pickup points when not on step 3
+      setPickupPoints([]);
+      setSelectedPoint(null);
+    }
+  }, [currentStep]);
+
+  // Fetch drinks data based on selectedDrinks in basket items
+  useEffect(() => {
+    // Collect all the drink slugs from basket items
+    const drinkSlugsSet = new Set();
+    basketItems.forEach((item) => {
+      if (item.selectedDrinks) {
+        Object.keys(item.selectedDrinks).forEach((slug) => {
+          drinkSlugsSet.add(slug);
+        });
+      }
+    });
+    const drinkSlugs = Array.from(drinkSlugsSet);
+
+    if (drinkSlugs.length > 0) {
+      // Fetch drinks data
+      fetch('/api/firebase/3-getDrinksBySlugs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugs: drinkSlugs }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setDrinksData(data.drinks);
+        })
+        .catch((error) => {
+          console.error('Error fetching drinks data:', error);
+        });
+    }
+  }, [basketItems]);
+
+  // Fetch basket summary when on confirmation step
+  useEffect(() => {
+    if (currentStep === 4) {
+      // Fetch basket summary
+      fetch('/api/firebase/5-getBasket')
+        .then((res) => res.json())
+        .then((data) => {
+          setBasketSummary(data.basketDetails);
+        })
+        .catch((error) => {
+          console.error('Error fetching basket summary:', error);
+        });
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    updateDeliveryDetailsInBackend();
+  }, [deliveryOption]);
 
   const triggerExplosion = (itemIndex) => {
     setExplodedItems((prev) => ({
@@ -318,141 +570,6 @@ export default function Basket() {
     }));
   };
 
-  // Function to update customer details in Firebase
-  const updateCustomerDetailsInFirebase = async (updatedDetails) => {
-    try {
-      const response = await fetch('/api/firebase/4-updateBasket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'updateCustomerDetails',
-          customerDetails: updatedDetails,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle errors returned from the server
-        setErrors(data.errors || {});
-        throw new Error(data.error || 'Error updating customer details');
-      } else {
-        // Clear errors if any
-        setErrors({});
-      }
-    } catch (error) {
-      console.error('Error updating customer details in Firebase:', error);
-    }
-  };
-
-  // Debounced function
-  const debouncedUpdateCustomerDetailsInFirebase = useCallback(
-    debounce(updateCustomerDetailsInFirebase, 500),
-    []
-  );
-
-  
-
-  const validateField = (name, value) => {
-    if (name === 'fullName') {
-      if (!value || !value.trim()) {
-        return 'Fulde navn er påkrævet';
-      } else {
-        return null;
-      }
-    } else if (name === 'mobileNumber') {
-      const mobileNumberRegex = /^\d{8}$/;
-      if (!value || !value.trim()) {
-        return 'Mobilnummer er påkrævet';
-      } else if (!mobileNumberRegex.test(value.trim())) {
-        return 'Mobilnummer skal være 8 cifre';
-      } else {
-        return null;
-      }
-    } else if (name === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!value || !value.trim()) {
-        return 'E-mail er påkrævet';
-      } else if (!emailRegex.test(value.trim())) {
-        return 'E-mail format er ugyldigt';
-      } else {
-        return null;
-      }
-    } else if (name === 'address') {
-      if (!value || !value.trim()) {
-        return 'Adresse er påkrævet';
-      } else {
-        return null;
-      }
-    } else if (name === 'postalCode') {
-      const postalCodeRegex = /^\d{4}$/;
-      if (!value || !value.trim()) {
-        return 'Postnummer er påkrævet';
-      } else if (!postalCodeRegex.test(value.trim())) {
-        return 'Postnummer skal være 4 cifre';
-      } else {
-        return null;
-      }
-    } else if (name === 'city') {
-      if (!value || !value.trim()) {
-        return 'By er påkrævet';
-      } else {
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const updatedDetails = { ...customerDetails, [name]: value };
-    updateCustomerDetails(updatedDetails); // Updates the context
-
-    // Perform client-side validation
-    const error = validateField(name, value);
-    setErrors((prevErrors) => ({ ...prevErrors, [name]: error }));
-  };
-
-
-  const handleInputBlur = (fieldName) => {
-    // Avoid setting touchedFields if already touched
-    if (touchedFields[fieldName]) return;
-
-    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
-
-    // Get the updated customerDetails from context
-    const updatedDetails = customerDetails;
-
-    // Perform client-side validation
-    const error = validateField(fieldName, updatedDetails[fieldName]);
-    setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
-
-    // Update Firebase regardless of validation errors to clear invalid fields
-    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
-
-    // If delivery option is homeDelivery, update delivery details
-    if (deliveryOption === 'homeDelivery') {
-      debouncedUpdateDeliveryDetailsInBackend();
-    }
-  };
-
-  // Function to split address into streetName and streetNumber
-  const splitAddress = (address) => {
-    const regex = /^(.*?)(\s+\d+\S*)$/;
-    const match = address.match(regex);
-    if (match) {
-      return {
-        streetName: match[1].trim(),
-        streetNumber: match[2].trim(),
-      };
-    } else {
-      return {
-        streetName: address,
-        streetNumber: '',
-      };
-    }
-  };
-
   // Render functions for each step
   const renderCustomerDetails = () => {
     return (
@@ -466,7 +583,7 @@ export default function Basket() {
               name="fullName"
               id="fullName"
               value={customerDetails.fullName || ''}
-              onBlur={() => handleInputBlur('fullName')}
+              onBlur={() => handleFieldBlur('fullName')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -474,19 +591,22 @@ export default function Basket() {
             <label
               htmlFor="fullName"
               className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.fullName ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+              ${customerDetails.fullName
+                        ? 'top-0 text-xs'
+                        : 'top-2 text-base'
+                      }
+            `}
             >
               Navn *
             </label>
             {/* SVG icon */}
             {touchedFields.fullName && errors.fullName ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : touchedFields.fullName && !errors.fullName ? (
+            ) : customerDetails.fullName ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-  
+
           {/* Mobile Number */}
           <div className="mb-5 relative">
             <input
@@ -494,7 +614,7 @@ export default function Basket() {
               name="mobileNumber"
               id="mobileNumber"
               value={customerDetails.mobileNumber || ''}
-              onBlur={() => handleInputBlur('mobileNumber')}
+              onBlur={() => handleFieldBlur('mobileNumber')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -502,18 +622,21 @@ export default function Basket() {
             <label
               htmlFor="mobileNumber"
               className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.mobileNumber ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+        ${customerDetails.mobileNumber
+                  ? 'top-0 text-xs'
+                  : 'top-2 text-base'
+                }
+      `}
             >
               Mobilnummer *
             </label>
             {touchedFields.mobileNumber && errors.mobileNumber ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : touchedFields.mobileNumber && !errors.mobileNumber ? (
+            ) : customerDetails.mobileNumber ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-  
+
           {/* Email */}
           <div className="mb-5 relative">
             <input
@@ -521,7 +644,7 @@ export default function Basket() {
               name="email"
               id="email"
               value={customerDetails.email || ''}
-              onBlur={() => handleInputBlur('email')}
+              onBlur={() => handleFieldBlur('email')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -529,18 +652,21 @@ export default function Basket() {
             <label
               htmlFor="email"
               className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.email ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+        ${customerDetails.email
+                  ? 'top-0 text-xs'
+                  : 'top-2 text-base'
+                }
+      `}
             >
               E-mail *
             </label>
             {touchedFields.email && errors.email ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : touchedFields.email && !errors.email ? (
+            ) : customerDetails.email ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-  
+
           {/* Address */}
           <div className="mb-5 relative">
             <input
@@ -548,7 +674,7 @@ export default function Basket() {
               name="address"
               id="address"
               value={customerDetails.address || ''}
-              onBlur={() => handleInputBlur('address')}
+              onblur={() => handleFieldBlur('address')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -556,18 +682,21 @@ export default function Basket() {
             <label
               htmlFor="address"
               className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.address ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+        ${customerDetails.address
+                  ? 'top-0 text-xs'
+                  : 'top-2 text-base'
+                }
+      `}
             >
               Adresse *
             </label>
             {touchedFields.address && errors.address ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : touchedFields.address && !errors.address ? (
+            ) : customerDetails.address ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-  
+
           {/* Postal Code */}
           <div className="mb-5 relative">
             <input
@@ -575,7 +704,7 @@ export default function Basket() {
               name="postalCode"
               id="postalCode"
               value={customerDetails.postalCode || ''}
-              onBlur={() => handleInputBlur('postalCode')}
+              onBlur={() => handleFieldBlur('postalCode')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -583,18 +712,21 @@ export default function Basket() {
             <label
               htmlFor="postalCode"
               className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.postalCode ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+        ${customerDetails.postalCode
+                  ? 'top-0 text-xs'
+                  : 'top-2 text-base'
+                }
+      `}
             >
               Postnummer *
             </label>
             {touchedFields.postalCode && errors.postalCode ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : touchedFields.postalCode && !errors.postalCode ? (
+            ) : customerDetails.postalCode ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-  
+
           {/* City */}
           <div className="mb-5 relative">
             <input
@@ -602,7 +734,7 @@ export default function Basket() {
               name="city"
               id="city"
               value={customerDetails.city || ''}
-              onBlur={() => handleInputBlur('city')}
+              onBlur={() => handleFieldBlur('city')}
               onChange={handleInputChange}
               className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
               placeholder=" "
@@ -610,41 +742,45 @@ export default function Basket() {
             <label
               htmlFor="city"
               className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.city ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+        ${customerDetails.city
+                  ? 'top-0 text-xs'
+                  : 'top-2 text-base'
+                }
+      `}
             >
               By *
             </label>
             {touchedFields.city && errors.city ? (
               <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
-            ) : touchedFields.city && !errors.city ? (
+            ) : customerDetails.city ? (
               <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
             ) : null}
           </div>
-  
+
           {/* Country */}
           <div className="mb-5 relative">
             <input
               type="text"
               name="country"
               id="country"
-              value="Danmark"
+              value='Danmark'
               onChange={handleInputChange}
               className="w-full px-3 pt-2 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
               disabled
             />
             <label
               htmlFor="country"
-              className="absolute left-3 text-gray-500 pointer-events-none font-semibold top-0 text-xs"
+              className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
+        ${customerDetails.country
+                  ? 'top-0 text-xs'
+                  : 'top-0 text-xs'
+                }
+      `}
             >
               Land
             </label>
-            {/* Show CheckCircleIcon when all fields are valid and have been touched */}
-            {allFieldsValid() && Object.values(touchedFields).every((touched) => touched) && (
-              <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
-            )}
           </div>
-  
+
           {/* Buttons */}
           <div className="mt-4 flex justify-between">
             <LoadingButton
@@ -661,10 +797,11 @@ export default function Basket() {
             </LoadingButton>
           </div>
         </form>
+
+
       </>
     );
-  }
-  
+  };
 
   const renderShippingAndPayment = () => {
     return (
@@ -842,117 +979,6 @@ export default function Basket() {
       </>
     );
   };
-
-
-  // Fetch package data when basket items change
-  useEffect(() => {
-    // Collect all the package slugs from basket items
-    const packageSlugsSet = new Set();
-    basketItems.forEach((item) => {
-      if (item.slug) {
-        packageSlugsSet.add(item.slug);
-      }
-    });
-    const packageSlugs = Array.from(packageSlugsSet);
-
-    if (packageSlugs.length > 0) {
-      // Fetch packages data
-      fetch('/api/firebase/2-getPackages')
-        .then((res) => res.json())
-        .then((data) => {
-          const packages = data.packages;
-          const packagesBySlug = {};
-          packages.forEach((pkg) => {
-            if (packageSlugs.includes(pkg.slug)) {
-              packagesBySlug[pkg.slug] = pkg;
-            }
-          });
-          setPackagesData(packagesBySlug);
-        })
-        .catch((error) => {
-          console.error('Error fetching packages data:', error);
-        });
-    }
-  }, [basketItems]);
-
-  useEffect(() => {
-    if (isBasketLoaded && basketItems.length === 0) {
-      // Redirect immediately when basket is empty and data has loaded
-      router.push('/');
-    }
-  }, [isBasketLoaded, basketItems, router]);
-
-
-  // Fetch drinks data based on selectedDrinks in basket items
-  useEffect(() => {
-    // Collect all the drink slugs from basket items
-    const drinkSlugsSet = new Set();
-    basketItems.forEach((item) => {
-      if (item.selectedDrinks) {
-        Object.keys(item.selectedDrinks).forEach((slug) => {
-          drinkSlugsSet.add(slug);
-        });
-      }
-    });
-    const drinkSlugs = Array.from(drinkSlugsSet);
-
-    if (drinkSlugs.length > 0) {
-      // Fetch drinks data
-      fetch('/api/firebase/3-getDrinksBySlugs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugs: drinkSlugs }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setDrinksData(data.drinks);
-        })
-        .catch((error) => {
-          console.error('Error fetching drinks data:', error);
-        });
-    }
-  }, [basketItems]);
-
-  // Fetch basket summary when on confirmation step
-  useEffect(() => {
-    if (currentStep === 4) {
-      // Fetch basket summary
-      fetch('/api/firebase/5-getBasket')
-        .then((res) => res.json())
-        .then((data) => {
-          setBasketSummary(data.basketDetails);
-        })
-        .catch((error) => {
-          console.error('Error fetching basket summary:', error);
-        });
-    }
-  }, [currentStep]);
-
-  useEffect(() => {
-    updateDeliveryDetailsInBackend();
-  }, [deliveryOption]);
-
-  useEffect(() => {
-    if (!customerDetails) return; // Ensure customerDetails is available
-
-    const fields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    const newTouchedFields = {};
-    const newErrors = {};
-
-    fields.forEach((field) => {
-      const value = customerDetails[field];
-      if (value !== undefined && value !== null && value !== '') {
-        newTouchedFields[field] = true;
-        const error = validateField(field, value);
-        if (error) {
-          newErrors[field] = error;
-        }
-      }
-    });
-
-    setTouchedFields((prev) => ({ ...prev, ...newTouchedFields }));
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-  }, [customerDetails]); // Run whenever customerDetails changes
 
   // Conditional rendering based on loading state
   if (!isBasketLoaded) {

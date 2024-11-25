@@ -75,6 +75,10 @@ export default function Basket() {
     };
   };
   
+  const handleFieldBlur = (fieldName) => {
+    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
+  };
+
   const allFieldsValid = () => {
     const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
     return requiredFields.every(
@@ -110,7 +114,7 @@ export default function Basket() {
             };
           }
         }
-      } else if (option === 'homeDelivery') {
+      } else if (deliveryOption === 'homeDelivery') {
         const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
         if (
           customerDetails.fullName &&
@@ -168,6 +172,87 @@ export default function Basket() {
 
   const updateQuantity = (itemIndex, newQuantity) => {
     updateItemQuantity(itemIndex, newQuantity);
+  };
+
+  const fetchPickupPoints = (updatedDetails) => {
+    const { streetName, streetNumber } = splitAddress(updatedDetails.address || '');
+    if (updatedDetails.city && updatedDetails.postalCode && streetNumber) {
+      fetch(
+        `/api/postnord/servicepoints?city=${encodeURIComponent(
+          updatedDetails.city
+        )}&postalCode=${encodeURIComponent(
+          updatedDetails.postalCode
+        )}&streetName=${encodeURIComponent(
+          streetName
+        )}&streetNumber=${encodeURIComponent(streetNumber)}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          const points = data.servicePointInformationResponse?.servicePoints || [];
+          setPickupPoints(points);
+          // Set default selected pickup point
+          if (points.length > 0) {
+            setSelectedPoint(points[0].servicePointId);
+          }
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error('Error fetching PostNord service points:', error);
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  };
+
+  const validateAddressWithDAWA = async () => {
+    setIsValidatingAddress(true);
+    try {
+      const response = await fetch('/api/dawa/datavask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customerDetails),
+      });
+
+      if (!response.ok) {
+        throw new Error(`DAWA validation failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (
+        !data ||
+        !data.dawaResponse ||
+        !data.dawaResponse.resultater ||
+        data.dawaResponse.resultater.length === 0
+      ) {
+        throw new Error('DAWA returned no results');
+      }
+
+      const bestResult = data.dawaResponse.resultater[0].adresse;
+
+      const updatedDetails = {
+        ...customerDetails,
+        address: `${bestResult.vejnavn} ${bestResult.husnr}`,
+        postalCode: bestResult.postnr,
+        city: bestResult.postnrnavn,
+      };
+
+      updateCustomerDetails(updatedDetails);
+      updateCustomerDetailsInFirebase(updatedDetails);
+
+      // Fetch pickup points after DAWA validation
+      fetchPickupPoints(updatedDetails);
+    } catch (error) {
+      console.error('Error validating address with DAWA:', error);
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        address: 'Adressevalidering fejlede. Tjek venligst dine oplysninger.',
+      }));
+      setLoading(false);
+    } finally {
+      setIsValidatingAddress(false);
+    }
   };
 
   const triggerExplosion = (itemIndex) => {
@@ -318,6 +403,8 @@ export default function Basket() {
     }));
   };
 
+
+
   // Function to update customer details in Firebase
   const updateCustomerDetailsInFirebase = async (updatedDetails) => {
     try {
@@ -351,18 +438,16 @@ export default function Basket() {
     []
   );
 
-  
-
   const validateField = (name, value) => {
     if (name === 'fullName') {
-      if (!value || !value.trim()) {
+      if (!value.trim()) {
         return 'Fulde navn er påkrævet';
       } else {
         return null;
       }
     } else if (name === 'mobileNumber') {
       const mobileNumberRegex = /^\d{8}$/;
-      if (!value || !value.trim()) {
+      if (!value.trim()) {
         return 'Mobilnummer er påkrævet';
       } else if (!mobileNumberRegex.test(value.trim())) {
         return 'Mobilnummer skal være 8 cifre';
@@ -371,7 +456,7 @@ export default function Basket() {
       }
     } else if (name === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!value || !value.trim()) {
+      if (!value.trim()) {
         return 'E-mail er påkrævet';
       } else if (!emailRegex.test(value.trim())) {
         return 'E-mail format er ugyldigt';
@@ -379,14 +464,14 @@ export default function Basket() {
         return null;
       }
     } else if (name === 'address') {
-      if (!value || !value.trim()) {
+      if (!value.trim()) {
         return 'Adresse er påkrævet';
       } else {
         return null;
       }
     } else if (name === 'postalCode') {
       const postalCodeRegex = /^\d{4}$/;
-      if (!value || !value.trim()) {
+      if (!value.trim()) {
         return 'Postnummer er påkrævet';
       } else if (!postalCodeRegex.test(value.trim())) {
         return 'Postnummer skal være 4 cifre';
@@ -394,7 +479,7 @@ export default function Basket() {
         return null;
       }
     } else if (name === 'city') {
-      if (!value || !value.trim()) {
+      if (!value.trim()) {
         return 'By er påkrævet';
       } else {
         return null;
@@ -413,26 +498,20 @@ export default function Basket() {
     setErrors((prevErrors) => ({ ...prevErrors, [name]: error }));
   };
 
-
   const handleInputBlur = (fieldName) => {
-    // Avoid setting touchedFields if already touched
-    if (touchedFields[fieldName]) return;
-
     setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
-
+  
     // Get the updated customerDetails from context
     const updatedDetails = customerDetails;
-
+  
     // Perform client-side validation
     const error = validateField(fieldName, updatedDetails[fieldName]);
     setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
-
-    // Update Firebase regardless of validation errors to clear invalid fields
-    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
-
-    // If delivery option is homeDelivery, update delivery details
-    if (deliveryOption === 'homeDelivery') {
-      debouncedUpdateDeliveryDetailsInBackend();
+  
+    // Only proceed if the specific field has no errors
+    if (!error) {
+      // Make API call to update customer details
+      debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
     }
   };
 
@@ -882,6 +961,18 @@ export default function Basket() {
     }
   }, [isBasketLoaded, basketItems, router]);
 
+  // Add the useEffect that triggers address validation when currentStep changes
+  useEffect(() => {
+    if (currentStep === 3) {
+      setLoading(true);
+      validateAddressWithDAWA();
+    } else {
+      setLoading(false);
+      // Reset pickup points when not on step 3
+      setPickupPoints([]);
+      setSelectedPoint(null);
+    }
+  }, [currentStep]);
 
   // Fetch drinks data based on selectedDrinks in basket items
   useEffect(() => {
@@ -932,27 +1023,14 @@ export default function Basket() {
     updateDeliveryDetailsInBackend();
   }, [deliveryOption]);
 
+  // Update delivery details when customerDetails change (for home delivery)
   useEffect(() => {
-    if (!customerDetails) return; // Ensure customerDetails is available
+    if (deliveryOption === 'homeDelivery') {
+      debouncedUpdateDeliveryDetailsInBackend();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerDetails]);
 
-    const fields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    const newTouchedFields = {};
-    const newErrors = {};
-
-    fields.forEach((field) => {
-      const value = customerDetails[field];
-      if (value !== undefined && value !== null && value !== '') {
-        newTouchedFields[field] = true;
-        const error = validateField(field, value);
-        if (error) {
-          newErrors[field] = error;
-        }
-      }
-    });
-
-    setTouchedFields((prev) => ({ ...prev, ...newTouchedFields }));
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-  }, [customerDetails]); // Run whenever customerDetails changes
 
   // Conditional rendering based on loading state
   if (!isBasketLoaded) {

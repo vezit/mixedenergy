@@ -188,47 +188,49 @@ export default async (req, res) => {
       const allowedFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
     
       const errors = {};
-      const updatedCustomerDetails = {};
+      const sanitizedCustomerDetails = {};
     
       for (const field of allowedFields) {
-        let value = customerDetails[field];
+        if (customerDetails.hasOwnProperty(field)) {
+          const value = customerDetails[field];
     
-        if (typeof value !== 'string' || !value.trim()) {
-          // Invalid or empty field, set to null
-          updatedCustomerDetails[field] = null;
-          errors[field] = `${field} er påkrævet`;
-        } else {
-          // Validate field
-          value = value.trim();
-          if (field === 'mobileNumber') {
-            const mobileNumberRegex = /^\d{8}$/;
-            if (!mobileNumberRegex.test(value)) {
-              updatedCustomerDetails[field] = null;
-              errors[field] = 'Mobilnummer skal være 8 cifre';
-            } else {
-              updatedCustomerDetails[field] = value;
-            }
-          } else if (field === 'email') {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value)) {
-              updatedCustomerDetails[field] = null;
-              errors[field] = 'E-mail format er ugyldigt';
-            } else {
-              updatedCustomerDetails[field] = value;
-            }
-          } else if (field === 'postalCode') {
-            const postalCodeRegex = /^\d{4}$/;
-            if (!postalCodeRegex.test(value)) {
-              updatedCustomerDetails[field] = null;
-              errors[field] = 'Postnummer skal være 4 cifre';
-            } else {
-              updatedCustomerDetails[field] = value;
-            }
+          if (typeof value !== 'string' || !value.trim()) {
+            errors[field] = `${field} er påkrævet`;
           } else {
-            updatedCustomerDetails[field] = value;
+            if (field === 'mobileNumber') {
+              const mobileNumberRegex = /^\d{8}$/;
+              if (!mobileNumberRegex.test(value.trim())) {
+                errors[field] = 'Mobilnummer skal være 8 cifre';
+              } else {
+                sanitizedCustomerDetails[field] = value.trim();
+              }
+            } else if (field === 'email') {
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(value.trim())) {
+                errors[field] = 'E-mail format er ugyldigt';
+              } else {
+                sanitizedCustomerDetails[field] = value.trim();
+              }
+            } else if (field === 'postalCode') {
+              const postalCodeRegex = /^\d{4}$/;
+              if (!postalCodeRegex.test(value.trim())) {
+                errors[field] = 'Postnummer skal være 4 cifre';
+              } else {
+                sanitizedCustomerDetails[field] = value.trim();
+              }
+            } else {
+              sanitizedCustomerDetails[field] = value.trim();
+            }
           }
         }
       }
+    
+      // Fetch existing customerDetails
+      const sessionDoc = await sessionDocRef.get();
+      const existingCustomerDetails = sessionDoc.data().basketDetails?.customerDetails || {};
+    
+      // Merge existing customerDetails with sanitizedCustomerDetails
+      const updatedCustomerDetails = { ...existingCustomerDetails, ...sanitizedCustomerDetails };
     
       // Update the customerDetails in the session with updated data
       await sessionDocRef.set(

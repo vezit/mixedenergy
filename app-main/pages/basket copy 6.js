@@ -933,8 +933,6 @@ export default function Basket() {
   }, [deliveryOption]);
 
   useEffect(() => {
-    if (!customerDetails) return; // Ensure customerDetails is available
-
     const fields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
     const newTouchedFields = {};
     const newErrors = {};
@@ -952,7 +950,7 @@ export default function Basket() {
 
     setTouchedFields((prev) => ({ ...prev, ...newTouchedFields }));
     setErrors((prev) => ({ ...prev, ...newErrors }));
-  }, [customerDetails]); // Run whenever customerDetails changes
+  }, []); // Empty dependency array to run only once on component mount
 
   // Conditional rendering based on loading state
   if (!isBasketLoaded) {

@@ -181,70 +181,94 @@ export default async (req, res) => {
     }  else if (action === 'updateCustomerDetails') {
       const { customerDetails } = req.body;
     
-      if (!customerDetails || typeof customerDetails !== 'object') {
-        return res.status(400).json({ error: 'Invalid customerDetails format' });
+      if (!customerDetails) {
+        return res.status(400).json({ error: 'Missing customerDetails' });
       }
     
-      const allowedFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    
+      // Perform validation
       const errors = {};
-      const updatedCustomerDetails = {};
     
-      for (const field of allowedFields) {
-        let value = customerDetails[field];
+      // Validate fullName
+      if (
+        !customerDetails.fullName ||
+        typeof customerDetails.fullName !== 'string' ||
+        !customerDetails.fullName.trim()
+      ) {
+        errors.fullName = 'Fulde navn er påkrævet';
+      }
     
-        if (typeof value !== 'string' || !value.trim()) {
-          // Invalid or empty field, set to null
-          updatedCustomerDetails[field] = null;
-          errors[field] = `${field} er påkrævet`;
-        } else {
-          // Validate field
-          value = value.trim();
-          if (field === 'mobileNumber') {
-            const mobileNumberRegex = /^\d{8}$/;
-            if (!mobileNumberRegex.test(value)) {
-              updatedCustomerDetails[field] = null;
-              errors[field] = 'Mobilnummer skal være 8 cifre';
-            } else {
-              updatedCustomerDetails[field] = value;
-            }
-          } else if (field === 'email') {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value)) {
-              updatedCustomerDetails[field] = null;
-              errors[field] = 'E-mail format er ugyldigt';
-            } else {
-              updatedCustomerDetails[field] = value;
-            }
-          } else if (field === 'postalCode') {
-            const postalCodeRegex = /^\d{4}$/;
-            if (!postalCodeRegex.test(value)) {
-              updatedCustomerDetails[field] = null;
-              errors[field] = 'Postnummer skal være 4 cifre';
-            } else {
-              updatedCustomerDetails[field] = value;
-            }
-          } else {
-            updatedCustomerDetails[field] = value;
-          }
+      // Validate mobileNumber (assuming Danish mobile numbers are 8 digits)
+      if (
+        !customerDetails.mobileNumber ||
+        typeof customerDetails.mobileNumber !== 'string' ||
+        !customerDetails.mobileNumber.trim()
+      ) {
+        errors.mobileNumber = 'Mobilnummer er påkrævet';
+      } else {
+        const mobileNumberRegex = /^\d{8}$/;
+        if (!mobileNumberRegex.test(customerDetails.mobileNumber)) {
+          errors.mobileNumber = 'Mobilnummer skal være 8 cifre';
         }
       }
     
-      // Update the customerDetails in the session with updated data
-      await sessionDocRef.set(
-        {
-          basketDetails: {
-            customerDetails: updatedCustomerDetails,
-          },
-        },
-        { merge: true }
-      );
+      // Validate email
+      if (
+        !customerDetails.email ||
+        typeof customerDetails.email !== 'string' ||
+        !customerDetails.email.trim()
+      ) {
+        errors.email = 'E-mail er påkrævet';
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(customerDetails.email)) {
+          errors.email = 'E-mail format er ugyldigt';
+        }
+      }
     
-      // Return success response and any errors
-      res.status(200).json({ success: true, errors });
-    }
+      // Validate address
+      if (
+        !customerDetails.address ||
+        typeof customerDetails.address !== 'string' ||
+        !customerDetails.address.trim()
+      ) {
+        errors.address = 'Adresse er påkrævet';
+      }
     
-     else {
+      // Validate postalCode
+      if (
+        !customerDetails.postalCode ||
+        typeof customerDetails.postalCode !== 'string' ||
+        !customerDetails.postalCode.trim()
+      ) {
+        errors.postalCode = 'Postnummer er påkrævet';
+      } else {
+        const postalCodeRegex = /^\d{4}$/;
+        if (!postalCodeRegex.test(customerDetails.postalCode)) {
+          errors.postalCode = 'Postnummer skal være 4 cifre';
+        }
+      }
+    
+      // Validate city
+      if (
+        !customerDetails.city ||
+        typeof customerDetails.city !== 'string' ||
+        !customerDetails.city.trim()
+      ) {
+        errors.city = 'By er påkrævet';
+      }
+    
+      // If there are errors, return them
+      if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ error: 'Invalid customerDetails', errors });
+      }
+    
+      // Update the customerDetails in the session
+      await sessionDocRef.update({
+        'basketDetails.customerDetails': customerDetails,
+      });
+    
+      res.status(200).json({ success: true });
+    } else {
       return res.status(400).json({ error: 'Invalid action' });
     }
   } catch (error) {
