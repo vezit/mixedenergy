@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     streetName
   )}&streetNumber=${encodeURIComponent(
     streetNumber
-  )}&numberOfServicePoints=15&srId=EPSG:4326&context=optionalservicepoint&responseFilter=public&located=all&whiteLabelName=false&apikey=${apiKey}`;
+  )}&numberOfServicePoints=5&srId=EPSG:4326&context=optionalservicepoint&responseFilter=public&located=all&whiteLabelName=false&apikey=${apiKey}`;
 
   try {
     // Fetch data from the PostNord API

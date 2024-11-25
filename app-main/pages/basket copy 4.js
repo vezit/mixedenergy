@@ -417,21 +417,19 @@ export default function Basket() {
     }
   };
 
+
   const fetchPickupPoints = (updatedDetails) => {
     const { streetName, streetNumber } = splitAddress(updatedDetails.address || '');
-    if (updatedDetails.city && updatedDetails.postalCode) {
-      let url = `/api/postnord/servicepoints?city=${encodeURIComponent(
-        updatedDetails.city
-      )}&postalCode=${encodeURIComponent(updatedDetails.postalCode)}`;
-
-      if (streetName) {
-        url += `&streetName=${encodeURIComponent(streetName)}`;
-      }
-      if (streetNumber) {
-        url += `&streetNumber=${encodeURIComponent(streetNumber)}`;
-      }
-
-      fetch(url)
+    if (updatedDetails.city && updatedDetails.postalCode && streetNumber) {
+      fetch(
+        `/api/postnord/servicepoints?city=${encodeURIComponent(
+          updatedDetails.city
+        )}&postalCode=${encodeURIComponent(
+          updatedDetails.postalCode
+        )}&streetName=${encodeURIComponent(
+          streetName
+        )}&streetNumber=${encodeURIComponent(streetNumber)}`
+      )
         .then((res) => res.json())
         .then((data) => {
           const points = data.servicePointInformationResponse?.servicePoints || [];
@@ -609,12 +607,6 @@ export default function Basket() {
   }, [customerDetails]); // Run whenever customerDetails changes
 
   useEffect(() => {
-    if (deliveryOption === 'pickupPoint' && !errors.postalCode) {
-      fetchPickupPoints(customerDetails);
-    }
-  }, [customerDetails.postalCode, deliveryOption]);
-
-  useEffect(() => {
     if (deliveryOption === 'pickupPoint') {
       setLoading(true);
       validateAddressWithDAWA();
@@ -622,7 +614,7 @@ export default function Basket() {
       setPickupPoints([]);
       setSelectedPoint(null);
     }
-  }, [deliveryOption]);
+  }, [deliveryOption, customerDetails]);
 
   // Conditional rendering based on loading state
   if (!isBasketLoaded) {
