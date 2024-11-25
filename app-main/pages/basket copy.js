@@ -321,7 +321,6 @@ export default function Basket() {
   // Function to update customer details in Firebase
   const updateCustomerDetailsInFirebase = async (updatedDetails) => {
     try {
-      console.log('Updating customer details in Firebase:', updatedDetails);
       const response = await fetch('/api/firebase/4-updateBasket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -348,7 +347,7 @@ export default function Basket() {
 
   // Debounced function
   const debouncedUpdateCustomerDetailsInFirebase = useCallback(
-    debounce(updateCustomerDetailsInFirebase, 1000),
+    debounce(updateCustomerDetailsInFirebase, 500),
     []
   );
 
@@ -416,18 +415,21 @@ export default function Basket() {
 
 
   const handleInputBlur = (fieldName) => {
+    // Avoid setting touchedFields if already touched
+    if (touchedFields[fieldName]) return;
+
     setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
-  
+
     // Get the updated customerDetails from context
     const updatedDetails = customerDetails;
-  
+
     // Perform client-side validation
     const error = validateField(fieldName, updatedDetails[fieldName]);
     setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
-  
-    // Make API call to update customer details
+
+    // Update Firebase regardless of validation errors to clear invalid fields
     debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
-  
+
     // If delivery option is homeDelivery, update delivery details
     if (deliveryOption === 'homeDelivery') {
       debouncedUpdateDeliveryDetailsInBackend();
