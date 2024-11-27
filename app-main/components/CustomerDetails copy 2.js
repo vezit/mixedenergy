@@ -1,6 +1,6 @@
 // components/CustomerDetails.js
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 
 const CustomerDetails = ({
@@ -142,29 +142,6 @@ const CustomerDetails = ({
     );
   };
 
-  // Add this useEffect to initialize touchedFields and errors
-  useEffect(() => {
-    if (!customerDetails) return; // Ensure customerDetails is available
-
-    const fields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    const newTouchedFields = {};
-    const newErrors = {};
-
-    fields.forEach((field) => {
-      const value = customerDetails[field];
-      if (value !== undefined && value !== null && value !== '') {
-        newTouchedFields[field] = true;
-        const error = validateField(field, value);
-        if (error) {
-          newErrors[field] = error;
-        }
-      }
-    });
-
-    setTouchedFields((prev) => ({ ...prev, ...newTouchedFields }));
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-  }, [customerDetails]);
-
   return (
     <div id="customer-details">
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
@@ -184,8 +161,8 @@ const CustomerDetails = ({
           <label
             htmlFor="fullName"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                    ${customerDetails.fullName ? 'top-0 text-xs' : 'top-2 text-base'}
-                  `}
+                ${customerDetails.fullName ? 'top-0 text-xs' : 'top-2 text-base'}
+              `}
           >
             Navn *
           </label>
@@ -197,7 +174,6 @@ const CustomerDetails = ({
           ) : null}
         </div>
 
-        {/* Repeat similar structure for other fields */}
         {/* Mobile Number */}
         <div className="mb-5 relative">
           <input
@@ -213,8 +189,8 @@ const CustomerDetails = ({
           <label
             htmlFor="mobileNumber"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                    ${customerDetails.mobileNumber ? 'top-0 text-xs' : 'top-2 text-base'}
-                  `}
+                ${customerDetails.mobileNumber ? 'top-0 text-xs' : 'top-2 text-base'}
+              `}
           >
             Mobilnummer *
           </label>
@@ -240,8 +216,8 @@ const CustomerDetails = ({
           <label
             htmlFor="email"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                    ${customerDetails.email ? 'top-0 text-xs' : 'top-2 text-base'}
-                  `}
+                ${customerDetails.email ? 'top-0 text-xs' : 'top-2 text-base'}
+              `}
           >
             E-mail *
           </label>
@@ -267,8 +243,8 @@ const CustomerDetails = ({
           <label
             htmlFor="address"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                    ${customerDetails.address ? 'top-0 text-xs' : 'top-2 text-base'}
-                  `}
+                ${customerDetails.address ? 'top-0 text-xs' : 'top-2 text-base'}
+              `}
           >
             Adresse *
           </label>
@@ -294,8 +270,8 @@ const CustomerDetails = ({
           <label
             htmlFor="postalCode"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                    ${customerDetails.postalCode ? 'top-0 text-xs' : 'top-2 text-base'}
-                  `}
+                ${customerDetails.postalCode ? 'top-0 text-xs' : 'top-2 text-base'}
+              `}
           >
             Postnummer *
           </label>
@@ -321,8 +297,8 @@ const CustomerDetails = ({
           <label
             htmlFor="city"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                    ${customerDetails.city ? 'top-0 text-xs' : 'top-2 text-base'}
-                  `}
+                ${customerDetails.city ? 'top-0 text-xs' : 'top-2 text-base'}
+              `}
           >
             By *
           </label>
