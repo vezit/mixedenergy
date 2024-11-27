@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import router from 'next/router';
 import { useBasket } from '../components/BasketContext';
 import Loading from '../components/Loading';
+import { getCookie } from '../lib/cookies';
+import ExplosionEffect from '../components/ExplosionEffect';
 
 // Import the new components
 import CustomerDetails from '../components/CustomerDetails';
@@ -22,12 +24,20 @@ export default function Basket() {
   } = useBasket();
 
   const [errors, setErrors] = useState({});
+  const [pickupPoints, setPickupPoints] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedPoint, setSelectedPoint] = useState(null);
   const [packagesData, setPackagesData] = useState({});
   const [explodedItems, setExplodedItems] = useState({});
+
+  const loadingTimeoutRef = useRef(null);
 
   // State for terms acceptance
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState('');
+
+  // State for delivery option
+  const [deliveryOption, setDeliveryOption] = useState('pickupPoint');
 
   // State for expanded items
   const [expandedItems, setExpandedItems] = useState({});
@@ -47,35 +57,53 @@ export default function Basket() {
   // State for basket summary
   const [basketSummary, setBasketSummary] = useState(null);
 
-  // State for delivery option
-  const [deliveryOption, setDeliveryOption] = useState('pickupPoint');
+  // Debounce function to prevent excessive API calls
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return function (...args) {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    };
+  };
 
-  // State for selected pickup point ID
-  const [selectedPoint, setSelectedPoint] = useState(null);
+  const allFieldsValid = () => {
+    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
+    return requiredFields.every(
+      (field) => !errors[field] && customerDetails[field] && customerDetails[field].trim()
+    );
+  };
 
   // Function to update delivery details in the backend
-  const updateDeliveryDetailsInBackend = async (option, deliveryData) => {
+  const updateDeliveryDetailsInBackend = async (option = deliveryOption) => {
     try {
       let deliveryAddress = {};
       let providerDetails = {};
 
       if (option === 'pickupPoint') {
-        const selectedPickupPoint = deliveryData.selectedPickupPoint;
-        if (selectedPickupPoint) {
-          deliveryAddress = {
-            name: selectedPickupPoint.name,
-            streetName: selectedPickupPoint.visitingAddress.streetName,
-            streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
-            postalCode: selectedPickupPoint.visitingAddress.postalCode,
-            city: selectedPickupPoint.visitingAddress.city,
-            country: 'Danmark',
-          };
-          providerDetails = {
-            postnord: {
-              servicePointId: selectedPickupPoint.servicePointId,
-              deliveryMethod: 'pickupPoint',
-            },
-          };
+        if (selectedPoint) {
+          const selectedPickupPoint = pickupPoints.find(
+            (point) => point.servicePointId === selectedPoint
+          );
+          if (selectedPickupPoint) {
+            deliveryAddress = {
+              name: selectedPickupPoint.name,
+              streetName: selectedPickupPoint.visitingAddress.streetName,
+              streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
+              postalCode: selectedPickupPoint.visitingAddress.postalCode,
+              city: selectedPickupPoint.visitingAddress.city,
+              country: 'Danmark',
+            };
+            providerDetails = {
+              postnord: {
+                servicePointId: selectedPickupPoint.servicePointId,
+                deliveryMethod: 'pickupPoint',
+              },
+            };
+          }
         }
       } else if (option === 'homeDelivery') {
         const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
@@ -119,39 +147,56 @@ export default function Basket() {
     }
   };
 
-  // Function to split address into streetName and streetNumber
-  const splitAddress = (address) => {
-    const regex = /^(.*?)(\s+\d+\S*)$/;
-    const match = address.match(regex);
-    if (match) {
-      return {
-        streetName: match[1].trim(),
-        streetNumber: match[2].trim(),
-      };
+  const debouncedUpdateDeliveryDetailsInBackend = useRef(
+    debounce(updateDeliveryDetailsInBackend, 500)
+  ).current;
+
+  // Function to handle delivery option change
+  const handleDeliveryOptionChange = (option) => {
+    setDeliveryOption(option);
+
+    if (option === 'pickupPoint') {
+      setLoading(true);
+      // Start the minimum loading time
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      loadingTimeoutRef.current = setTimeout(() => {
+        // After 5 seconds, if data has loaded, set loading to false
+        if (pickupPoints.length > 0) {
+          setLoading(false);
+        }
+      }, 5000);
+      fetchPickupPoints(customerDetails);
     } else {
-      return {
-        streetName: address,
-        streetNumber: '',
-      };
+      setLoading(false);
+      setPickupPoints([]);
+      setSelectedPoint(null);
+      updateDeliveryDetailsInBackend(option);
     }
   };
 
-  // Function to remove item from basket after explosion effect
   const removeItem = (itemIndex) => {
     removeItemFromBasket(itemIndex);
   };
 
-  // Function to update item quantity
   const updateQuantity = (itemIndex, newQuantity) => {
     updateItemQuantity(itemIndex, newQuantity);
   };
 
-  // Function to trigger explosion effect
   const triggerExplosion = (itemIndex) => {
     setExplodedItems((prev) => ({
       ...prev,
       [itemIndex]: true,
     }));
+  };
+
+  // Function to handle selected pickup point change
+  const handleSelectedPointChange = (newSelectedPoint) => {
+    setSelectedPoint(newSelectedPoint);
+    if (deliveryOption === 'pickupPoint') {
+      updateDeliveryDetailsInBackend();
+    }
   };
 
   // Function to toggle expansion of a basket item
@@ -188,19 +233,6 @@ export default function Basket() {
     } catch (error) {
       console.error('Error updating customer details in Firebase:', error);
     }
-  };
-
-  // Debounce function to prevent excessive API calls
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return function (...args) {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      timeoutId = setTimeout(() => {
-        func(...args);
-      }, delay);
-    };
   };
 
   // Debounced function
@@ -281,13 +313,28 @@ export default function Basket() {
 
     // Make API call to update customer details
     debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
+
+    // If delivery option is homeDelivery, update delivery details
+    if (deliveryOption === 'homeDelivery') {
+      debouncedUpdateDeliveryDetailsInBackend();
+    }
   };
 
-  const allFieldsValid = () => {
-    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    return requiredFields.every(
-      (field) => !errors[field] && customerDetails[field] && customerDetails[field].trim()
-    );
+  // Function to split address into streetName and streetNumber
+  const splitAddress = (address) => {
+    const regex = /^(.*?)(\s+\d+\S*)$/;
+    const match = address.match(regex);
+    if (match) {
+      return {
+        streetName: match[1].trim(),
+        streetNumber: match[2].trim(),
+      };
+    } else {
+      return {
+        streetName: address,
+        streetNumber: '',
+      };
+    }
   };
 
   const handlePayment = async () => {
@@ -330,15 +377,18 @@ export default function Basket() {
       let deliveryAddress = {};
 
       if (deliveryOption === 'pickupPoint') {
-        const selectedPickupPoint = basketSummary.deliveryDetails.providerDetails.postnord;
-        if (selectedPickupPoint) {
-          deliveryAddress = basketSummary.deliveryDetails.deliveryAddress;
-        } else {
-          alert('Vælg venligst et afhentningssted.');
-          // Scroll to shipping section
-          document.getElementById('shipping-and-payment').scrollIntoView({ behavior: 'smooth' });
-          return;
-        }
+        const selectedPickupPoint = pickupPoints.find(
+          (point) => point.servicePointId === selectedPoint
+        );
+        deliveryAddress = {
+          name: selectedPickupPoint.name,
+          attention: customerDetails.fullName,
+          streetName: selectedPickupPoint.visitingAddress.streetName,
+          streetNumber: selectedPickupPoint.visitingAddress.streetNumber,
+          postalCode: selectedPickupPoint.visitingAddress.postalCode,
+          city: selectedPickupPoint.visitingAddress.city,
+          country: 'Danmark',
+        };
       } else if (deliveryOption === 'homeDelivery') {
         // Use sanitized customer address
         const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
@@ -385,6 +435,53 @@ export default function Basket() {
       alert('Der opstod en fejl under betalingsprocessen. Prøv igen senere.');
     } finally {
       setIsProcessingPayment(false);
+    }
+  };
+
+  const fetchPickupPoints = (updatedDetails) => {
+    const { streetName, streetNumber } = splitAddress(updatedDetails.address || '');
+    if (updatedDetails.city && updatedDetails.postalCode) {
+      let url = `/api/postnord/servicepoints?city=${encodeURIComponent(
+        updatedDetails.city
+      )}&postalCode=${encodeURIComponent(updatedDetails.postalCode)}`;
+
+      if (streetName) {
+        url += `&streetName=${encodeURIComponent(streetName)}`;
+      }
+      if (streetNumber) {
+        url += `&streetNumber=${encodeURIComponent(streetNumber)}`;
+      }
+
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          const points = data.servicePointInformationResponse?.servicePoints || [];
+          setPickupPoints(points);
+          // Set default selected pickup point
+          if (points.length > 0) {
+            setSelectedPoint(points[0].servicePointId);
+          }
+          // If minimum loading time has passed, stop loading
+          if (loadingTimeoutRef.current) {
+            clearTimeout(loadingTimeoutRef.current);
+            loadingTimeoutRef.current = null;
+          }
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error('Error fetching PostNord service points:', error);
+          if (loadingTimeoutRef.current) {
+            clearTimeout(loadingTimeoutRef.current);
+            loadingTimeoutRef.current = null;
+          }
+          setLoading(false);
+        });
+    } else {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      setLoading(false);
     }
   };
 
@@ -463,18 +560,15 @@ export default function Basket() {
       .then((res) => res.json())
       .then((data) => {
         setBasketSummary(data.basketDetails);
-        // Update delivery option and selectedPoint based on basket summary
-        if (data.basketDetails.deliveryDetails.deliveryType) {
-          setDeliveryOption(data.basketDetails.deliveryDetails.deliveryType);
-        }
-        if (data.basketDetails.deliveryDetails.providerDetails?.postnord?.servicePointId) {
-          setSelectedPoint(data.basketDetails.deliveryDetails.providerDetails.postnord.servicePointId);
-        }
       })
       .catch((error) => {
         console.error('Error fetching basket summary:', error);
       });
   }, []);
+
+  useEffect(() => {
+    updateDeliveryDetailsInBackend();
+  }, [deliveryOption]);
 
   useEffect(() => {
     if (!customerDetails) return; // Ensure customerDetails is available
@@ -497,6 +591,21 @@ export default function Basket() {
     setTouchedFields((prev) => ({ ...prev, ...newTouchedFields }));
     setErrors((prev) => ({ ...prev, ...newErrors }));
   }, [customerDetails]); // Run whenever customerDetails changes
+
+  useEffect(() => {
+    if (deliveryOption === 'pickupPoint' && !errors.postalCode) {
+      fetchPickupPoints(customerDetails);
+    }
+  }, [customerDetails.postalCode, deliveryOption]);
+
+  useEffect(() => {
+    if (deliveryOption === 'pickupPoint') {
+      setLoading(true);
+    } else {
+      setPickupPoints([]);
+      setSelectedPoint(null);
+    }
+  }, [deliveryOption]);
 
   // Conditional rendering based on loading state
   if (!isBasketLoaded) {
@@ -523,6 +632,7 @@ export default function Basket() {
             totalPrice={totalPrice}
             totalRecyclingFee={totalRecyclingFee}
           />
+
 
           {/* Total Price Summary Card */}
           <div className="mb-4 p-4 border rounded">
@@ -552,11 +662,11 @@ export default function Basket() {
           <div className="mb-4">
             <ShippingAndPayment
               deliveryOption={deliveryOption}
-              setDeliveryOption={setDeliveryOption}
-              customerDetails={customerDetails}
-              updateDeliveryDetailsInBackend={updateDeliveryDetailsInBackend}
+              handleDeliveryOptionChange={handleDeliveryOptionChange}
+              pickupPoints={pickupPoints}
               selectedPoint={selectedPoint}
-              setSelectedPoint={setSelectedPoint}
+              handleSelectedPointChange={handleSelectedPointChange}
+              loading={loading}
             />
           </div>
 
