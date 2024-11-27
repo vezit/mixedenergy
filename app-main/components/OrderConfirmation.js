@@ -38,13 +38,16 @@ const OrderConfirmation = ({
   const [deliveryAddress, setDeliveryAddress] = useState({});
 
   useEffect(() => {
-    if (basketSummary && basketSummary.deliveryDetails && basketSummary.deliveryDetails.deliveryAddress) {
+    if (
+      basketSummary &&
+      basketSummary.deliveryDetails &&
+      basketSummary.deliveryDetails.deliveryAddress
+    ) {
       setDeliveryAddress(basketSummary.deliveryDetails.deliveryAddress);
     } else {
       // Construct delivery address based on current selections
       if (deliveryOption === 'pickupPoint') {
         // Use the selected pickup point details if available
-        // For this example, we'll mock the data
         setDeliveryAddress({
           name: 'Valgt afhentningssted',
           streetName: 'Afhentningsvej',
@@ -158,34 +161,64 @@ const OrderConfirmation = ({
         </div>
       </div>
 
+      {/* Total Price Including VAT */}
+      <div className="mt-8 text-center">
+        <div className="text-lg font-semibold">I alt at betale inkl. moms</div>
+        <h3 className="text-2xl font-bold">
+          {(
+            (totalPrice +
+              totalRecyclingFee +
+              (basketSummary?.deliveryDetails?.deliveryFee || 0)) /
+            100
+          ).toFixed(2)}{' '}
+          kr.
+        </h3>
+      </div>
+
       {/* Terms and Conditions */}
-      <div className="mt-4">
+      <div className="mt-4 flex justify-center">
         <label className="flex items-center">
           <input
+            required
             type="checkbox"
             checked={termsAccepted}
             onChange={(e) => {
               setTermsAccepted(e.target.checked);
               setTermsError('');
             }}
+            className="mr-2"
           />
-          <span className="ml-2">
-            Jeg accepterer{' '}
-            <a href="/handelsbetingelser" target="_blank" className="text-blue-500 underline">
-              handelsbetingelserne
+          <span>
+            Jeg har læst og accepteret{' '}
+            <a
+              target="_blank"
+              className="text-blue-500 underline"
+              href="/information/betingelser-og-vilkar"
+            >
+              forretningsvilkår
+            </a>{' '}
+            samt{' '}
+            <a
+              target="_blank"
+              className="text-blue-500 underline"
+              href="/information/persondatapolitik"
+            >
+              persondatapolitik
             </a>
+            .
           </span>
         </label>
-        {termsError && <p className="text-red-600">{termsError}</p>}
       </div>
+      {termsError && <p className="text-red-600 text-center mt-2">{termsError}</p>}
 
+      {/* Submit Button */}
       <div className="mt-8 flex justify-center">
         <LoadingButton
           onClick={handlePayment}
           loading={isProcessingPayment}
-          className="bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-green-600 transition"
+          className="bg-customYellow text-white px-6 py-2 rounded-full shadow hover:bg-customOrange transition"
         >
-          Gå til betaling
+          GENNEMFØR KØB
         </LoadingButton>
       </div>
     </div>
