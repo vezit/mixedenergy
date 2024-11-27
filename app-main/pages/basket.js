@@ -169,6 +169,7 @@ export default function Basket() {
       [itemIndex]: true,
     }));
   };
+  
 
   // Function to handle selected pickup point change
   const handleSelectedPointChange = (newSelectedPoint) => {
@@ -617,7 +618,7 @@ export default function Basket() {
   useEffect(() => {
     if (deliveryOption === 'pickupPoint') {
       setLoading(true);
-      validateAddressWithDAWA();
+      
     } else {
       setPickupPoints([]);
       setSelectedPoint(null);
