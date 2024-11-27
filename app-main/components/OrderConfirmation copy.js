@@ -13,10 +13,6 @@ const OrderConfirmation = ({
   totalRecyclingFee,
   basketItems,
   basketSummary,
-  errors,
-  setErrors,
-  touchedFields,
-  setTouchedFields,
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState('');
@@ -76,61 +72,6 @@ const OrderConfirmation = ({
   }, [basketSummary, customerDetails, deliveryOption]);
 
   const handlePayment = async () => {
-    // Validate customer details
-    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    let customerDetailsValid = true;
-    let firstInvalidField = null;
-
-    const newErrors = { ...errors };
-    const newTouchedFields = { ...touchedFields };
-
-    requiredFields.forEach((field) => {
-      if (!customerDetails[field] || !customerDetails[field].trim()) {
-        customerDetailsValid = false;
-        newErrors[field] = '!HERO Please fill out this field';
-        newTouchedFields[field] = true;
-        if (!firstInvalidField) {
-          firstInvalidField = field;
-        }
-      }
-    });
-
-    setErrors(newErrors);
-    setTouchedFields(newTouchedFields);
-
-    if (!customerDetailsValid) {
-      // Scroll to the first invalid field
-      document.getElementById('customer-details').scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
-    // Validate delivery details
-    if (deliveryOption === 'pickupPoint' && !selectedPoint) {
-      // Scroll to delivery options section
-      document.getElementById('shipping-and-payment').scrollIntoView({ behavior: 'smooth' });
-      alert('Vælg venligst et afhentningssted.');
-      return;
-    }
-
-    if (deliveryOption === 'homeDelivery') {
-      const requiredDeliveryFields = ['name', 'streetName', 'postalCode', 'city', 'country'];
-      const deliveryValid = requiredDeliveryFields.every(
-        (field) => deliveryAddress[field] && deliveryAddress[field].trim()
-      );
-      if (!deliveryValid) {
-        document.getElementById('customer-details').scrollIntoView({ behavior: 'smooth' });
-        alert('Udfyld venligst alle leveringsdetaljer.');
-        return;
-      }
-    }
-
-    // Check if basket is empty
-    if (!basketItems || basketItems.length === 0) {
-      // Redirect to home page
-      window.location.href = '/';
-      return;
-    }
-
     if (!termsAccepted) {
       setTermsError(
         'Du skal acceptere vores forretningsvilkår før du kan fortsætte, sæt flueben i boksen herover.'

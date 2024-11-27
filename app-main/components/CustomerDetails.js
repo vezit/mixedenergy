@@ -1,16 +1,17 @@
 // components/CustomerDetails.js
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 
 const CustomerDetails = ({
   customerDetails,
   updateCustomerDetails,
   updateDeliveryDetailsInBackend,
+  errors,
+  setErrors,
+  touchedFields,
+  setTouchedFields,
 }) => {
-  const [errors, setErrors] = useState({});
-  const [touchedFields, setTouchedFields] = useState({});
-
   // Debounce function to prevent excessive API calls
   const debounce = (func, delay) => {
     let timeoutId;
@@ -59,50 +60,23 @@ const CustomerDetails = ({
   );
 
   const validateField = (name, value) => {
-    if (name === 'fullName') {
-      if (!value || !value.trim()) {
-        return 'Fulde navn er påkrævet';
-      } else {
-        return null;
-      }
-    } else if (name === 'mobileNumber') {
+    if (!value || !value.trim()) {
+      return '!HERO Please fill out this field';
+    }
+    if (name === 'mobileNumber') {
       const mobileNumberRegex = /^\d{8}$/;
-      if (!value || !value.trim()) {
-        return 'Mobilnummer er påkrævet';
-      } else if (!mobileNumberRegex.test(value.trim())) {
-        return 'Mobilnummer skal være 8 cifre';
-      } else {
-        return null;
+      if (!mobileNumberRegex.test(value.trim())) {
+        return '!HERO Please enter a valid mobile number';
       }
     } else if (name === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!value || !value.trim()) {
-        return 'E-mail er påkrævet';
-      } else if (!emailRegex.test(value.trim())) {
-        return 'E-mail format er ugyldigt';
-      } else {
-        return null;
-      }
-    } else if (name === 'address') {
-      if (!value || !value.trim()) {
-        return 'Adresse er påkrævet';
-      } else {
-        return null;
+      if (!emailRegex.test(value.trim())) {
+        return '!HERO Please enter a valid email address';
       }
     } else if (name === 'postalCode') {
       const postalCodeRegex = /^\d{4}$/;
-      if (!value || !value.trim()) {
-        return 'Postnummer er påkrævet';
-      } else if (!postalCodeRegex.test(value.trim())) {
-        return 'Postnummer skal være 4 cifre';
-      } else {
-        return null;
-      }
-    } else if (name === 'city') {
-      if (!value || !value.trim()) {
-        return 'By er påkrævet';
-      } else {
-        return null;
+      if (!postalCodeRegex.test(value.trim())) {
+        return '!HERO Please enter a valid postal code';
       }
     }
     return null;
@@ -243,10 +217,13 @@ const CustomerDetails = ({
           </label>
           {/* SVG icon */}
           {touchedFields.fullName && errors.fullName ? (
-            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
+            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-orange-500" />
           ) : touchedFields.fullName && !errors.fullName ? (
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
+          {errors.fullName && (
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.fullName}</p>
+          )}
         </div>
 
         {/* Mobile Number */}
@@ -270,10 +247,13 @@ const CustomerDetails = ({
             Mobilnummer *
           </label>
           {touchedFields.mobileNumber && errors.mobileNumber ? (
-            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
+            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-orange-500" />
           ) : touchedFields.mobileNumber && !errors.mobileNumber ? (
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
+          {errors.mobileNumber && (
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.mobileNumber}</p>
+          )}
         </div>
 
         {/* Email */}
@@ -297,10 +277,13 @@ const CustomerDetails = ({
             E-mail *
           </label>
           {touchedFields.email && errors.email ? (
-            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
+            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-orange-500" />
           ) : touchedFields.email && !errors.email ? (
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
+          {errors.email && (
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.email}</p>
+          )}
         </div>
 
         {/* Address */}
@@ -313,7 +296,7 @@ const CustomerDetails = ({
             onBlur={() => handleInputBlur('address')}
             onChange={handleInputChange}
             className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none ${
-              errors.address ? 'border-red-500' : ''
+              errors.address ? 'border-orange-500' : ''
             }`}
             placeholder=" "
           />
@@ -326,12 +309,12 @@ const CustomerDetails = ({
             Adresse *
           </label>
           {touchedFields.address && errors.address ? (
-            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
+            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-orange-500" />
           ) : touchedFields.address && !errors.address ? (
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
           {errors.address && (
-            <p className="text-red-600 text-sm mt-1 absolute">{errors.address}</p>
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.address}</p>
           )}
         </div>
 
@@ -356,10 +339,13 @@ const CustomerDetails = ({
             Postnummer *
           </label>
           {touchedFields.postalCode && errors.postalCode ? (
-            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
+            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-orange-500" />
           ) : touchedFields.postalCode && !errors.postalCode ? (
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
+          {errors.postalCode && (
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.postalCode}</p>
+          )}
         </div>
 
         {/* City */}
@@ -383,10 +369,13 @@ const CustomerDetails = ({
             By *
           </label>
           {touchedFields.city && errors.city ? (
-            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
+            <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-orange-500" />
           ) : touchedFields.city && !errors.city ? (
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
+          {errors.city && (
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.city}</p>
+          )}
         </div>
 
         {/* Country */}

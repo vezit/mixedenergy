@@ -31,7 +31,7 @@ export default function Basket() {
   const [drinksData, setDrinksData] = useState({});
 
   // State for delivery option
-  const [deliveryOption, setDeliveryOption] = useState('homeDelivery');
+  const [deliveryOption, setDeliveryOption] = useState('pickupPoint');
 
   // State for selected pickup point ID
   const [selectedPoint, setSelectedPoint] = useState(null);
@@ -68,18 +68,17 @@ export default function Basket() {
           };
         }
       } else if (option === 'homeDelivery') {
-        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
+        // Use the validated address from customerDetails
         if (
           customerDetails.fullName &&
-          streetName &&
-          streetNumber &&
+          customerDetails.address &&
           customerDetails.postalCode &&
           customerDetails.city
         ) {
           deliveryAddress = {
             name: customerDetails.fullName,
-            streetName: streetName,
-            streetNumber: streetNumber,
+            streetName: customerDetails.address, // The full address is stored here after validation
+            streetNumber: '', // Optional, if you want to split further
             postalCode: customerDetails.postalCode,
             city: customerDetails.city,
             country: 'Danmark',
@@ -106,23 +105,6 @@ export default function Basket() {
       });
     } catch (error) {
       console.error('Error updating delivery details:', error);
-    }
-  };
-
-  // Function to split address into streetName and streetNumber
-  const splitAddress = (address) => {
-    const regex = /^(.*?)(\s+\d+\S*)$/;
-    const match = address.match(regex);
-    if (match) {
-      return {
-        streetName: match[1].trim(),
-        streetNumber: match[2].trim(),
-      };
-    } else {
-      return {
-        streetName: address,
-        streetNumber: '',
-      };
     }
   };
 
@@ -267,20 +249,6 @@ export default function Basket() {
             totalPrice={totalPrice}
             totalRecyclingFee={totalRecyclingFee}
           />
-
-          {/* Total Price Summary Card */}
-          <div className="mb-4 p-4 border rounded">
-            <h2 className="text-xl font-bold">Sammendrag</h2>
-            <p className="text-gray-700 mt-2">
-              Total pris for pakker: {(totalPrice / 100).toFixed(2)} kr
-            </p>
-            <p className="text-gray-700 mt-2">
-              Pant: {(totalRecyclingFee / 100).toFixed(2)} kr
-            </p>
-            <p className="text-gray-700 mt-2 font-bold">
-              Samlet pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr
-            </p>
-          </div>
 
           {/* Render customer details */}
           <CustomerDetails

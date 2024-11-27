@@ -31,13 +31,17 @@ export default function Basket() {
   const [drinksData, setDrinksData] = useState({});
 
   // State for delivery option
-  const [deliveryOption, setDeliveryOption] = useState('homeDelivery');
+  const [deliveryOption, setDeliveryOption] = useState('pickupPoint');
 
   // State for selected pickup point ID
   const [selectedPoint, setSelectedPoint] = useState(null);
 
   // State for basket summary
   const [basketSummary, setBasketSummary] = useState(null);
+
+  // State for errors and touched fields
+  const [errors, setErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
 
   // Compute total price and total recycling fee
   const totalPrice = basketItems.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -250,25 +254,15 @@ export default function Basket() {
             totalRecyclingFee={totalRecyclingFee}
           />
 
-          {/* Total Price Summary Card */}
-          <div className="mb-4 p-4 border rounded">
-            <h2 className="text-xl font-bold">Sammendrag</h2>
-            <p className="text-gray-700 mt-2">
-              Total pris for pakker: {(totalPrice / 100).toFixed(2)} kr
-            </p>
-            <p className="text-gray-700 mt-2">
-              Pant: {(totalRecyclingFee / 100).toFixed(2)} kr
-            </p>
-            <p className="text-gray-700 mt-2 font-bold">
-              Samlet pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr
-            </p>
-          </div>
-
           {/* Render customer details */}
           <CustomerDetails
             customerDetails={customerDetails}
             updateCustomerDetails={updateCustomerDetails}
             updateDeliveryDetailsInBackend={updateDeliveryDetailsInBackend}
+            errors={errors}
+            setErrors={setErrors}
+            touchedFields={touchedFields}
+            setTouchedFields={setTouchedFields}
           />
 
           {/* Render shipping and payment */}
@@ -293,6 +287,10 @@ export default function Basket() {
             totalRecyclingFee={totalRecyclingFee}
             basketItems={basketItems}
             basketSummary={basketSummary} // Pass the basketSummary to OrderConfirmation
+            errors={errors}
+            setErrors={setErrors}
+            touchedFields={touchedFields}
+            setTouchedFields={setTouchedFields}
           />
         </>
       )}
