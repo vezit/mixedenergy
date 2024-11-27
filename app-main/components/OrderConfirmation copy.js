@@ -1,111 +1,17 @@
 // components/OrderConfirmation.js
 
-import React, { useState } from 'react';
+import React from 'react';
 import LoadingButton from './LoadingButton';
-import { getCookie } from '../lib/cookies';
 
 const OrderConfirmation = ({
   basketSummary,
-  customerDetails,
-  deliveryOption,
-  selectedPoint,
-  updateDeliveryDetailsInBackend,
+  termsAccepted,
+  setTermsAccepted,
+  termsError,
+  handlePayment,
+  isProcessingPayment,
+  setTermsError,
 }) => {
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [termsError, setTermsError] = useState('');
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
-  // Function to split address into streetName and streetNumber
-  const splitAddress = (address) => {
-    const regex = /^(.*?)(\s+\d+\S*)$/;
-    const match = address.match(regex);
-    if (match) {
-      return {
-        streetName: match[1].trim(),
-        streetNumber: match[2].trim(),
-      };
-    } else {
-      return {
-        streetName: address,
-        streetNumber: '',
-      };
-    }
-  };
-
-  const handlePayment = async () => {
-    if (!termsAccepted) {
-      setTermsError(
-        'Du skal acceptere vores forretningsvilkår før du kan fortsætte, sæt flueben i boksen herover.'
-      );
-      // Scroll to terms section
-      document.getElementById('order-confirmation').scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
-    setIsProcessingPayment(true);
-    try {
-      // Prepare deliveryAddress
-      let deliveryAddress = {};
-
-      if (deliveryOption === 'pickupPoint') {
-        const selectedPickupPoint = basketSummary.deliveryDetails.providerDetails.postnord;
-        if (selectedPickupPoint) {
-          deliveryAddress = basketSummary.deliveryDetails.deliveryAddress;
-        } else {
-          alert('Vælg venligst et afhentningssted.');
-          // Scroll to shipping section
-          document.getElementById('shipping-and-payment').scrollIntoView({ behavior: 'smooth' });
-          return;
-        }
-      } else if (deliveryOption === 'homeDelivery') {
-        // Use sanitized customer address
-        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
-        deliveryAddress = {
-          name: customerDetails.fullName,
-          streetName: streetName,
-          streetNumber: streetNumber,
-          postalCode: customerDetails.postalCode,
-          city: customerDetails.city,
-          country: 'Danmark',
-        };
-      }
-
-      const cookieConsentId = getCookie('cookie_consent_id');
-
-      // Step 1: Create Order
-      const orderResponse = await fetch('/api/firebase/createOrder', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookieConsentId, deliveryAddress, customerDetails }),
-      });
-
-      const { orderId, totalPrice } = await orderResponse.json();
-
-      // Step 2: Create Payment
-      const paymentResponse = await fetch('/api/firebase/createPayment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, totalPrice }),
-      });
-
-      const paymentData = await paymentResponse.json();
-
-      if (paymentData.url) {
-        // Redirect to Quickpay payment link
-        window.location.href = paymentData.url;
-      } else {
-        // Handle error
-        console.error('Error initiating payment:', paymentData);
-        alert('Der opstod en fejl under betalingsprocessen. Prøv igen senere.');
-      }
-    } catch (error) {
-      console.error('Error during payment process:', error);
-      alert('Der opstod en fejl under betalingsprocessen. Prøv igen senere.');
-    } finally {
-      setIsProcessingPayment(false);
-    }
-  };
-
   return (
     <div id="order-confirmation">
       <h2 className="text-2xl font-bold mb-4">Bekræft Ordre</h2>

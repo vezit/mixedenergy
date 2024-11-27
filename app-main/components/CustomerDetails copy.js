@@ -1,147 +1,16 @@
 // components/CustomerDetails.js
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 
 const CustomerDetails = ({
   customerDetails,
-  updateCustomerDetails,
-  updateDeliveryDetailsInBackend,
+  handleInputChange,
+  handleInputBlur,
+  touchedFields,
+  errors,
+  allFieldsValid,
 }) => {
-  const [errors, setErrors] = useState({});
-  const [touchedFields, setTouchedFields] = useState({});
-
-  // Debounce function to prevent excessive API calls
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return function (...args) {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      timeoutId = setTimeout(() => {
-        func(...args);
-      }, delay);
-    };
-  };
-
-  // Function to update customer details in Firebase
-  const updateCustomerDetailsInFirebase = async (updatedDetails) => {
-    try {
-      console.log('Updating customer details in Firebase:', updatedDetails);
-      const response = await fetch('/api/firebase/4-updateBasket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'updateCustomerDetails',
-          customerDetails: updatedDetails,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle errors returned from the server
-        setErrors(data.errors || {});
-        throw new Error(data.error || 'Error updating customer details');
-      } else {
-        // Clear errors if any
-        setErrors({});
-      }
-    } catch (error) {
-      console.error('Error updating customer details in Firebase:', error);
-    }
-  };
-
-  // Debounced function
-  const debouncedUpdateCustomerDetailsInFirebase = useCallback(
-    debounce(updateCustomerDetailsInFirebase, 1000),
-    []
-  );
-
-  const validateField = (name, value) => {
-    if (name === 'fullName') {
-      if (!value || !value.trim()) {
-        return 'Fulde navn er påkrævet';
-      } else {
-        return null;
-      }
-    } else if (name === 'mobileNumber') {
-      const mobileNumberRegex = /^\d{8}$/;
-      if (!value || !value.trim()) {
-        return 'Mobilnummer er påkrævet';
-      } else if (!mobileNumberRegex.test(value.trim())) {
-        return 'Mobilnummer skal være 8 cifre';
-      } else {
-        return null;
-      }
-    } else if (name === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!value || !value.trim()) {
-        return 'E-mail er påkrævet';
-      } else if (!emailRegex.test(value.trim())) {
-        return 'E-mail format er ugyldigt';
-      } else {
-        return null;
-      }
-    } else if (name === 'address') {
-      if (!value || !value.trim()) {
-        return 'Adresse er påkrævet';
-      } else {
-        return null;
-      }
-    } else if (name === 'postalCode') {
-      const postalCodeRegex = /^\d{4}$/;
-      if (!value || !value.trim()) {
-        return 'Postnummer er påkrævet';
-      } else if (!postalCodeRegex.test(value.trim())) {
-        return 'Postnummer skal være 4 cifre';
-      } else {
-        return null;
-      }
-    } else if (name === 'city') {
-      if (!value || !value.trim()) {
-        return 'By er påkrævet';
-      } else {
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const updatedDetails = { ...customerDetails, [name]: value };
-    updateCustomerDetails(updatedDetails); // Updates the context
-
-    // Perform client-side validation
-    const error = validateField(name, value);
-    setErrors((prevErrors) => ({ ...prevErrors, [name]: error }));
-  };
-
-  const handleInputBlur = (fieldName) => {
-    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
-
-    // Get the updated customerDetails from context
-    const updatedDetails = customerDetails;
-
-    // Perform client-side validation
-    const error = validateField(fieldName, updatedDetails[fieldName]);
-    setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
-
-    // Make API call to update customer details
-    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
-
-    // Update delivery details in backend if necessary
-    updateDeliveryDetailsInBackend('homeDelivery', {});
-  };
-
-  const allFieldsValid = () => {
-    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    return requiredFields.every(
-      (field) => !errors[field] && customerDetails[field] && customerDetails[field].trim()
-    );
-  };
-
   return (
     <div id="customer-details">
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
@@ -161,8 +30,8 @@ const CustomerDetails = ({
           <label
             htmlFor="fullName"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.fullName ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+              ${customerDetails.fullName ? 'top-0 text-xs' : 'top-2 text-base'}
+            `}
           >
             Navn *
           </label>
@@ -189,8 +58,8 @@ const CustomerDetails = ({
           <label
             htmlFor="mobileNumber"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.mobileNumber ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+              ${customerDetails.mobileNumber ? 'top-0 text-xs' : 'top-2 text-base'}
+            `}
           >
             Mobilnummer *
           </label>
@@ -216,8 +85,8 @@ const CustomerDetails = ({
           <label
             htmlFor="email"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.email ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+              ${customerDetails.email ? 'top-0 text-xs' : 'top-2 text-base'}
+            `}
           >
             E-mail *
           </label>
@@ -243,8 +112,8 @@ const CustomerDetails = ({
           <label
             htmlFor="address"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.address ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+              ${customerDetails.address ? 'top-0 text-xs' : 'top-2 text-base'}
+            `}
           >
             Adresse *
           </label>
@@ -270,8 +139,8 @@ const CustomerDetails = ({
           <label
             htmlFor="postalCode"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.postalCode ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+              ${customerDetails.postalCode ? 'top-0 text-xs' : 'top-2 text-base'}
+            `}
           >
             Postnummer *
           </label>
@@ -297,8 +166,8 @@ const CustomerDetails = ({
           <label
             htmlFor="city"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold
-                ${customerDetails.city ? 'top-0 text-xs' : 'top-2 text-base'}
-              `}
+              ${customerDetails.city ? 'top-0 text-xs' : 'top-2 text-base'}
+            `}
           >
             By *
           </label>
