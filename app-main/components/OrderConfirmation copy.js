@@ -1,18 +1,15 @@
 // components/OrderConfirmation.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import LoadingButton from './LoadingButton';
 import { getCookie } from '../lib/cookies';
 
 const OrderConfirmation = ({
+  basketSummary,
   customerDetails,
   deliveryOption,
   selectedPoint,
   updateDeliveryDetailsInBackend,
-  totalPrice,
-  totalRecyclingFee,
-  basketItems,
-  basketSummary,
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState('');
@@ -35,39 +32,6 @@ const OrderConfirmation = ({
     }
   };
 
-  const [deliveryAddress, setDeliveryAddress] = useState({});
-
-  useEffect(() => {
-    if (basketSummary && basketSummary.deliveryDetails && basketSummary.deliveryDetails.deliveryAddress) {
-      setDeliveryAddress(basketSummary.deliveryDetails.deliveryAddress);
-    } else {
-      // Construct delivery address based on current selections
-      if (deliveryOption === 'pickupPoint') {
-        // Use the selected pickup point details if available
-        // For this example, we'll mock the data
-        setDeliveryAddress({
-          name: 'Valgt afhentningssted',
-          streetName: 'Afhentningsvej',
-          streetNumber: '123',
-          postalCode: '2800',
-          city: 'Kgs. Lyngby',
-          country: 'Danmark',
-        });
-      } else if (deliveryOption === 'homeDelivery') {
-        // Use customerDetails address
-        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
-        setDeliveryAddress({
-          name: customerDetails.fullName,
-          streetName: streetName,
-          streetNumber: streetNumber,
-          postalCode: customerDetails.postalCode,
-          city: customerDetails.city,
-          country: 'Danmark',
-        });
-      }
-    }
-  }, [basketSummary, customerDetails, deliveryOption]);
-
   const handlePayment = async () => {
     if (!termsAccepted) {
       setTermsError(
@@ -80,6 +44,32 @@ const OrderConfirmation = ({
 
     setIsProcessingPayment(true);
     try {
+      // Prepare deliveryAddress
+      let deliveryAddress = {};
+
+      if (deliveryOption === 'pickupPoint') {
+        const selectedPickupPoint = basketSummary.deliveryDetails.providerDetails.postnord;
+        if (selectedPickupPoint) {
+          deliveryAddress = basketSummary.deliveryDetails.deliveryAddress;
+        } else {
+          alert('Vælg venligst et afhentningssted.');
+          // Scroll to shipping section
+          document.getElementById('shipping-and-payment').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+      } else if (deliveryOption === 'homeDelivery') {
+        // Use sanitized customer address
+        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
+        deliveryAddress = {
+          name: customerDetails.fullName,
+          streetName: streetName,
+          streetNumber: streetNumber,
+          postalCode: customerDetails.postalCode,
+          city: customerDetails.city,
+          country: 'Danmark',
+        };
+      }
+
       const cookieConsentId = getCookie('cookie_consent_id');
 
       // Step 1: Create Order
@@ -89,7 +79,7 @@ const OrderConfirmation = ({
         body: JSON.stringify({ cookieConsentId, deliveryAddress, customerDetails }),
       });
 
-      const { orderId } = await orderResponse.json();
+      const { orderId, totalPrice } = await orderResponse.json();
 
       // Step 2: Create Payment
       const paymentResponse = await fetch('/api/firebase/createPayment', {
@@ -120,43 +110,68 @@ const OrderConfirmation = ({
     <div id="order-confirmation">
       <h2 className="text-2xl font-bold mb-4">Bekræft Ordre</h2>
       {/* Order Summary */}
-      <div className="mb-8">
-        <h3 className="text-xl font-bold mb-4">Ordreoversigt</h3>
-        {/* Display the summary */}
-        <div className="mb-4">
-          <h4 className="font-bold">Leveringstype:</h4>
-          <p>{deliveryOption === 'pickupPoint' ? 'Afhentningssted' : 'Hjemmelevering'}</p>
+      {basketSummary ? (
+        <div className="mb-8">
+          <h3 className="text-xl font-bold mb-4">Ordreoversigt</h3>
+          {/* Display the summary */}
+          <div className="mb-4">
+            <h4 className="font-bold">Leveringstype:</h4>
+            <p>
+              {basketSummary.deliveryDetails.deliveryType === 'pickupPoint'
+                ? 'Afhentningssted'
+                : 'Hjemmelevering'}
+            </p>
+          </div>
+          <div className="mb-4">
+            <h4 className="font-bold">Leveringsadresse:</h4>
+            <p>{basketSummary?.deliveryDetails?.deliveryAddress?.name || ''}</p>
+            <p>
+              {basketSummary?.deliveryDetails?.deliveryAddress?.streetName || ''}{' '}
+              {basketSummary?.deliveryDetails?.deliveryAddress?.streetNumber || ''}
+            </p>
+            <p>
+              {basketSummary?.deliveryDetails?.deliveryAddress?.postalCode || ''}{' '}
+              {basketSummary?.deliveryDetails?.deliveryAddress?.city || ''}
+            </p>
+            <p>{basketSummary?.deliveryDetails?.deliveryAddress?.country || ''}</p>
+          </div>
+          <div className="mb-4">
+            <h4 className="font-bold">Kundeoplysninger:</h4>
+            <p>Navn: {basketSummary.customerDetails.fullName}</p>
+            <p>Email: {basketSummary.customerDetails.email}</p>
+            <p>Telefon: {basketSummary.customerDetails.mobileNumber}</p>
+          </div>
+          <div className="mb-4">
+            <h4 className="font-bold">Ordre Detaljer:</h4>
+            <p>
+              Antal pakker:{' '}
+              {basketSummary.items.reduce((acc, item) => acc + item.quantity, 0)}
+            </p>
+            <p>
+              Total pris:{' '}
+              {(
+                basketSummary.items.reduce((acc, item) => acc + item.totalPrice, 0) / 100
+              ).toFixed(2)}{' '}
+              kr
+            </p>
+            <p>
+              Total pant:{' '}
+              {(
+                basketSummary.items.reduce((acc, item) => acc + item.totalRecyclingFee, 0) / 100
+              ).toFixed(2)}{' '}
+              kr
+            </p>
+            <p>
+              Leveringsgebyr:{' '}
+              {basketSummary.deliveryDetails.deliveryFee
+                ? (basketSummary.deliveryDetails.deliveryFee / 100).toFixed(2) + ' kr'
+                : 'Gratis'}
+            </p>
+          </div>
         </div>
-        <div className="mb-4">
-          <h4 className="font-bold">Leveringsadresse:</h4>
-          <p>{deliveryAddress.name || ''}</p>
-          <p>
-            {deliveryAddress.streetName || ''} {deliveryAddress.streetNumber || ''}
-          </p>
-          <p>
-            {deliveryAddress.postalCode || ''} {deliveryAddress.city || ''}
-          </p>
-          <p>{deliveryAddress.country || ''}</p>
-        </div>
-        <div className="mb-4">
-          <h4 className="font-bold">Kundeoplysninger:</h4>
-          <p>Navn: {customerDetails.fullName}</p>
-          <p>Email: {customerDetails.email}</p>
-          <p>Telefon: {customerDetails.mobileNumber}</p>
-        </div>
-        <div className="mb-4">
-          <h4 className="font-bold">Ordre Detaljer:</h4>
-          <p>Antal pakker: {basketItems.reduce((acc, item) => acc + item.quantity, 0)}</p>
-          <p>Total pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr</p>
-          <p>Pant: {(totalRecyclingFee / 100).toFixed(2)} kr</p>
-          <p>
-            Leveringsgebyr:{' '}
-            {basketSummary?.deliveryDetails?.deliveryFee
-              ? (basketSummary.deliveryDetails.deliveryFee / 100).toFixed(2) + ' kr'
-              : 'Gratis'}
-          </p>
-        </div>
-      </div>
+      ) : (
+        <p>Indlæser ordreoversigt...</p>
+      )}
 
       {/* Terms and Conditions */}
       <div className="mt-4">

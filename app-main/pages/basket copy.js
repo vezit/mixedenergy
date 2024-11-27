@@ -220,7 +220,7 @@ export default function Basket() {
     }
   }, [basketItems]);
 
-  // Fetch basket summary when relevant data changes
+  // Fetch basket summary
   useEffect(() => {
     // Fetch basket summary
     fetch('/api/firebase/5-getBasket')
@@ -240,7 +240,7 @@ export default function Basket() {
       .catch((error) => {
         console.error('Error fetching basket summary:', error);
       });
-  }, [customerDetails, deliveryOption]);
+  }, []);
 
   // Conditional rendering based on loading state
   if (!isBasketLoaded) {
@@ -303,14 +303,11 @@ export default function Basket() {
 
           {/* Render order confirmation */}
           <OrderConfirmation
+            basketSummary={basketSummary}
             customerDetails={customerDetails}
             deliveryOption={deliveryOption}
             selectedPoint={selectedPoint}
             updateDeliveryDetailsInBackend={updateDeliveryDetailsInBackend}
-            totalPrice={totalPrice}
-            totalRecyclingFee={totalRecyclingFee}
-            basketItems={basketItems}
-            basketSummary={basketSummary} // Pass the basketSummary to OrderConfirmation
           />
         </>
       )}

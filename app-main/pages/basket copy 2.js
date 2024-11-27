@@ -310,7 +310,6 @@ export default function Basket() {
             totalPrice={totalPrice}
             totalRecyclingFee={totalRecyclingFee}
             basketItems={basketItems}
-            basketSummary={basketSummary} // Pass the basketSummary to OrderConfirmation
           />
         </>
       )}

@@ -1,6 +1,6 @@
 // components/OrderConfirmation.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import LoadingButton from './LoadingButton';
 import { getCookie } from '../lib/cookies';
 
@@ -12,7 +12,6 @@ const OrderConfirmation = ({
   totalPrice,
   totalRecyclingFee,
   basketItems,
-  basketSummary,
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState('');
@@ -35,38 +34,34 @@ const OrderConfirmation = ({
     }
   };
 
-  const [deliveryAddress, setDeliveryAddress] = useState({});
-
-  useEffect(() => {
-    if (basketSummary && basketSummary.deliveryDetails && basketSummary.deliveryDetails.deliveryAddress) {
-      setDeliveryAddress(basketSummary.deliveryDetails.deliveryAddress);
-    } else {
-      // Construct delivery address based on current selections
-      if (deliveryOption === 'pickupPoint') {
-        // Use the selected pickup point details if available
-        // For this example, we'll mock the data
-        setDeliveryAddress({
-          name: 'Valgt afhentningssted',
-          streetName: 'Afhentningsvej',
-          streetNumber: '123',
-          postalCode: '2800',
-          city: 'Kgs. Lyngby',
-          country: 'Danmark',
-        });
-      } else if (deliveryOption === 'homeDelivery') {
-        // Use customerDetails address
-        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
-        setDeliveryAddress({
-          name: customerDetails.fullName,
-          streetName: streetName,
-          streetNumber: streetNumber,
-          postalCode: customerDetails.postalCode,
-          city: customerDetails.city,
-          country: 'Danmark',
-        });
-      }
+  const constructDeliveryAddress = () => {
+    if (deliveryOption === 'pickupPoint') {
+      // Use the selected pickup point details if available
+      // For this example, we'll mock the data
+      return {
+        name: 'Valgt afhentningssted',
+        streetName: 'Afhentningsvej',
+        streetNumber: '123',
+        postalCode: '2800',
+        city: 'Kgs. Lyngby',
+        country: 'Danmark',
+      };
+    } else if (deliveryOption === 'homeDelivery') {
+      // Use customerDetails address
+      const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
+      return {
+        name: customerDetails.fullName,
+        streetName: streetName,
+        streetNumber: streetNumber,
+        postalCode: customerDetails.postalCode,
+        city: customerDetails.city,
+        country: 'Danmark',
+      };
     }
-  }, [basketSummary, customerDetails, deliveryOption]);
+    return {};
+  };
+
+  const deliveryAddress = constructDeliveryAddress();
 
   const handlePayment = async () => {
     if (!termsAccepted) {
@@ -147,13 +142,10 @@ const OrderConfirmation = ({
         <div className="mb-4">
           <h4 className="font-bold">Ordre Detaljer:</h4>
           <p>Antal pakker: {basketItems.reduce((acc, item) => acc + item.quantity, 0)}</p>
-          <p>Total pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr</p>
-          <p>Pant: {(totalRecyclingFee / 100).toFixed(2)} kr</p>
+          <p>Total pris: {(totalPrice / 100).toFixed(2)} kr</p>
+          <p>Total pant: {(totalRecyclingFee / 100).toFixed(2)} kr</p>
           <p>
-            Leveringsgebyr:{' '}
-            {basketSummary?.deliveryDetails?.deliveryFee
-              ? (basketSummary.deliveryDetails.deliveryFee / 100).toFixed(2) + ' kr'
-              : 'Gratis'}
+            Leveringsgebyr: {deliveryOption === 'pickupPoint' ? 'Gratis' : 'Vil blive beregnet'}
           </p>
         </div>
       </div>
