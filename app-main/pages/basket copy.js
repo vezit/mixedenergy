@@ -68,17 +68,18 @@ export default function Basket() {
           };
         }
       } else if (option === 'homeDelivery') {
-        // Use the validated address from customerDetails
+        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
         if (
           customerDetails.fullName &&
-          customerDetails.address &&
+          streetName &&
+          streetNumber &&
           customerDetails.postalCode &&
           customerDetails.city
         ) {
           deliveryAddress = {
             name: customerDetails.fullName,
-            streetName: customerDetails.address, // The full address is stored here after validation
-            streetNumber: '', // Optional, if you want to split further
+            streetName: streetName,
+            streetNumber: streetNumber,
             postalCode: customerDetails.postalCode,
             city: customerDetails.city,
             country: 'Danmark',
@@ -105,6 +106,23 @@ export default function Basket() {
       });
     } catch (error) {
       console.error('Error updating delivery details:', error);
+    }
+  };
+
+  // Function to split address into streetName and streetNumber
+  const splitAddress = (address) => {
+    const regex = /^(.*?)(\s+\d+\S*)$/;
+    const match = address.match(regex);
+    if (match) {
+      return {
+        streetName: match[1].trim(),
+        streetNumber: match[2].trim(),
+      };
+    } else {
+      return {
+        streetName: address,
+        streetNumber: '',
+      };
     }
   };
 

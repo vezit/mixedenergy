@@ -118,50 +118,6 @@ const CustomerDetails = ({
     setErrors((prevErrors) => ({ ...prevErrors, [name]: error }));
   };
 
-  // Function to validate address using DAWA API
-  const validateAddressWithDAWA = async (fullAddress) => {
-    try {
-      const response = await fetch('/api/dawa/validateAddress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: fullAddress }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        const { data } = result;
-
-        // Extract the standardized address components
-        const adresse = data.aktueladresse;
-
-        const updatedDetails = {
-          ...customerDetails,
-          address: `${adresse.vejnavn} ${adresse.husnr}${
-            adresse.etage ? ', ' + adresse.etage + '.' : ''
-          }${adresse.dør ? ' ' + adresse.dør : ''}`,
-          postalCode: adresse.postnr,
-          city: adresse.postnrnavn,
-        };
-
-        // Update customer details with validated address
-        updateCustomerDetails(updatedDetails);
-
-        // Update delivery details in backend
-        updateDeliveryDetailsInBackend('homeDelivery', {});
-
-        // Clear any address errors
-        setErrors((prevErrors) => ({ ...prevErrors, address: null }));
-      } else {
-        // Address could not be validated
-        setErrors((prevErrors) => ({ ...prevErrors, address: result.error }));
-      }
-    } catch (error) {
-      console.error('Error validating address:', error);
-      setErrors((prevErrors) => ({ ...prevErrors, address: 'Fejl ved validering af adresse' }));
-    }
-  };
-
   const handleInputBlur = (fieldName) => {
     setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
 
@@ -172,19 +128,11 @@ const CustomerDetails = ({
     const error = validateField(fieldName, updatedDetails[fieldName]);
     setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
 
-    // If the field is 'address', call DAWA API to validate
-    if (fieldName === 'address' && !error) {
-      const fullAddress = `${customerDetails.address}, ${customerDetails.postalCode} ${customerDetails.city}`;
-      validateAddressWithDAWA(fullAddress);
-    } else {
-      // Make API call to update customer details
-      debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
-    }
+    // Make API call to update customer details
+    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
 
     // Update delivery details in backend if necessary
-    if (['address', 'postalCode', 'city'].includes(fieldName)) {
-      updateDeliveryDetailsInBackend('homeDelivery', {});
-    }
+    updateDeliveryDetailsInBackend('homeDelivery', {});
   };
 
   const allFieldsValid = () => {
@@ -249,6 +197,7 @@ const CustomerDetails = ({
           ) : null}
         </div>
 
+        {/* Repeat similar structure for other fields */}
         {/* Mobile Number */}
         <div className="mb-5 relative">
           <input
@@ -312,9 +261,7 @@ const CustomerDetails = ({
             value={customerDetails.address || ''}
             onBlur={() => handleInputBlur('address')}
             onChange={handleInputChange}
-            className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none ${
-              errors.address ? 'border-red-500' : ''
-            }`}
+            className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
             placeholder=" "
           />
           <label
@@ -330,9 +277,6 @@ const CustomerDetails = ({
           ) : touchedFields.address && !errors.address ? (
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
-          {errors.address && (
-            <p className="text-red-600 text-sm mt-1 absolute">{errors.address}</p>
-          )}
         </div>
 
         {/* Postal Code */}

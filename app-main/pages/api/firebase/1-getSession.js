@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             address: null,
             postalCode: null,
             city: null,
-            country: null,
+            country: "Danmark",
           },
           paymentDetails: {},
           deliveryDetails: {},
