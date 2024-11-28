@@ -1,8 +1,7 @@
-// components/OrderConfirmation.js
-
 import React, { useState, useEffect } from 'react';
 import LoadingButton from './LoadingButton';
-import { getCookie } from '../lib/cookies';
+import { useRouter } from 'next/router';
+import { useBasket } from './BasketContext';
 
 const OrderConfirmation = ({
   customerDetails,
@@ -17,12 +16,14 @@ const OrderConfirmation = ({
   setErrors,
   touchedFields,
   setTouchedFields,
-  submitAttempted,      // Include submitAttempted in destructured props
-  setSubmitAttempted,   // Include setSubmitAttempted in destructured props
+  submitAttempted,
+  setSubmitAttempted,
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const router = useRouter();
+  const { clearBasket } = useBasket();
 
   // Function to split address into streetName and streetNumber
   const splitAddress = (address) => {
@@ -54,14 +55,25 @@ const OrderConfirmation = ({
       // Construct delivery address based on current selections
       if (deliveryOption === 'pickupPoint') {
         // Use the selected pickup point details if available
-        setDeliveryAddress({
-          name: 'Valgt afhentningssted',
-          streetName: 'Afhentningsvej',
-          streetNumber: '123',
-          postalCode: '2800',
-          city: 'Kgs. Lyngby',
-          country: 'Danmark',
-        });
+        if (selectedPoint) {
+          setDeliveryAddress({
+            name: selectedPoint.name,
+            streetName: selectedPoint.visitingAddress.streetName,
+            streetNumber: selectedPoint.visitingAddress.streetNumber,
+            postalCode: selectedPoint.visitingAddress.postalCode,
+            city: selectedPoint.visitingAddress.city,
+            country: 'Danmark',
+          });
+        } else {
+          setDeliveryAddress({
+            name: 'Valgt afhentningssted',
+            streetName: '',
+            streetNumber: '',
+            postalCode: '',
+            city: '',
+            country: 'Danmark',
+          });
+        }
       } else if (deliveryOption === 'homeDelivery') {
         // Use customerDetails address
         const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
@@ -75,7 +87,7 @@ const OrderConfirmation = ({
         });
       }
     }
-  }, [basketSummary, customerDetails, deliveryOption]);
+  }, [basketSummary, customerDetails, deliveryOption, selectedPoint]);
 
   const handlePayment = async () => {
     // Set submitAttempted to true
@@ -84,7 +96,6 @@ const OrderConfirmation = ({
     // Validate customer details
     const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
     let customerDetailsValid = true;
-    let firstInvalidField = null;
 
     const newErrors = { ...errors };
     const newTouchedFields = { ...touchedFields };
@@ -92,11 +103,8 @@ const OrderConfirmation = ({
     requiredFields.forEach((field) => {
       if (!customerDetails[field] || !customerDetails[field].trim()) {
         customerDetailsValid = false;
-        newErrors[field] = 'This field is required';
+        newErrors[field] = 'Dette felt er påkrævet';
         newTouchedFields[field] = true;
-        if (!firstInvalidField) {
-          firstInvalidField = field;
-        }
       }
     });
 
@@ -141,39 +149,32 @@ const OrderConfirmation = ({
         'Du skal acceptere vores handelsbetingelser før du kan fortsætte. Sæt venligst flueben i boksen herover.'
       );
       // Scroll to terms section
-      document.getElementById('order-confirmation').scrollIntoView({ behavior: 'smooth' });
+      document.getId('order-confirmation').scrollIntoView({ behavior: 'smooth' });
       return;
     }
 
     setIsProcessingPayment(true);
     try {
-      const cookieConsentId = getCookie('cookie_consent_id');
+      // Step 1: Ensure delivery details are updated in backend
+      await updateDeliveryDetailsInBackend(deliveryOption, { selectedPickupPoint: selectedPoint });
 
-      // Step 1: Create Order
-      const orderResponse = await fetch('/api/firebase/createOrder', {
+      // Step 2: Create Order and initiate payment
+      const response = await fetch('/api/firebase/6-createOrder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookieConsentId, deliveryAddress, customerDetails }),
       });
 
-      const { orderId } = await orderResponse.json();
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
 
-      // Step 2: Create Payment
-      const paymentResponse = await fetch('/api/firebase/createPayment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, totalPrice }),
-      });
+      const data = await response.json();
 
-      const paymentData = await paymentResponse.json();
-
-      if (paymentData.url) {
-        // Open the payment link in a new blank page
-        window.open(paymentData.url, '_blank');
+      if (data.paymentLink) {
+        // Redirect user to payment link
+        window.location.href = data.paymentLink;
       } else {
-        // Handle error
-        console.error('Error initiating payment:', paymentData);
-        alert('Der opstod en fejl under betalingsprocessen. Prøv igen senere.');
+        throw new Error('Payment link not received');
       }
     } catch (error) {
       console.error('Error during payment process:', error);
