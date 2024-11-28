@@ -61,22 +61,22 @@ const CustomerDetails = ({
 
   const validateField = (name, value) => {
     if (!value || !value.trim()) {
-      return 'Please fill out this field';
+      return '!HERO Please fill out this field';
     }
     if (name === 'mobileNumber') {
       const mobileNumberRegex = /^\d{8}$/;
       if (!mobileNumberRegex.test(value.trim())) {
-        return 'Please enter a valid mobile number';
+        return '!HERO Please enter a valid mobile number';
       }
     } else if (name === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(value.trim())) {
-        return 'Please enter a valid email address';
+        return '!HERO Please enter a valid email address';
       }
     } else if (name === 'postalCode') {
       const postalCodeRegex = /^\d{4}$/;
       if (!postalCodeRegex.test(value.trim())) {
-        return 'Please enter a valid postal code';
+        return '!HERO Please enter a valid postal code';
       }
     }
     return null;
@@ -196,7 +196,7 @@ const CustomerDetails = ({
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
       <form>
         {/* Full Name */}
-        <div className="mb-9 relative">
+        <div className="mb-5 relative">
           <input
             type="text"
             name="fullName"
@@ -204,7 +204,7 @@ const CustomerDetails = ({
             value={customerDetails.fullName || ''}
             onBlur={() => handleInputBlur('fullName')}
             onChange={handleInputChange}
-            className={`peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none`}
+            className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
             placeholder=" "
           />
           <label
@@ -222,15 +222,12 @@ const CustomerDetails = ({
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
           {errors.fullName && (
-            <p className="text-orange-500 text-sm mt-1 absolute">
-              <ExclamationCircleIcon className="inline h-4 w-4 mr-1" />
-              {errors.fullName}
-            </p>
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.fullName}</p>
           )}
         </div>
 
         {/* Mobile Number */}
-        <div className="mb-9 relative">
+        <div className="mb-5 relative">
           <input
             type="text"
             name="mobileNumber"
@@ -238,7 +235,7 @@ const CustomerDetails = ({
             value={customerDetails.mobileNumber || ''}
             onBlur={() => handleInputBlur('mobileNumber')}
             onChange={handleInputChange}
-            className={`peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none`}
+            className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
             placeholder=" "
           />
           <label
@@ -255,15 +252,12 @@ const CustomerDetails = ({
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
           {errors.mobileNumber && (
-            <p className="text-orange-500 text-sm mt-1 absolute">
-              <ExclamationCircleIcon className="inline h-4 w-4 mr-1" />
-              {errors.mobileNumber}
-            </p>
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.mobileNumber}</p>
           )}
         </div>
 
         {/* Email */}
-        <div className="mb-9 relative">
+        <div className="mb-5 relative">
           <input
             type="email"
             name="email"
@@ -271,7 +265,7 @@ const CustomerDetails = ({
             value={customerDetails.email || ''}
             onBlur={() => handleInputBlur('email')}
             onChange={handleInputChange}
-            className={`peer w-full px-3 h-10 pt-4 pb-2 border rounded font-semibold focus:outline-none`}
+            className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
             placeholder=" "
           />
           <label
@@ -288,15 +282,12 @@ const CustomerDetails = ({
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
           {errors.email && (
-            <p className="text-orange-500 text-sm mt-1 absolute">
-              <ExclamationCircleIcon className="inline h-4 w-4 mr-1" />
-              {errors.email}
-            </p>
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.email}</p>
           )}
         </div>
 
         {/* Address */}
-        <div className="mb-9 relative">
+        <div className="mb-5 relative">
           <input
             type="text"
             name="address"
@@ -304,7 +295,7 @@ const CustomerDetails = ({
             value={customerDetails.address || ''}
             onBlur={() => handleInputBlur('address')}
             onChange={handleInputChange}
-            className={`peer w-full px-3 h-10 pt-4 pb-2 border rounded font-semibold focus:outline-none ${
+            className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none ${
               errors.address ? 'border-orange-500' : ''
             }`}
             placeholder=" "
@@ -323,15 +314,12 @@ const CustomerDetails = ({
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
           {errors.address && (
-            <p className="text-orange-500 text-sm mt-1 absolute">
-              <ExclamationCircleIcon className="inline h-4 w-4 mr-1" />
-              {errors.address}
-            </p>
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.address}</p>
           )}
         </div>
 
         {/* Postal Code */}
-        <div className="mb-9 relative">
+        <div className="mb-5 relative">
           <input
             type="text"
             name="postalCode"
@@ -339,7 +327,7 @@ const CustomerDetails = ({
             value={customerDetails.postalCode || ''}
             onBlur={() => handleInputBlur('postalCode')}
             onChange={handleInputChange}
-            className={`peer w-full px-3 h-10 pt-4 pb-2 border rounded font-semibold focus:outline-none`}
+            className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
             placeholder=" "
           />
           <label
@@ -356,15 +344,12 @@ const CustomerDetails = ({
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
           {errors.postalCode && (
-            <p className="text-orange-500 text-sm mt-1 absolute">
-              <ExclamationCircleIcon className="inline h-4 w-4 mr-1" />
-              {errors.postalCode}
-            </p>
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.postalCode}</p>
           )}
         </div>
 
         {/* City */}
-        <div className="mb-9 relative">
+        <div className="mb-5 relative">
           <input
             type="text"
             name="city"
@@ -372,7 +357,7 @@ const CustomerDetails = ({
             value={customerDetails.city || ''}
             onBlur={() => handleInputBlur('city')}
             onChange={handleInputChange}
-            className={`peer w-full px-3 h-10 pt-4 pb-2 border rounded font-semibold focus:outline-none`}
+            className={`peer w-full px-3 pt-2 pb-2 border rounded font-semibold focus:outline-none`}
             placeholder=" "
           />
           <label
@@ -389,22 +374,19 @@ const CustomerDetails = ({
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           ) : null}
           {errors.city && (
-            <p className="text-orange-500 text-sm mt-1 absolute">
-              <ExclamationCircleIcon className="inline h-4 w-4 mr-1" />
-              {errors.city}
-            </p>
+            <p className="text-orange-500 text-sm mt-1 absolute">{errors.city}</p>
           )}
         </div>
 
         {/* Country */}
-        <div className="mb-9 relative">
+        <div className="mb-5 relative">
           <input
             type="text"
             name="country"
             id="country"
             value="Danmark"
             onChange={handleInputChange}
-            className="w-full px-3 pt-4 h-10 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
+            className="w-full px-3 pt-2 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
             disabled
           />
           <label

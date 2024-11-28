@@ -16,6 +16,13 @@ export const theme = {
     aspectRatio: {
       '463/775': '463 / 775', // Custom aspect ratio
     },
+    zIndex: {
+      '60': '60',
+      '70': '70',
+      '80': '80',
+      '90': '90',
+      '100': '100',
+    },
   },
 };
 export const plugins = [

@@ -252,19 +252,10 @@ const OrderConfirmation = ({
             <a
               target="_blank"
               className="text-blue-500 underline"
-              href="/information/betingelser-og-vilkar"
+              href="/handelsbetingelser"
             >
-              forretningsvilkår
+              handelsbetingelser.
             </a>{' '}
-            samt{' '}
-            <a
-              target="_blank"
-              className="text-blue-500 underline"
-              href="/information/persondatapolitik"
-            >
-              persondatapolitik
-            </a>
-            .
           </span>
         </label>
       </div>
