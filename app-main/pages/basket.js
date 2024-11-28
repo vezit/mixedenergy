@@ -36,6 +36,9 @@ export default function Basket() {
   // State for selected pickup point ID
   const [selectedPoint, setSelectedPoint] = useState(null);
 
+  // State submitAttempted state
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
   // State for basket summary
   const [basketSummary, setBasketSummary] = useState(null);
 
@@ -263,6 +266,7 @@ export default function Basket() {
             setErrors={setErrors}
             touchedFields={touchedFields}
             setTouchedFields={setTouchedFields}
+            submitAttempted={submitAttempted}
           />
 
           {/* Render shipping and payment */}
@@ -291,6 +295,8 @@ export default function Basket() {
             setErrors={setErrors}
             touchedFields={touchedFields}
             setTouchedFields={setTouchedFields}
+            submitAttempted={submitAttempted}
+            setSubmitAttempted={setSubmitAttempted}
           />
         </>
       )}

@@ -17,6 +17,8 @@ const OrderConfirmation = ({
   setErrors,
   touchedFields,
   setTouchedFields,
+  submitAttempted,
+  setSubmitAttempted, // Receive setSubmitAttempted from props
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState('');
@@ -76,6 +78,9 @@ const OrderConfirmation = ({
   }, [basketSummary, customerDetails, deliveryOption]);
 
   const handlePayment = async () => {
+    // Set submitAttempted to true
+    setSubmitAttempted(true);
+
     // Validate customer details
     const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
     let customerDetailsValid = true;
@@ -87,7 +92,7 @@ const OrderConfirmation = ({
     requiredFields.forEach((field) => {
       if (!customerDetails[field] || !customerDetails[field].trim()) {
         customerDetailsValid = false;
-        newErrors[field] = '!HERO Please fill out this field';
+        newErrors[field] = 'This field is required';
         newTouchedFields[field] = true;
         if (!firstInvalidField) {
           firstInvalidField = field;
