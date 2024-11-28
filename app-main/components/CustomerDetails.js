@@ -146,14 +146,10 @@ const CustomerDetails = ({
     const error = validateField(fieldName, updatedDetails[fieldName]);
     setErrors((prevErrors) => ({ ...prevErrors, [fieldName]: error }));
 
-    // If the field is 'address', call DAWA API to validate
-    if (fieldName === 'address' && !error) {
-      const fullAddress = `${customerDetails.address}, ${customerDetails.postalCode} ${customerDetails.city}`;
-      validateAddressWithDAWA(fullAddress);
-    } else {
-      // Make API call to update customer details
-      debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
-    }
+
+    // Make API call to update customer details
+    debouncedUpdateCustomerDetailsInFirebase(updatedDetails);
+    
 
     // Update delivery details in backend if necessary
     if (['address', 'postalCode', 'city'].includes(fieldName)) {

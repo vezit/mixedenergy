@@ -17,8 +17,8 @@ const OrderConfirmation = ({
   setErrors,
   touchedFields,
   setTouchedFields,
-  submitAttempted,
-  setSubmitAttempted, // Receive setSubmitAttempted from props
+  submitAttempted,      // Include submitAttempted in destructured props
+  setSubmitAttempted,   // Include setSubmitAttempted in destructured props
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState('');
@@ -138,7 +138,7 @@ const OrderConfirmation = ({
 
     if (!termsAccepted) {
       setTermsError(
-        'Du skal acceptere vores forretningsvilkår før du kan fortsætte, sæt flueben i boksen herover.'
+        'Du skal acceptere vores handelsbetingelser før du kan fortsætte. Sæt venligst flueben i boksen herover.'
       );
       // Scroll to terms section
       document.getElementById('order-confirmation').scrollIntoView({ behavior: 'smooth' });
@@ -168,8 +168,8 @@ const OrderConfirmation = ({
       const paymentData = await paymentResponse.json();
 
       if (paymentData.url) {
-        // Redirect to Quickpay payment link
-        window.location.href = paymentData.url;
+        // Open the payment link in a new blank page
+        window.open(paymentData.url, '_blank');
       } else {
         // Handle error
         console.error('Error initiating payment:', paymentData);
@@ -256,11 +256,13 @@ const OrderConfirmation = ({
             Jeg har læst og accepteret{' '}
             <a
               target="_blank"
+              rel="noopener noreferrer"
               className="text-blue-500 underline"
               href="/handelsbetingelser"
             >
-              handelsbetingelser.
-            </a>{' '}
+              handelsbetingelser
+            </a>
+            .
           </span>
         </label>
       </div>
