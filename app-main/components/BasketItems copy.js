@@ -29,17 +29,14 @@ const BasketItems = ({
             const packageImage = packageData?.image;
 
             return (
-              // If you no longer need explosion effect, you can remove ExplosionEffect completely.
-              // For now, we keep it but it will not be triggered. We just call removeItem directly.
               <ExplosionEffect
                 key={index}
                 trigger={explodedItems[index]}
                 onComplete={() => removeItem(index)}
               >
                 <div className="mb-4 p-4 border rounded relative">
-                  {/* Change onClick from triggerExplosion to removeItem for immediate removal */}
                   <button
-                    onClick={() => removeItem(index)}
+                    onClick={() => triggerExplosion(index)}
                     className="text-red-600 absolute top-2 right-2"
                   >
                     Fjern
@@ -68,6 +65,7 @@ const BasketItems = ({
                           +
                         </button>
                       </div>
+                      {/* Item details */}
                       <p className="text-gray-700 mt-2">
                         Pris pr. pakke: {(item.pricePerPackage / 100).toFixed(2)} kr
                       </p>
@@ -81,11 +79,15 @@ const BasketItems = ({
                       <p className="text-gray-700 mt-2">
                         Sukker præference: {item.sugarPreference || 'Ikke valgt'}
                       </p>
-                      <button onClick={() => toggleExpand(index)} className="mt-2 text-blue-600">
+                      <button
+                        onClick={() => toggleExpand(index)}
+                        className="mt-2 text-blue-600"
+                      >
                         {isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
                       </button>
                     </div>
                   </div>
+                  {/* Expanded item details */}
                   {isExpanded && (
                     <div className="mt-4">
                       {item.selectedDrinks &&

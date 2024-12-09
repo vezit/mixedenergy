@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import router from 'next/router';
 import { useBasket } from '../components/BasketContext';
 import Loading from '../components/Loading';
+
+// Import the new components
 import CustomerDetails from '../components/CustomerDetails';
 import ShippingAndPayment from '../components/ShippingAndPayment';
 import OrderConfirmation from '../components/OrderConfirmation';
@@ -21,19 +23,34 @@ export default function Basket() {
 
   const [packagesData, setPackagesData] = useState({});
   const [explodedItems, setExplodedItems] = useState({});
+
+  // State for expanded items
   const [expandedItems, setExpandedItems] = useState({});
+
+  // State for drinks data
   const [drinksData, setDrinksData] = useState({});
+
+  // State for delivery option
   const [deliveryOption, setDeliveryOption] = useState('pickupPoint');
+
+  // State for selected pickup point ID
   const [selectedPoint, setSelectedPoint] = useState(null);
+
+  // State submitAttempted state
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  // State for basket summary
   const [basketSummary, setBasketSummary] = useState(null);
+
+  // State for errors and touched fields
   const [errors, setErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
 
+  // Compute total price and total recycling fee
   const totalPrice = basketItems.reduce((sum, item) => sum + item.totalPrice, 0);
   const totalRecyclingFee = basketItems.reduce((sum, item) => sum + item.totalRecyclingFee, 0);
 
-  // Update delivery details in backend
+  // Function to update delivery details in the backend
   const updateDeliveryDetailsInBackend = async (option, deliveryData) => {
     try {
       let deliveryAddress = {};
@@ -58,7 +75,7 @@ export default function Basket() {
           };
         }
       } else if (option === 'homeDelivery') {
-        // Check if we have enough details for home delivery
+        // Use the validated address from customerDetails
         if (
           customerDetails.fullName &&
           customerDetails.address &&
@@ -67,8 +84,8 @@ export default function Basket() {
         ) {
           deliveryAddress = {
             name: customerDetails.fullName,
-            streetName: customerDetails.address,
-            streetNumber: '',
+            streetName: customerDetails.address, // The full address is stored here after validation
+            streetNumber: '', // Optional, if you want to split further
             postalCode: customerDetails.postalCode,
             city: customerDetails.city,
             country: 'Danmark',
@@ -82,7 +99,7 @@ export default function Basket() {
         }
       }
 
-      // Send delivery details to the backend
+      // Send delivery details to the backend regardless of completeness
       await fetch('/api/firebase/4-updateBasket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,9 +110,6 @@ export default function Basket() {
           providerDetails,
         }),
       });
-
-      // After updating delivery details, fetch the basket summary again to get the updated delivery fee
-      await fetchBasketSummary();
     } catch (error) {
       console.error('Error updating delivery details:', error);
     }
@@ -109,7 +123,6 @@ export default function Basket() {
   // Function to update item quantity
   const updateQuantity = (itemIndex, newQuantity) => {
     updateItemQuantity(itemIndex, newQuantity);
-    // Once updated, this will trigger the useEffect below which updates delivery details
   };
 
   // Function to trigger explosion effect
@@ -120,7 +133,7 @@ export default function Basket() {
     }));
   };
 
-  // Toggle expansion of a basket item
+  // Function to toggle expansion of a basket item
   const toggleExpand = (index) => {
     setExpandedItems((prev) => ({
       ...prev,
@@ -128,8 +141,9 @@ export default function Basket() {
     }));
   };
 
-  // Fetch packages data whenever basket items change
+  // Fetch package data when basket items change
   useEffect(() => {
+    // Collect all the package slugs from basket items
     const packageSlugsSet = new Set();
     basketItems.forEach((item) => {
       if (item.slug) {
@@ -139,6 +153,7 @@ export default function Basket() {
     const packageSlugs = Array.from(packageSlugsSet);
 
     if (packageSlugs.length > 0) {
+      // Fetch packages data
       fetch('/api/firebase/2-getPackages')
         .then((res) => res.json())
         .then((data) => {
@@ -159,12 +174,14 @@ export default function Basket() {
 
   useEffect(() => {
     if (isBasketLoaded && basketItems.length === 0) {
+      // Redirect immediately when basket is empty and data has loaded
       router.push('/');
     }
   }, [isBasketLoaded, basketItems, router]);
 
-  // Fetch drinks data based on selectedDrinks
+  // Fetch drinks data based on selectedDrinks in basket items
   useEffect(() => {
+    // Collect all the drink slugs from basket items
     const drinkSlugsSet = new Set();
     basketItems.forEach((item) => {
       if (item.selectedDrinks) {
@@ -176,6 +193,7 @@ export default function Basket() {
     const drinkSlugs = Array.from(drinkSlugsSet);
 
     if (drinkSlugs.length > 0) {
+      // Fetch drinks data
       fetch('/api/firebase/3-getDrinksBySlugs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -191,62 +209,29 @@ export default function Basket() {
     }
   }, [basketItems]);
 
-  // Function to fetch basket summary (used after delivery details update)
-  const fetchBasketSummary = async () => {
-    try {
-      const res = await fetch('/api/firebase/5-getBasket');
-      const data = await res.json();
-      setBasketSummary(data.basketDetails);
-      // Update delivery option and selectedPoint based on basket summary
-      if (data.basketDetails.deliveryDetails.deliveryType) {
-        setDeliveryOption(data.basketDetails.deliveryDetails.deliveryType);
-      }
-      if (data.basketDetails.deliveryDetails.providerDetails?.postnord?.servicePointId) {
-        setSelectedPoint(data.basketDetails.deliveryDetails.providerDetails.postnord.servicePointId);
-      }
-    } catch (error) {
-      console.error('Error fetching basket summary:', error);
-    }
-  };
-
-  // Initially fetch basket summary
+  // Fetch basket summary when relevant data changes
   useEffect(() => {
-    fetchBasketSummary();
+    // Fetch basket summary
+    fetch('/api/firebase/5-getBasket')
+      .then((res) => res.json())
+      .then((data) => {
+        setBasketSummary(data.basketDetails);
+        // Update delivery option and selectedPoint based on basket summary
+        if (data.basketDetails.deliveryDetails.deliveryType) {
+          setDeliveryOption(data.basketDetails.deliveryDetails.deliveryType);
+        }
+        if (data.basketDetails.deliveryDetails.providerDetails?.postnord?.servicePointId) {
+          setSelectedPoint(
+            data.basketDetails.deliveryDetails.providerDetails.postnord.servicePointId
+          );
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching basket summary:', error);
+      });
   }, [customerDetails, deliveryOption]);
 
-  // Live update delivery details whenever basketItems change
-  // This ensures that whenever the user changes quantity or removes an item,
-  // the backend recalculates the delivery fee based on updated weight.
-  useEffect(() => {
-    if (basketItems.length > 0) {
-      if (deliveryOption === 'pickupPoint' && basketSummary?.deliveryDetails?.providerDetails?.postnord?.servicePointId) {
-        // If we have a selected pickup point stored in basketSummary
-        // Use the same data to reupdate the delivery details
-        const selectedPickupPoint = {
-          name: basketSummary.deliveryDetails.deliveryAddress.name,
-          visitingAddress: {
-            streetName: basketSummary.deliveryDetails.deliveryAddress.streetName,
-            streetNumber: basketSummary.deliveryDetails.deliveryAddress.streetNumber,
-            postalCode: basketSummary.deliveryDetails.deliveryAddress.postalCode,
-            city: basketSummary.deliveryDetails.deliveryAddress.city,
-          },
-          servicePointId: basketSummary.deliveryDetails.providerDetails.postnord.servicePointId,
-        };
-        updateDeliveryDetailsInBackend('pickupPoint', { selectedPickupPoint });
-      } else if (deliveryOption === 'homeDelivery') {
-        // For home delivery, ensure we have full address
-        if (
-          customerDetails.fullName &&
-          customerDetails.address &&
-          customerDetails.postalCode &&
-          customerDetails.city
-        ) {
-          updateDeliveryDetailsInBackend('homeDelivery', {});
-        }
-      }
-    }
-  }, [basketItems, deliveryOption, basketSummary, customerDetails]);
-
+  // Conditional rendering based on loading state
   if (!isBasketLoaded) {
     return <Loading />;
   }
@@ -257,6 +242,7 @@ export default function Basket() {
         <p>Din kurv er tom. Du bliver omdirigeret til forsiden.</p>
       ) : (
         <>
+          {/* Render basket items */}
           <BasketItems
             basketItems={basketItems}
             expandedItems={expandedItems}
@@ -271,6 +257,7 @@ export default function Basket() {
             totalRecyclingFee={totalRecyclingFee}
           />
 
+          {/* Render customer details */}
           <CustomerDetails
             customerDetails={customerDetails}
             updateCustomerDetails={updateCustomerDetails}
@@ -282,6 +269,7 @@ export default function Basket() {
             submitAttempted={submitAttempted}
           />
 
+          {/* Render shipping and payment */}
           <div className="mb-4">
             <ShippingAndPayment
               deliveryOption={deliveryOption}
@@ -293,6 +281,7 @@ export default function Basket() {
             />
           </div>
 
+          {/* Render order confirmation */}
           <OrderConfirmation
             customerDetails={customerDetails}
             deliveryOption={deliveryOption}
@@ -301,7 +290,7 @@ export default function Basket() {
             totalPrice={totalPrice}
             totalRecyclingFee={totalRecyclingFee}
             basketItems={basketItems}
-            basketSummary={basketSummary}
+            basketSummary={basketSummary} // Pass the basketSummary to OrderConfirmation
             errors={errors}
             setErrors={setErrors}
             touchedFields={touchedFields}

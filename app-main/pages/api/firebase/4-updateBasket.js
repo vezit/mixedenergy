@@ -3,7 +3,8 @@
 import { admin, db } from '../../../lib/firebaseAdmin';
 import cookie from 'cookie';
 import { calculatePrice } from '../../../lib/priceCalculations';
-import { DELIVERY_PRICES } from '../../../lib/constants'; // Import the delivery prices
+// Remove the static DELIVERY_PRICES import since we now calculate based on weight.
+// import { DELIVERY_PRICES } from '../../../lib/constants';
 
 export default async (req, res) => {
   try {
@@ -35,36 +36,36 @@ export default async (req, res) => {
     const basketDetails = sessionData.basketDetails || {};
     let items = basketDetails.items || [];
 
-
     if (action === 'updateDeliveryDetails') {
-      // Handle 'updateDeliveryDetails' action
       const { deliveryOption, deliveryAddress, providerDetails } = req.body;
-
 
       if (!deliveryOption || !deliveryAddress || !providerDetails) {
         return res.status(400).json({ error: 'Missing delivery details' });
       }
 
-      const deliveryFee = DELIVERY_PRICES[deliveryOption];
+      // Calculate total weight of all items
+      const totalWeight = await calculateTotalBasketWeight(items);
+
+      // Get the dynamic delivery fee based on weight and option
+      const deliveryFee = getDeliveryFee(totalWeight, deliveryOption);
 
       const deliveryDetails = {
-        provider: 'postnord', // Assuming PostNord is the provider
-        trackingNumber: null, // This will be updated later when the shipment is created
-        estimatedDeliveryDate: null, // To be updated later
+        provider: 'postnord',
+        trackingNumber: null,
+        estimatedDeliveryDate: null,
         deliveryType: deliveryOption,
-        deliveryFee: deliveryFee, // Calculate if needed
+        deliveryFee: deliveryFee,
         currency: 'DKK',
         deliveryAddress: deliveryAddress,
         providerDetails: providerDetails,
         createdAt: new Date().toISOString(),
       };
 
-      // Update the deliveryDetails in the session
       await sessionDocRef.update({
         'basketDetails.deliveryDetails': deliveryDetails,
       });
 
-      res.status(200).json({ success: true });
+      return res.status(200).json({ success: true });
     } else if (action === 'addItem') {
       // Handle 'addItem' action
       const { selectionId, quantity } = req.body;
@@ -89,7 +90,7 @@ export default async (req, res) => {
       }
       const packageData = packageDoc.data();
 
-      // Compute price and recycling fee using the utility function
+      // Compute price and recycling fee
       const { pricePerPackage, recyclingFeePerPackage } = await calculatePrice({
         packageData,
         selectedSize,
@@ -106,7 +107,6 @@ export default async (req, res) => {
           item.packages_size === selectedSize &&
           isSameSelection(item.selectedDrinks, selectedProducts)
         ) {
-          // Increment the quantity and update totalPrice and totalRecyclingFee
           item.quantity += quantity;
           item.totalPrice += totalPrice;
           item.totalRecyclingFee += totalRecyclingFee;
@@ -116,7 +116,6 @@ export default async (req, res) => {
       }
 
       if (!itemFound) {
-        // Add item to basket
         items.push({
           slug: packageSlug,
           quantity,
@@ -130,31 +129,26 @@ export default async (req, res) => {
         });
       }
 
-      // Update the basket in the session
       await sessionDocRef.update({
         'basketDetails.items': items,
       });
 
-      res.status(200).json({ success: true });
+      return res.status(200).json({ success: true });
     } else if (action === 'removeItem') {
-      // Handle 'removeItem' action
       const { itemIndex } = req.body;
 
       if (itemIndex === undefined || itemIndex < 0 || itemIndex >= items.length) {
         return res.status(400).json({ error: 'Invalid item index' });
       }
 
-      // Remove the item from the items array
       items.splice(itemIndex, 1);
 
-      // Update the basket in the session
       await sessionDocRef.update({
         'basketDetails.items': items,
       });
 
-      res.status(200).json({ success: true });
+      return res.status(200).json({ success: true });
     } else if (action === 'updateQuantity') {
-      // Handle 'updateQuantity' action
       const { itemIndex, quantity } = req.body;
 
       if (itemIndex === undefined || itemIndex < 0 || itemIndex >= items.length) {
@@ -166,39 +160,33 @@ export default async (req, res) => {
       }
 
       let item = items[itemIndex];
-
-      // Recalculate totalPrice and totalRecyclingFee
       item.quantity = quantity;
       item.totalPrice = item.pricePerPackage * quantity;
       item.totalRecyclingFee = item.recyclingFeePerPackage * quantity;
 
-      // Update the basket in the session
       await sessionDocRef.update({
         'basketDetails.items': items,
       });
 
-      res.status(200).json({ success: true });
-    }  else if (action === 'updateCustomerDetails') {
+      return res.status(200).json({ success: true });
+    } else if (action === 'updateCustomerDetails') {
       const { customerDetails } = req.body;
-    
+
       if (!customerDetails || typeof customerDetails !== 'object') {
         return res.status(400).json({ error: 'Invalid customerDetails format' });
       }
-    
+
       const allowedFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
-    
       const errors = {};
       const updatedCustomerDetails = {};
-    
+
       for (const field of allowedFields) {
         let value = customerDetails[field];
-    
+
         if (typeof value !== 'string' || !value.trim()) {
-          // Invalid or empty field, set to null
           updatedCustomerDetails[field] = null;
           errors[field] = `${field} er påkrævet`;
         } else {
-          // Validate field
           value = value.trim();
           if (field === 'mobileNumber') {
             const mobileNumberRegex = /^\d{8}$/;
@@ -229,8 +217,7 @@ export default async (req, res) => {
           }
         }
       }
-    
-      // Update the customerDetails in the session with updated data
+
       await sessionDocRef.set(
         {
           basketDetails: {
@@ -239,12 +226,9 @@ export default async (req, res) => {
         },
         { merge: true }
       );
-    
-      // Return success response and any errors
-      res.status(200).json({ success: true, errors });
-    }
-    
-     else {
+
+      return res.status(200).json({ success: true, errors });
+    } else {
       return res.status(400).json({ error: 'Invalid action' });
     }
   } catch (error) {
@@ -253,7 +237,7 @@ export default async (req, res) => {
   }
 };
 
-// Include the isSameSelection function here
+// Helper function to determine if two selections are the same
 function isSameSelection(a, b) {
   const aKeys = Object.keys(a).sort();
   const bKeys = Object.keys(b).sort();
@@ -274,4 +258,97 @@ function isSameSelection(a, b) {
   return true;
 }
 
+// Approximate weight calculation from size
+function approximateWeightFromSize(sizeString) {
+  // Extract volume in liters, assuming format like "0.5 l"
+  const volumeMatch = sizeString.match(/([\d.]+)\s*l/);
+  if (!volumeMatch) return 0;
 
+  const volumeLiters = parseFloat(volumeMatch[1]);
+  // Approximate: 1 liter of beverage ~ 1 kg
+  let weight = volumeLiters;
+
+  // Add packaging weight - rough estimate
+  // Adjust these numbers as needed
+  if (volumeLiters === 0.5) {
+    weight += 0.02; // ~20g for packaging
+  } else if (volumeLiters === 0.25) {
+    weight += 0.015; // ~15g for smaller can
+  } else {
+    // For other sizes, scale packaging
+    weight += 0.04 * volumeLiters; 
+  }
+
+  return weight; // in kg
+}
+
+// Calculate total basket weight
+async function calculateTotalBasketWeight(items) {
+  let totalWeight = 0;
+
+  // For each item, we have selectedDrinks: { 'monster-energy': count, ... }
+  // We need to fetch each drink data to get its size -> weight
+  for (const item of items) {
+    const selectedDrinks = item.selectedDrinks || {};
+    const drinkSlugs = Object.keys(selectedDrinks);
+
+    if (drinkSlugs.length === 0) continue;
+
+    const drinkDocs = await Promise.all(
+      drinkSlugs.map((slug) => db.collection('drinks').doc(slug).get())
+    );
+
+    for (let i = 0; i < drinkSlugs.length; i++) {
+      const slug = drinkSlugs[i];
+      const doc = drinkDocs[i];
+      if (doc.exists) {
+        const drinkData = doc.data();
+        const count = selectedDrinks[slug];
+        const weightPerUnit = approximateWeightFromSize(drinkData.size);
+        totalWeight += weightPerUnit * count * item.quantity; 
+        // item.quantity is the number of packages, and count is how many of that drink per package
+      }
+    }
+  }
+
+  return totalWeight;
+}
+
+// Determine delivery fee based on weight and delivery option
+function getDeliveryFee(weight, deliveryOption) {
+  // Example fee tables (in øre, e.g. 3200 = 32.00 kr)
+  // Adjust as per your pricing
+  const pickupPointFees = [
+    { maxWeight: 1, fee: 3200 },
+    { maxWeight: 2, fee: 3900 },
+    { maxWeight: 5, fee: 5500 },
+    { maxWeight: 10, fee: 7500 },
+    { maxWeight: 15, fee: 8500 },
+    { maxWeight: 20, fee: 8900 },
+    { maxWeight: 25, fee: 11000 },
+    { maxWeight: 30, fee: 12500 },
+    { maxWeight: 35, fee: 13500 },
+  ];
+
+  const homeDeliveryFees = [
+    { maxWeight: 1, fee: 4300 },
+    { maxWeight: 2, fee: 5000 },
+    { maxWeight: 5, fee: 6500 },
+    { maxWeight: 10, fee: 8300 },
+    { maxWeight: 15, fee: 10000 },
+    { maxWeight: 20, fee: 11000 },
+    { maxWeight: 25, fee: 12000 },
+    { maxWeight: 30, fee: 12500 },
+    { maxWeight: 35, fee: 13500 },
+  ];
+
+  let feeTable = deliveryOption === 'pickupPoint' ? pickupPointFees : homeDeliveryFees;
+  const bracket = feeTable.find(b => weight <= b.maxWeight);
+
+  // If no bracket found, use the highest fee
+  if (!bracket) {
+    return feeTable[feeTable.length - 1].fee;
+  }
+
+  return bracket.fee;
+}
