@@ -33,6 +33,7 @@ export default function Basket() {
   const totalPrice = basketItems.reduce((sum, item) => sum + item.totalPrice, 0);
   const totalRecyclingFee = basketItems.reduce((sum, item) => sum + item.totalRecyclingFee, 0);
 
+  // Update delivery details in backend
   const updateDeliveryDetailsInBackend = async (option, deliveryData) => {
     try {
       let deliveryAddress = {};
@@ -57,6 +58,7 @@ export default function Basket() {
           };
         }
       } else if (option === 'homeDelivery') {
+        // Check if we have enough details for home delivery
         if (
           customerDetails.fullName &&
           customerDetails.address &&
@@ -80,6 +82,7 @@ export default function Basket() {
         }
       }
 
+      // Send delivery details to the backend
       await fetch('/api/firebase/4-updateBasket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,20 +94,25 @@ export default function Basket() {
         }),
       });
 
+      // After updating delivery details, fetch the basket summary again to get the updated delivery fee
       await fetchBasketSummary();
     } catch (error) {
       console.error('Error updating delivery details:', error);
     }
   };
 
+  // Function to remove item from basket after explosion effect
   const removeItem = (itemIndex) => {
     removeItemFromBasket(itemIndex);
   };
 
+  // Function to update item quantity
   const updateQuantity = (itemIndex, newQuantity) => {
     updateItemQuantity(itemIndex, newQuantity);
+    // Once updated, this will trigger the useEffect below which updates delivery details
   };
 
+  // Function to trigger explosion effect
   const triggerExplosion = (itemIndex) => {
     setExplodedItems((prev) => ({
       ...prev,
@@ -112,6 +120,7 @@ export default function Basket() {
     }));
   };
 
+  // Toggle expansion of a basket item
   const toggleExpand = (index) => {
     setExpandedItems((prev) => ({
       ...prev,
@@ -119,6 +128,7 @@ export default function Basket() {
     }));
   };
 
+  // Fetch packages data whenever basket items change
   useEffect(() => {
     const packageSlugsSet = new Set();
     basketItems.forEach((item) => {
@@ -153,6 +163,7 @@ export default function Basket() {
     }
   }, [isBasketLoaded, basketItems, router]);
 
+  // Fetch drinks data based on selectedDrinks
   useEffect(() => {
     const drinkSlugsSet = new Set();
     basketItems.forEach((item) => {
@@ -180,11 +191,13 @@ export default function Basket() {
     }
   }, [basketItems]);
 
+  // Function to fetch basket summary (used after delivery details update)
   const fetchBasketSummary = async () => {
     try {
       const res = await fetch('/api/firebase/5-getBasket');
       const data = await res.json();
       setBasketSummary(data.basketDetails);
+      // Update delivery option and selectedPoint based on basket summary
       if (data.basketDetails.deliveryDetails.deliveryType) {
         setDeliveryOption(data.basketDetails.deliveryDetails.deliveryType);
       }
@@ -196,16 +209,19 @@ export default function Basket() {
     }
   };
 
+  // Initially fetch basket summary
   useEffect(() => {
     fetchBasketSummary();
   }, [customerDetails, deliveryOption]);
 
+  // Live update delivery details whenever basketItems change
+  // This ensures that whenever the user changes quantity or removes an item,
+  // the backend recalculates the delivery fee based on updated weight.
   useEffect(() => {
     if (basketItems.length > 0) {
-      if (
-        deliveryOption === 'pickupPoint' &&
-        basketSummary?.deliveryDetails?.providerDetails?.postnord?.servicePointId
-      ) {
+      if (deliveryOption === 'pickupPoint' && basketSummary?.deliveryDetails?.providerDetails?.postnord?.servicePointId) {
+        // If we have a selected pickup point stored in basketSummary
+        // Use the same data to reupdate the delivery details
         const selectedPickupPoint = {
           name: basketSummary.deliveryDetails.deliveryAddress.name,
           visitingAddress: {
@@ -218,6 +234,7 @@ export default function Basket() {
         };
         updateDeliveryDetailsInBackend('pickupPoint', { selectedPickupPoint });
       } else if (deliveryOption === 'homeDelivery') {
+        // For home delivery, ensure we have full address
         if (
           customerDetails.fullName &&
           customerDetails.address &&
