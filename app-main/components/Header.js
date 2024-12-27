@@ -1,5 +1,4 @@
 // components/Header.js
-
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useBasket } from '../components/BasketContext';
@@ -7,14 +6,13 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 
 const Header = () => {
-  const { basketItems, isNewItemAdded } = useBasket();
+  const { basketItems } = useBasket();
   const [showEmptyMessage, setShowEmptyMessage] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // state to track if user is logged in
-  const [username, setUsername] = useState(''); // state to store the user's username
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is authenticated using API
     const checkAuth = async () => {
       try {
         const response = await axios.get('/api/firebase/0-checkAuth');
@@ -52,14 +50,13 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/api/sessionLogout'); // Call the logout API
-      router.push('/'); // Redirect to home after logout
+      await axios.post('/api/sessionLogout'); 
+      router.push('/');
     } catch (error) {
       console.error('Error logging out:', error);
     }
   };
 
-  // **Ensure basketItems is an array and calculate total items**
   const totalItemsInBasket = Array.isArray(basketItems)
     ? basketItems.reduce((total, item) => total + item.quantity, 0)
     : 0;
@@ -70,15 +67,18 @@ const Header = () => {
       style={{ backgroundColor: '#fab93d' }}
     >
       <a href="/" className="flex items-center">
-        <Image
+        {/* This <Image /> usage is correct for Next.js 13+ or 15 */}
+        {/* <Image
           src="/images/mixedenergy-logo.png"
           alt="Logo"
           width={50}
           height={50}
-        />
+        /> */}
         <h1 className="text-3xl font-bold ml-2">Mixed Energy</h1>
       </a>
+
       <nav className="flex space-x-4"></nav>
+
       <div className="relative flex items-center space-x-4">
         <div
           className="relative"
@@ -94,9 +94,9 @@ const Header = () => {
             />
             {basketItems.length > 0 && (
               <div
-                className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold ${
-                  isNewItemAdded ? 'animate-custom-pulse' : ''
-                }`}
+                className="absolute -top-2 -right-2 bg-red-500 text-white
+                           rounded-full w-6 h-6 flex items-center justify-center
+                           text-xs font-semibold"
               >
                 {totalItemsInBasket}
               </div>
@@ -109,11 +109,11 @@ const Header = () => {
           )}
         </div>
 
-        {/* Conditionally render the logout button only if logged in */}
         {isLoggedIn && (
           <button
             onClick={handleLogout}
-            className="bg-transparent border-2 border-black rounded px-4 py-1 hover:bg-black hover:text-white transition-all"
+            className="bg-transparent border-2 border-black rounded px-4 py-1 
+                      hover:bg-black hover:text-white transition-all"
           >
             Logout {username}
           </button>

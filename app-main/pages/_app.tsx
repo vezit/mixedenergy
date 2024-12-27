@@ -1,18 +1,20 @@
-// pages/_app.js
+
+import type { AppProps } from 'next/app';
 import '../styles/globals.css';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import CookieConsent from '../components/CookieConsent';
 import { BasketProvider } from '../components/BasketContext';
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect, JSX } from 'react';
 import { useRouter } from 'next/router';
 import * as gtag from '../lib/gtag';
 import AddToBasketPopup from '../components/AddToBasketPopup';
 
-function MyApp({ Component, pageProps }) {
+export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   const router = useRouter();
   const [isStorageEnabled, setIsStorageEnabled] = useState(true);
 
+  // Check local storage and cookies
   useEffect(() => {
     let storageEnabled = true;
     try {
@@ -38,8 +40,9 @@ function MyApp({ Component, pageProps }) {
     }
   }, []);
 
+  // Google Analytics page view
   useEffect(() => {
-    const handleRouteChange = (url) => {
+    const handleRouteChange = (url: string) => {
       gtag.pageview(url);
     };
 
@@ -60,7 +63,8 @@ function MyApp({ Component, pageProps }) {
         {/* Cookie/Local Storage Warning */}
         {!isStorageEnabled && (
           <div className="bg-red-500 text-white text-center p-2">
-            Our website requires cookies and local storage to function properly. Please enable cookies and local storage in your browser settings.
+            Our website requires cookies and local storage to function properly. Please enable cookies
+            and local storage in your browser settings.
           </div>
         )}
 
@@ -82,5 +86,3 @@ function MyApp({ Component, pageProps }) {
     </BasketProvider>
   );
 }
-
-export default MyApp;

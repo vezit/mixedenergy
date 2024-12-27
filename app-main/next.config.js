@@ -6,12 +6,12 @@ export default {
   images: {
     domains: ['firebasestorage.googleapis.com'],
   },
-  webpack(config, { dev }) {
-    if (dev) {
-      config.devtool = 'cheap-module-source-map';
-    }
-    return config;
-  },
+  // webpack(config, { dev }) {
+  //   if (dev) {
+  //     config.devtool = 'cheap-module-source-map';
+  //   }
+  //   return config;
+  // },
   ...(isLocal
     ? {} // Local environment: no additional configuration
     : {

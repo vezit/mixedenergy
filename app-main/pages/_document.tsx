@@ -1,21 +1,20 @@
-// pages/_document.js
+import React, { useState, useEffect, JSX } from 'react';
 import { Html, Head, Main, NextScript } from 'next/document';
-import { GA_TRACKING_ID } from '../lib/gtag';  // Import the GA Tracking ID
+import { GA_TRACKING_ID } from '../lib/gtag';
 
-export default function Document() {
+export default function Document(): JSX.Element {
   return (
     <Html>
       <Head>
         {/* Global Site Tag (gtag.js) - Google Analytics */}
         {GA_TRACKING_ID && (
           <>
-            {/* Load the GA script */}
             <script
               async
               src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
             ></script>
-            {/* Initialize GA */}
             <script
+              // We can safely use `dangerouslySetInnerHTML` here for script initialization
               dangerouslySetInnerHTML={{
                 __html: `
                   window.dataLayer = window.dataLayer || [];
@@ -29,6 +28,7 @@ export default function Document() {
             />
           </>
         )}
+
         {/* Favicon links */}
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />

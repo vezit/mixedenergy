@@ -1,7 +1,7 @@
-# Use an official Node.js runtime as a parent image
-FROM node:20-bookworm
+# Use the official Node.js 22 image as a parent image
+FROM node:22-bookworm
 
-# Install locales and basic utilities
+# Install locales, basic utilities, and set up the 'node' user for passwordless sudo if required
 RUN apt-get update && apt-get install -y locales sudo tree \
     && echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node \
     && chmod 0440 /etc/sudoers.d/node \
@@ -16,19 +16,24 @@ ENV LC_ALL=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8
 
-# Set the working directory to the app-main directory
-WORKDIR /usr/src/project/app-main
-
-# Install necessary packages
-RUN npm install next firebase firebase-admin
-
-# Copy the project files into the container
-COPY --chown=node:node . .
+# Create the application directory and give ownership to the 'node' user
+RUN mkdir -p /usr/src/project/app-main \
+    && chown -R node:node /usr/src/project
 
 # Switch to the default non-root user provided by the Node.js image
 USER node
 
-# Expose the port Next.js runs on
+# Set the working directory to the app-main directory
+WORKDIR /usr/src/project/app-main
+
+# First copy only package.json/package-lock.json, then install dependencies
+COPY --chown=node:node package*.json ./
+# RUN npm install
+
+# Now copy the rest of your project files
+COPY --chown=node:node . .
+
+# Expose the port Next.js (or your Node.js app) runs on
 EXPOSE 3000
 
 # Command to start the Next.js application

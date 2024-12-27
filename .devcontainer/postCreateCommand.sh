@@ -18,26 +18,29 @@ fi
 # Set git to ignore file mode (permissions) changes globally for all repositories
 git config --global core.fileMode false
 
-echo "Enter your username:"
-read username
-case $username in
-    vicmrp)
-        git config --global user.email "victor.reipur@gmail.com"
-        git config --global user.name "Victor Reipur"
-        ;;
-    crazydude92)
-        git config --global user.email "christian12_5@hotmail.com"
-        git config --global user.name "Christian Jensen"
-        ;;
-    *)
-        echo "Enter your email:"
-        read email
-        git config --global user.email "$email"
-        echo "Enter your name:"
-        read name
-        git config --global user.name "$name"
-        ;;
-esac
+git config --global user.email "victor.reipur@gmail.com"
+git config --global user.name "Victor Reipur"
+
+# echo "Enter your username:"
+# read username
+# case $username in
+#     vicmrp)
+#         git config --global user.email "victor.reipur@gmail.com"
+#         git config --global user.name "Victor Reipur"
+#         ;;
+#     crazydude92)
+#         git config --global user.email "christian12_5@hotmail.com"
+#         git config --global user.name "Christian Jensen"
+#         ;;
+#     *)
+#         echo "Enter your email:"
+#         read email
+#         git config --global user.email "$email"
+#         echo "Enter your name:"
+#         read name
+#         git config --global user.name "$name"
+#         ;;
+# esac
 # git config --global --add safe.directory /usr/src/project
 # git config --global --add safe.directory /mnt/project
 # git config --global --add safe.directory /usr/src/project/.devcontainer/.docker-migrate

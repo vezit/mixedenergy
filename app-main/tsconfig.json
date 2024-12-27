@@ -1,0 +1,33 @@
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    // 👇 This is important for Next.js + TS
+    "jsx": "preserve",
+    "incremental": true
+  },
+  // 👇 Make sure next-env.d.ts is included
+  "include": [
+    "next-env.d.ts.bak",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
