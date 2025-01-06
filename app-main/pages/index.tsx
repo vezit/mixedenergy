@@ -1,3 +1,5 @@
+// pages/index.tsx
+
 import React, { useState, useEffect, JSX } from 'react';
 import Link from 'next/link';
 import axios from 'axios';

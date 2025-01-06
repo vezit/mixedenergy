@@ -1,0 +1,45 @@
+services:
+  # Supabase Postgres DB
+  supabase-db:
+    image: supabase/postgres:latest
+    container_name: supabase-db
+    ports:
+      - '5432:5432'
+    volumes:
+      - supabase-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Change to something secure
+
+  # Supabase Auth
+  supabase-auth:
+    image: supabase/gotrue:latest
+    container_name: supabase-auth
+    depends_on:
+      - supabase-db
+    ports:
+      - '9999:9999'
+    environment:
+      GOTRUE_DB_DRIVER: 'postgres'
+      GOTRUE_DB_DATABASE_URL: 'postgresql://postgres:CHANGE_THIS_PASSWORD@supabase-db:5432/postgres'
+      GOTRUE_SITE_URL: 'http://localhost:3000'  # Change to your site if needed
+      GOTRUE_API_HOST: '0.0.0.0'
+      GOTRUE_API_PORT: '9999'
+      GOTRUE_JWT_SECRET: ${GOTRUE_JWT_SECRET}   # Change to something secure
+
+  # Supabase REST
+  supabase-rest:
+    image: supabase/postgrest:latest
+    container_name: supabase-rest
+    depends_on:
+      - supabase-db
+    ports:
+      - '3000:3000'
+    environment:
+      PGRST_DB_URI: 'postgresql://postgres:CHANGE_THIS_PASSWORD@supabase-db:5432/postgres'
+      PGRST_DB_ANON_ROLE: 'anon'
+      PGRST_JWT_SECRET: ${PGRST_JWT_SECRET}
+      PGRST_DB_SCHEMA: 'public'
+      PGRST_PORT: 3000
+
+volumes:
+  supabase-data:
