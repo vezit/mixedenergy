@@ -1,6 +1,6 @@
 // /pages/api/cron/deleteOldSessions.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '../../../lib/firebaseAdmin';
+import { db } from '../../../lib/firebaseAdmin.ts.old';
 import { addDays } from 'date-fns';
 
 export default async function handler(

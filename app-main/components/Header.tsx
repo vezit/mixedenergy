@@ -18,10 +18,13 @@ const Header: React.FC = () => {
   const [username, setUsername] = useState('');
   const router = useRouter();
 
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await axios.get('/api/firebase/0-checkAuth');
+        // OLD: /api/firebase/0-checkAuth
+        // NEW: /api/supabase/checkAuth
+        const response = await axios.get('/api/supabase/0-checkAuth');
         if (response.data.loggedIn) {
           setIsLoggedIn(true);
           setUsername(response.data.email);

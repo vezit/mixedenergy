@@ -15,7 +15,6 @@ interface IBasketItem {
   quantity: number;
   pricePerPackage?: number;
   totalPrice?: number;
-  // ...
 }
 
 /** Example: used for adding items to the basket. */
@@ -65,7 +64,7 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
   useEffect(() => {
     const fetchBasketItems = async () => {
       try {
-        const response = await axios.get('/api/firebase/1-getSession');
+        const response = await axios.post('/api/supabase/getOrCreateSession', {})
         // Example response might include a `basketDetails` object with customer details, etc.
         if (response.data.session?.basketDetails?.items) {
           setBasketItems(response.data.session.basketDetails.items);
@@ -85,7 +84,7 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
   /** Example: add item to basket. */
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
-      const response = await axios.post('/api/firebase/4-updateBasket', {
+      const response = await axios.post('/api/supabase/4-updateBasket', {
         action: 'addItem',
         selectionId,
         quantity,
@@ -103,7 +102,7 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
   /** Example: remove item from basket. */
   const removeItemFromBasket = async (index: number) => {
     try {
-      const response = await axios.post('/api/firebase/4-updateBasket', {
+      const response = await axios.post('/api/supabase/4-updateBasket', {
         action: 'removeItem',
         itemIndex: index,
       });
@@ -129,7 +128,7 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
 
     // Persist to backend
     try {
-      await axios.post('/api/firebase/4-updateBasket', {
+      await axios.post('/api/supabase/4-updateBasket', {
         action: 'updateCustomerDetails',
         customerDetails: updatedDetails,
       });

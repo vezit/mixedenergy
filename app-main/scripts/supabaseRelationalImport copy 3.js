@@ -62,6 +62,7 @@ function promptToContinue(message) {
 async function runSQL(sql) {
   console.log(`\nRunning SQL via execute_sql RPC:\n${sql}\n`);
 
+  // Call your custom RPC function
   const { data, error } = await supabase.rpc('execute_sql', { statement: sql });
 
   if (error) {
@@ -112,8 +113,6 @@ async function createAllTables() {
     category text,
     image text,
     packages jsonb,
-    -- This is CRUCIAL for 4-generateRandomSelection to read "collectionsDrinks" directly
-    collectionsDrinks jsonb,
     created_at timestamptz default now(),
     updated_at timestamptz default now()
   );
@@ -156,6 +155,7 @@ function get(obj, key, fallback) {
 /** Main entry point */
 async function main() {
   try {
+    // If user passed --deletetables, drop & recreate everything
     if (shouldDeleteTables) {
       await promptToContinue('WARNING: This will delete the existing database tables!');
       console.log('Dropping tables...');
@@ -168,6 +168,7 @@ async function main() {
       console.log('Tables recreated. Now importing data...');
     }
 
+    // Parse JSON
     const rawPath = path.resolve(__dirname, filePathArg);
     if (!fs.existsSync(rawPath)) {
       throw new Error(`File not found: ${rawPath}`);
@@ -182,10 +183,10 @@ async function main() {
       await importDrinks(drinks);
     }
 
-    // 2) import packages (including "collectionsDrinks")
+    // 2) import packages
     if (packages) {
       await importPackages(packages);
-      await importPackagesDrinks(packages); // M2M pivot if you want it
+      await importPackagesDrinks(packages); // M2M pivot
     }
 
     // 3) import orders
@@ -206,9 +207,7 @@ async function main() {
   }
 }
 
-// ------------------
 // Insert or upsert DRINKS
-// ------------------
 async function importDrinks(drinksObj) {
   const rows = Object.entries(drinksObj).map(([slug, doc]) => ({
     slug,
@@ -224,7 +223,9 @@ async function importDrinks(drinksObj) {
   }));
 
   console.log(`Inserting/Upserting ${rows.length} drinks ...`);
-  const { error } = await supabase.from('drinks').upsert(rows, { onConflict: 'slug' });
+  const { error } = await supabase
+    .from('drinks')
+    .upsert(rows, { onConflict: 'slug' });
 
   if (error) {
     console.error('importDrinks error object:', error);
@@ -232,11 +233,8 @@ async function importDrinks(drinksObj) {
   }
 }
 
-// ------------------
 // Insert or upsert PACKAGES
-// ------------------
 async function importPackages(packagesObj) {
-  // We store doc.collectionsDrinks in the new "collectionsDrinks" JSONB column
   const rows = Object.entries(packagesObj).map(([slug, doc]) => ({
     slug,
     title: doc.title,
@@ -244,11 +242,12 @@ async function importPackages(packagesObj) {
     category: doc.category,
     image: doc.image,
     packages: get(doc, 'packages', []),
-    collectionsDrinks: get(doc, 'collectionsDrinks', []),
   }));
 
   console.log(`Inserting/Upserting ${rows.length} packages ...`);
-  const { error } = await supabase.from('packages').upsert(rows, { onConflict: 'slug' });
+  const { error } = await supabase
+    .from('packages')
+    .upsert(rows, { onConflict: 'slug' });
 
   if (error) {
     console.error('importPackages error:', error);
@@ -259,6 +258,7 @@ async function importPackages(packagesObj) {
 /**
  * Insert the many-to-many relationships in packages_drinks.
  * We'll SKIP any references to drinks that don't exist, to avoid foreign key errors.
+ * Additionally, we'll PRINT the actual missing drink slugs to help you remove/fix them.
  */
 async function importPackagesDrinks(packagesObj) {
   const linkRows = [];
@@ -277,10 +277,11 @@ async function importPackagesDrinks(packagesObj) {
   }
   console.log(`Inserting ${linkRows.length} package-drinks links ...`);
 
+  // We'll check which drink_slugs exist so we skip the bad ones
   const allDrinkSlugs = linkRows.map((row) => row.drink_slug);
   const uniqueSlugs = [...new Set(allDrinkSlugs)];
 
-  // Check if these drinks exist
+  // Query the drinks table
   const { data: existingDrinks, error: drinksErr } = await supabase
     .from('drinks')
     .select('slug')
@@ -293,14 +294,21 @@ async function importPackagesDrinks(packagesObj) {
     );
   }
 
+  // existingSlugs now holds all known slugs in the "drinks" table
   const existingSlugs = new Set((existingDrinks || []).map((d) => d.slug));
+
+  // Separate the linkRows into 'filtered' (OK) vs 'missing'
   const filteredRows = linkRows.filter((row) => existingSlugs.has(row.drink_slug));
   const missingRows = linkRows.filter((row) => !existingSlugs.has(row.drink_slug));
 
-  if (missingRows.length > 0) {
+  // Print how many were skipped
+  const skippedRows = missingRows.length;
+  if (skippedRows > 0) {
+    // Print exactly which missing slugs
     const missingSlugs = [...new Set(missingRows.map((r) => r.drink_slug))];
-    console.warn(`Skipping ${missingRows.length} link(s). Missing drink slugs in 'drinks':`);
+    console.warn(`Skipping ${skippedRows} link(s). The following drink slugs are not in 'drinks':`);
     console.warn(missingSlugs.join(', '));
+    console.warn('Please remove or fix these in your JSON.');
   }
 
   if (!filteredRows.length) {
@@ -308,17 +316,20 @@ async function importPackagesDrinks(packagesObj) {
     return;
   }
 
-  const { error } = await supabase.from('packages_drinks').insert(filteredRows);
+  // Insert only the valid rows
+  const { error } = await supabase
+    .from('packages_drinks')
+    .insert(filteredRows);
 
   if (error) {
     console.error('importPackagesDrinks error:', error);
-    throw new Error(`importPackagesDrinks: ${error.message || JSON.stringify(error)}`);
+    throw new Error(
+      `importPackagesDrinks: ${error.message || JSON.stringify(error)}`
+    );
   }
 }
 
-// ------------------
 // Insert or upsert ORDERS
-// ------------------
 async function importOrders(ordersObj) {
   const rows = Object.entries(ordersObj).map(([id, doc]) => ({
     id,
@@ -330,7 +341,9 @@ async function importOrders(ordersObj) {
   }));
 
   console.log(`Inserting/Upserting ${rows.length} orders ...`);
-  const { error } = await supabase.from('orders').upsert(rows, { onConflict: 'id' });
+  const { error } = await supabase
+    .from('orders')
+    .upsert(rows, { onConflict: 'id' });
 
   if (error) {
     console.error('importOrders error:', error);
@@ -338,9 +351,7 @@ async function importOrders(ordersObj) {
   }
 }
 
-// ------------------
 // Insert or upsert SESSIONS
-// ------------------
 async function importSessions(sessionsObj) {
   const rows = Object.entries(sessionsObj).map(([sessionId, doc]) => ({
     session_id: sessionId,
@@ -350,7 +361,9 @@ async function importSessions(sessionsObj) {
   }));
 
   console.log(`Inserting/Upserting ${rows.length} sessions ...`);
-  const { error } = await supabase.from('sessions').upsert(rows, { onConflict: 'session_id' });
+  const { error } = await supabase
+    .from('sessions')
+    .upsert(rows, { onConflict: 'session_id' });
 
   if (error) {
     console.error('importSessions error:', error);

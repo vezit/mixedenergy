@@ -1,6 +1,6 @@
-// /pages/api/firebase/drinks/[slug].ts
+// /pages/api/supabase/drinks/[slug].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '../../../../lib/firebaseAdmin';
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,13 +14,24 @@ export default async function handler(
   }
 
   try {
-    const drinkDoc = await db.collection('drinks').doc(slug).get();
-    if (!drinkDoc.exists) {
+    // Query the "drinks" table where slug = the requested slug
+    const { data: drink, error } = await supabaseAdmin
+      .from('drinks')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error) {
+      console.error('Error fetching drink:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    if (!drink) {
       return res.status(404).json({ error: 'Drink not found' });
     }
 
-    const drinkData = drinkDoc.data();
-    return res.status(200).json({ drink: drinkData });
+    // Return the found drink row
+    return res.status(200).json({ drink });
   } catch (error) {
     console.error('Error fetching drink:', error);
     return res.status(500).json({ error: 'Internal server error' });

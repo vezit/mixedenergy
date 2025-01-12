@@ -3,7 +3,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
 import getRawBody from 'raw-body';
-import { db } from '../../../lib/firebaseAdmin';
+import { db } from '../../../lib/firebaseAdmin.ts.old';
 import { sendOrderConfirmation } from '../../../lib/email';
 
 // If you're on Next.js 12 or below, you can keep the bodyParser config here

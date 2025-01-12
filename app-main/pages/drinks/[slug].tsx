@@ -29,7 +29,7 @@ export default function DrinkDetail(): JSX.Element {
 
     const fetchDrink = async () => {
       try {
-        const response = await axios.get(`/api/firebase/drinks/${slug}`);
+        const response = await axios.get(`/api/supabase/drinks/${slug}`);
         setDrink(response.data.drink);
       } catch (error) {
         console.error('Error fetching drink:', error);

@@ -9,16 +9,17 @@
 
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
+import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import minimist from 'minimist';
+import readline from 'readline';
 import { createClient } from '@supabase/supabase-js';
 
 // 1) Load env
-dotenv.config({ path: '.env.local' })
+dotenv.config({ path: '.env.local' });
 
 // 2) __dirname in ESM
-const __filename = url.fileURLToPath(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 3) Parse CLI args
@@ -38,47 +39,46 @@ if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
   process.exit(1);
 }
-
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-/** Helper to run a SQL statement. We'll use Supabase "rpc" or the Postgres extension. */
+/** Small helper to prompt user to press Enter to continue */
+function promptToContinue(message) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    rl.question(`${message}\n(Press ENTER to continue) `, () => {
+      rl.close();
+      resolve();
+    });
+  });
+}
+
+/** Helper to run a SQL statement. We'll use a (fake) "query" approach for demonstration. */
 async function runSQL(sql) {
-  // We'll rely on the "query" endpoint if you have Postgres function access,
-  // or you can do supabase.postgrest.rpc. Another approach is to create a custom
-  // SQL function on the server. For simplicity, let's do multiple .raw calls if you
-  // have the "pgrest" extension enabled. If not, you might need a separate approach.
-
-  // As of 2023, there's no official .sql or .raw in supabase-js. 
-  // We'll do a workaround using PostgREST custom function or we can do
-  // the "supabaseAdmin.rpc()" with a custom function that runs arbitrary SQL.
-  // 
-  // For simplicity below we just show how you *might* do it if you've created
-  // a "sql" function in your Postgres. Alternatively, skip dropping from script
-  // and do it manually in the Supabase SQL editor.
-
-  console.log(`(Simulated) Running SQL:\n${sql}\n`);
-  // If you have a custom RPC function "execute_sql" that runs arbitrary SQL:
+  console.log(`\n(Simulated) Running SQL:\n${sql}\n`);
+  // If you have a custom RPC function "execute_sql", you'd do:
   //   const { data, error } = await supabase.rpc('execute_sql', { statement: sql });
   //   if (error) throw new Error(`runSQL error: ${error.message}`);
+}
 
-  // For now, let's just pretend we ran it. If you do want to drop & create from code,
-  // create an RPC function in Supabase that can run arbitrary statements. Or do
-  // your drop/create in the Supabase UI's SQL editor. 
-  // 
-  // We'll store the create statements in createAllTables() below as well,
-  // so you can see it. Then you can copy/paste them into the Supabase UI if needed.
+/** Drop all existing tables */
+async function dropAllTables() {
+  const dropSQL = `
+  DROP TABLE IF EXISTS packages_drinks;
+  DROP TABLE IF EXISTS packages;
+  DROP TABLE IF EXISTS drinks;
+  DROP TABLE IF EXISTS orders;
+  DROP TABLE IF EXISTS sessions;
+  `;
+  await runSQL(dropSQL);
 }
 
 /** Create all tables from scratch */
 async function createAllTables() {
   const createSQL = `
-  drop table if exists packages_drinks;
-  drop table if exists packages;
-  drop table if exists drinks;
-  drop table if exists orders;
-  drop table if exists sessions;
-
-  create table if not exists public.drinks (
+  CREATE TABLE IF NOT EXISTS public.drinks (
     slug text primary key,
     name text,
     size text,
@@ -93,7 +93,7 @@ async function createAllTables() {
     updated_at timestamptz default now()
   );
 
-  create table if not exists public.packages (
+  CREATE TABLE IF NOT EXISTS public.packages (
     slug text primary key,
     title text,
     description text,
@@ -104,14 +104,13 @@ async function createAllTables() {
     updated_at timestamptz default now()
   );
 
-  create table if not exists public.packages_drinks (
+  CREATE TABLE IF NOT EXISTS public.packages_drinks (
     id bigserial primary key,
     package_slug text not null references packages(slug) on delete cascade,
     drink_slug text not null references drinks(slug) on delete cascade
-    -- optionally unique (package_slug, drink_slug)
   );
 
-  create table if not exists public.orders (
+  CREATE TABLE IF NOT EXISTS public.orders (
     id text primary key,
     session_id text,
     order_id text,
@@ -122,7 +121,7 @@ async function createAllTables() {
     updated_at timestamptz default now()
   );
 
-  create table if not exists public.sessions (
+  CREATE TABLE IF NOT EXISTS public.sessions (
     session_id text primary key,
     allow_cookies boolean,
     basket_details jsonb,
@@ -131,22 +130,28 @@ async function createAllTables() {
     updated_at timestamptz default now()
   );
   `;
-
   await runSQL(createSQL);
 }
 
-/** Safely get property from object */
+/** Safely get a property from an object, else return fallback. */
 function get(obj, key, fallback) {
   if (!obj || typeof obj !== 'object') return fallback;
   return key in obj ? obj[key] : fallback;
 }
 
+/** Main entry point */
 async function main() {
   try {
     // If user passed --deletetables, drop & recreate everything
     if (shouldDeleteTables) {
-      console.log('Deleting (dropping) and recreating tables...');
+      await promptToContinue('WARNING: This will delete the existing database tables!');
+      console.log('Dropping tables...');
+      await dropAllTables();
+
+      await promptToContinue('About to create brand new tables in the database...');
+      console.log('Creating tables...');
       await createAllTables();
+
       console.log('Tables recreated. Now importing data...');
     }
 
@@ -205,13 +210,13 @@ async function importDrinks(drinksObj) {
   }));
 
   console.log(`Inserting/Upserting ${rows.length} drinks ...`);
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('drinks')
     .upsert(rows, { onConflict: 'slug' });
 
   if (error) {
     console.error('importDrinks error object:', error);
-    throw new Error(`importDrinks: ${JSON.stringify(error)}`);
+    throw new Error(`importDrinks: ${error.message || JSON.stringify(error)}`);
   }
 }
 
@@ -227,13 +232,13 @@ async function importPackages(packagesObj) {
   }));
 
   console.log(`Inserting/Upserting ${rows.length} packages ...`);
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('packages')
     .upsert(rows, { onConflict: 'slug' });
 
   if (error) {
     console.error('importPackages error:', error);
-    throw new Error(`importPackages: ${JSON.stringify(error)}`);
+    throw new Error(`importPackages: ${error.message || JSON.stringify(error)}`);
   }
 }
 
@@ -260,24 +265,25 @@ async function importPackagesDrinks(packagesObj) {
 
   // We'll check which drink_slugs exist so we skip the bad ones
   const allDrinkSlugs = linkRows.map((row) => row.drink_slug);
-  // Distinct them
   const uniqueSlugs = [...new Set(allDrinkSlugs)];
 
   // Query the drinks table
   const { data: existingDrinks, error: drinksErr } = await supabase
     .from('drinks')
     .select('slug')
-    .in('slug', uniqueSlugs); // select all that exist
+    .in('slug', uniqueSlugs);
 
   if (drinksErr) {
     console.error('Error checking existing drinks:', drinksErr);
-    throw new Error(`importPackagesDrinks can't fetch drinks: ${JSON.stringify(drinksErr)}`);
+    throw new Error(
+      `importPackagesDrinks can't fetch drinks: ${drinksErr.message || JSON.stringify(drinksErr)}`
+    );
   }
-  const existingSlugs = new Set((existingDrinks || []).map((d) => d.slug));
 
-  // Filter out rows with missing drinks
+  const existingSlugs = new Set((existingDrinks || []).map((d) => d.slug));
   const filteredRows = linkRows.filter((row) => existingSlugs.has(row.drink_slug));
   const skippedRows = linkRows.length - filteredRows.length;
+
   if (skippedRows > 0) {
     console.warn(`Skipping ${skippedRows} link(s) because the drink_slug wasn't found in 'drinks'.`);
   }
@@ -287,13 +293,15 @@ async function importPackagesDrinks(packagesObj) {
     return;
   }
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('packages_drinks')
     .insert(filteredRows);
 
   if (error) {
     console.error('importPackagesDrinks error:', error);
-    throw new Error(`importPackagesDrinks: ${JSON.stringify(error)}`);
+    throw new Error(
+      `importPackagesDrinks: ${error.message || JSON.stringify(error)}`
+    );
   }
 }
 
@@ -309,13 +317,13 @@ async function importOrders(ordersObj) {
   }));
 
   console.log(`Inserting/Upserting ${rows.length} orders ...`);
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('orders')
     .upsert(rows, { onConflict: 'id' });
 
   if (error) {
     console.error('importOrders error:', error);
-    throw new Error(`importOrders: ${JSON.stringify(error)}`);
+    throw new Error(`importOrders: ${error.message || JSON.stringify(error)}`);
   }
 }
 
@@ -329,13 +337,13 @@ async function importSessions(sessionsObj) {
   }));
 
   console.log(`Inserting/Upserting ${rows.length} sessions ...`);
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('sessions')
     .upsert(rows, { onConflict: 'session_id' });
 
   if (error) {
     console.error('importSessions error:', error);
-    throw new Error(`importSessions: ${JSON.stringify(error)}`);
+    throw new Error(`importSessions: ${error.message || JSON.stringify(error)}`);
   }
 }
 

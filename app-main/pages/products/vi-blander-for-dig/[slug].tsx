@@ -3,21 +3,23 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  MutableRefObject,
 } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-
-// Next.js components
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
 
-// Custom Hooks / Components
+// Suppose you have this or a similar hook
 import { useBasket } from '../../../components/BasketContext';
+
+// Custom components
 import Loading from '../../../components/Loading';
 import LoadingButton from '../../../components/LoadingButton';
 import LoadingConfettiButton from '../../../components/LoadingConfettiButton';
 import ConfettiAnimation from '../../../components/ConfettiAnimation';
+
+// If you have a custom getCookie helper
+import { getCookie } from '../../../lib/cookies';
 
 // ------------------
 // Type Definitions
@@ -59,17 +61,18 @@ type SelectionsType = Record<string, SelectionInfo>;
 
 const ViBlanderForDigProduct: React.FC = () => {
   const router = useRouter();
-  // Type assertion to ensure we treat slug as a string
-  const slug = router.query.slug as string;
+  const slug = router.query.slug as string; // Ensure slug is typed as string
 
-  // IMPORTANT: Make sure to allow null in the type here
-  const addToCartButtonRef = useRef<HTMLButtonElement | null>(null);
+  // Read basket context
+  const { addItemToBasket } = useBasket();
 
+  // State for storing the sessionId from cookies
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  // States for the product, drinks, selections, etc.
   const [product, setProduct] = useState<ProductType | null>(null);
   const [drinksData, setDrinksData] = useState<DrinksDataType>({});
   const [loading, setLoading] = useState<boolean>(true);
-
-  // For storing multiple (size + sugarPreference) combos
   const [selections, setSelections] = useState<SelectionsType>({});
   const [randomSelection, setRandomSelection] = useState<RandomSelectionType>({});
   const [selectionId, setSelectionId] = useState<string | null>(null);
@@ -84,14 +87,25 @@ const ViBlanderForDigProduct: React.FC = () => {
   const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
 
-  const { addItemToBasket } = useBasket();
+  // For referencing the "Add to Cart" button in our confetti animation
+  const addToCartButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Generate a unique key for the current options
+  // On mount, try reading the 'session_id' from client cookies (if NOT HTTP-only)
+  useEffect(() => {
+    const localSessionId = getCookie('session_id');
+    if (localSessionId) {
+      setSessionId(localSessionId);
+    } else {
+      console.warn('No session_id cookie found (maybe it is HTTP-only?).');
+    }
+  }, []);
+
+  // Utility: create a unique key for the current size + sugar preference
   const getSelectionKey = useCallback((): string => {
     return `${selectedSize}_${sugarPreference}`;
   }, [selectedSize, sugarPreference]);
 
-  // Load selections from localStorage on mount (only when `slug` is known)
+  // Load selections from localStorage on mount (only if slug is known)
   useEffect(() => {
     if (!slug) return;
     const storedData = localStorage.getItem('slugViBlander');
@@ -103,26 +117,26 @@ const ViBlanderForDigProduct: React.FC = () => {
     }
   }, [slug]);
 
-  // Fetch product and drinks data
+  // Fetch product + drinks data
   useEffect(() => {
     if (!slug) return;
 
     const fetchProductAndDrinks = async () => {
       setLoading(true);
       try {
-        // 1) Fetch product data
-        const productResponse = await axios.get(`/api/firebase/products/${slug}`);
+        // 1) Fetch the product
+        const productResponse = await axios.get(`/api/supabase/packages/${slug}`);
         const productData = productResponse.data.package as ProductType;
         setProduct(productData);
 
-        // Set default selected size
+        // Set a default selected size
         if (productData?.packages && productData.packages.length > 0) {
           setSelectedSize(productData.packages[0].size);
         }
 
-        // 2) Fetch drinks data
+        // 2) If package has "collectionsDrinks", fetch them
         if (productData?.collectionsDrinks?.length) {
-          const drinksResponse = await axios.post('/api/firebase/3-getDrinksBySlugs', {
+          const drinksResponse = await axios.post('/api/supabase/3-getDrinksBySlugs', {
             slugs: productData.collectionsDrinks,
           });
           setDrinksData(drinksResponse.data.drinks as DrinksDataType);
@@ -138,48 +152,50 @@ const ViBlanderForDigProduct: React.FC = () => {
     void fetchProductAndDrinks();
   }, [slug]);
 
-  // On changes to selectedSize / sugarPreference: use existing or generate new
+  // On changes to selectedSize / sugarPreference: either load existing selection or generate new
   useEffect(() => {
     if (!product || selectedSize === null) return;
 
     const selectionKey = getSelectionKey();
 
-    // Check if we already have a selection for the current options
+    // If we already have a saved random selection for these options, use it
     if (selections[selectionKey]) {
       const { selectedProducts, selectionId } = selections[selectionKey];
       setRandomSelection(selectedProducts);
       setSelectionId(selectionId);
       void fetchPrice(selectedProducts);
     } else {
-      // If not existing, generate a new random package
+      // otherwise, generate new
       void generateRandomPackage();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSize, sugarPreference, product]);
+  }, [product, selectedSize, sugarPreference, getSelectionKey, selections]);
 
-  const handleConfettiEnd = () => {
-    setShowConfetti(false);
-  };
-
-  // Function to generate a random package
+  // Handler: generate a new random package
   const generateRandomPackage = async () => {
+    if (!sessionId) {
+      alert('No sessionId found (maybe the cookie is HTTP-only?).');
+      return;
+    }
+    if (!selectedSize) {
+      alert('Please select a size first.');
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      const response = await axios.post('/api/firebase/4-generateRandomSelection', {
+      const response = await axios.post('/api/supabase/4-generateRandomSelection', {
+        sessionId,         // <--- pass the sessionId here
         slug,
         selectedSize,
         sugarPreference,
       });
 
       if (response.data.success) {
-        const { selectedProducts, selectionId } = response.data as {
-          selectedProducts: RandomSelectionType;
-          selectionId: string;
-        };
+        const { selectedProducts, selectionId } = response.data;
         setRandomSelection(selectedProducts);
         setSelectionId(selectionId);
 
-        // Store the selection in state
+        // Store in our state
         const selectionKey = getSelectionKey();
         const newSelections: SelectionsType = {
           ...selections,
@@ -196,8 +212,8 @@ const ViBlanderForDigProduct: React.FC = () => {
         // Fetch price
         await fetchPrice(selectedProducts);
       } else {
-        console.error('Failed to generate package:', response.data);
-        alert('Failed to generate package: ' + (response.data.error || 'Unknown error'));
+        console.error('Failed to generate random package:', response.data);
+        alert('Error: ' + (response.data.error || 'Unknown error'));
       }
     } catch (error: any) {
       console.error('Error generating package:', error);
@@ -207,52 +223,7 @@ const ViBlanderForDigProduct: React.FC = () => {
     }
   };
 
-  // Helper: create a new selection in DB
-  const createTemporarySelection = async (): Promise<string | null> => {
-    try {
-      const response = await axios.post('/api/firebase/4-createTemporarySelection', {
-        selectedProducts: randomSelection,
-        selectedSize,
-        packageSlug: slug,
-        isMysteryBox: false,
-        sugarPreference,
-      });
-
-      if (response.data.success) {
-        const newSelectionId = response.data.selectionId as string;
-        setSelectionId(newSelectionId);
-
-        // Update state
-        const selectionKey = getSelectionKey();
-        const newSelections: SelectionsType = {
-          ...selections,
-          [selectionKey]: {
-            selectedProducts: randomSelection,
-            selectionId: newSelectionId,
-          },
-        };
-        setSelections(newSelections);
-
-        // Save to localStorage
-        const storedData = localStorage.getItem('slugViBlander');
-        const allSelections = storedData ? JSON.parse(storedData) : {};
-        allSelections[slug] = newSelections;
-        localStorage.setItem('slugViBlander', JSON.stringify(allSelections));
-
-        return newSelectionId;
-      } else {
-        console.error('Failed to create temporary selection:', response.data);
-        alert('Failed to create temporary selection: ' + (response.data.error || 'Unknown error'));
-        return null;
-      }
-    } catch (error: any) {
-      console.error('Error creating temporary selection:', error);
-      alert('Error creating temporary selection: ' + error.message);
-      return null;
-    }
-  };
-
-  // Fetch price from the API
+  // Handler: fetch the calculated price
   const fetchPrice = async (selection: RandomSelectionType) => {
     try {
       const payload = {
@@ -260,9 +231,7 @@ const ViBlanderForDigProduct: React.FC = () => {
         slug,
         selectedProducts: selection,
       };
-
-      const response = await axios.post('/api/firebase/3-getCalculatedPackagePrice', payload);
-
+      const response = await axios.post('/api/supabase/3-getCalculatedPackagePrice', payload);
       if (response.data.price) {
         setPrice(response.data.price);
         setOriginalPrice(response.data.originalPrice);
@@ -274,78 +243,51 @@ const ViBlanderForDigProduct: React.FC = () => {
     }
   };
 
-  // Handle package size change
-  const handleSizeChange = (size: number) => {
-    setSelectedSize(size);
-  };
-
-  // Add the random package to the basket
+  // Handler: add the generated package to the basket
   const addToBasket = async () => {
     if (!selectionId) {
       alert('Please generate a package first.');
       return;
     }
-
     setIsAddingToCart(true);
     try {
+      // Example: your basket logic
       const mixedProduct = {
         selectionId,
-        quantity: parseInt(quantity.toString(), 10),
+        quantity: Number(quantity),
       };
-
       await addItemToBasket(mixedProduct);
-      setShowConfetti(true); // Trigger confetti
+      setShowConfetti(true); // triggers confetti
     } catch (error: any) {
       console.error('Error adding to basket:', error);
-
-      // If selectionId is invalid or expired, try creating a new one
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.error === 'Invalid or expired selectionId'
-      ) {
-        const newSelectionId = await createTemporarySelection();
-        if (newSelectionId) {
-          try {
-            const mixedProduct = {
-              selectionId: newSelectionId,
-              quantity: parseInt(quantity.toString(), 10),
-            };
-            await addItemToBasket(mixedProduct);
-            setShowConfetti(true);
-          } catch (err) {
-            console.error('Error adding to basket with new selectionId:', err);
-            alert('Error adding to basket. Please try again.');
-          }
-        } else {
-          alert('Failed to create a new selection. Please try generating a new package.');
-        }
-      } else {
-        alert('Error adding to basket. Please try again.');
-      }
+      alert('Error adding to basket. Please try again.');
     } finally {
       setIsAddingToCart(false);
     }
   };
 
-  // -------------------
-  // Render JSX
-  // -------------------
+  // Confetti end
+  const handleConfettiEnd = () => {
+    setShowConfetti(false);
+  };
+
+  // If loading initial data
   if (loading) {
     return <Loading />;
   }
 
+  // If product not found
   if (!product) {
     return <p>Product not found.</p>;
   }
 
+  // Render
   return (
     <div className="container mx-auto p-8">
-      {/* Product Title */}
       <h1 className="text-4xl font-bold text-center mb-8">{product.title}</h1>
 
       <div className="flex flex-col md:flex-row">
-        {/* Left Column: Image and Description */}
+        {/* Left column: image + desc */}
         <div className="md:w-1/2 flex-1">
           {product.image && (
             <img
@@ -355,17 +297,16 @@ const ViBlanderForDigProduct: React.FC = () => {
             />
           )}
 
-          {/* Description */}
           <div className="mt-6">
             <h2 className="text-2xl font-bold mb-2">Description</h2>
             <p className="text-lg text-gray-700">{product.description}</p>
           </div>
         </div>
 
-        {/* Right Column: Random Package and Actions */}
-        <div className="md:w-1/2 md:pl-8 flex flex-col justify-between h-full flex-1">
+        {/* Right column: random package and actions */}
+        <div className="md:w-1/2 md:pl-8 flex flex-col justify-between flex-1">
           <div>
-            {/* Package Size Selection */}
+            {/* Package sizes */}
             <div className="mt-4">
               <p>Select Package Size:</p>
               {product.packages && product.packages.length > 0 ? (
@@ -376,7 +317,7 @@ const ViBlanderForDigProduct: React.FC = () => {
                       name="size"
                       value={pkg.size}
                       checked={selectedSize === pkg.size}
-                      onChange={() => handleSizeChange(pkg.size)}
+                      onChange={() => setSelectedSize(pkg.size)}
                     />
                     {pkg.size} pcs
                   </label>
@@ -386,7 +327,7 @@ const ViBlanderForDigProduct: React.FC = () => {
               )}
             </div>
 
-            {/* Sugar Preference Selection */}
+            {/* Sugar preference */}
             <div className="mt-4">
               <p>With or without sugar:</p>
               <label className="mr-4">
@@ -417,11 +358,11 @@ const ViBlanderForDigProduct: React.FC = () => {
                   checked={sugarPreference === 'alle'}
                   onChange={() => setSugarPreference('alle')}
                 />
-                Alle (både med og uden sukker)
+                Alle
               </label>
             </div>
 
-            {/* Display Random Package */}
+            {/* Display random selection */}
             <div className="mt-4 pr-4 border border-gray-300 rounded">
               <h2 className="text-xl font-bold text-center mt-4">
                 {`Your Random ${product.title}`}
@@ -451,7 +392,7 @@ const ViBlanderForDigProduct: React.FC = () => {
           </div>
 
           <div className="mt-8">
-            {/* Generate Button */}
+            {/* Generate button */}
             <LoadingButton
               onClick={generateRandomPackage}
               loading={isGenerating}
@@ -460,7 +401,7 @@ const ViBlanderForDigProduct: React.FC = () => {
               Generate New Package
             </LoadingButton>
 
-            {/* Add to Basket Button */}
+            {/* Add to Cart */}
             <LoadingConfettiButton
               ref={addToCartButtonRef}
               onClick={addToBasket}
@@ -470,7 +411,7 @@ const ViBlanderForDigProduct: React.FC = () => {
               Add to Cart
             </LoadingConfettiButton>
 
-            {/* Price */}
+            {/* Price Display */}
             <div className="text-2xl font-bold mt-4">
               {originalPrice > price ? (
                 <>
@@ -487,9 +428,12 @@ const ViBlanderForDigProduct: React.FC = () => {
         </div>
       </div>
 
-      {/* Render Confetti */}
+      {/* Confetti */}
       {showConfetti && (
-        <ConfettiAnimation onAnimationEnd={handleConfettiEnd} buttonRef={addToCartButtonRef} />
+        <ConfettiAnimation
+          onAnimationEnd={handleConfettiEnd}
+          buttonRef={addToCartButtonRef}
+        />
       )}
     </div>
   );

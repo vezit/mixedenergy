@@ -23,17 +23,17 @@ export default function Home(): JSX.Element {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('/api/firebase/2-getPackages');
-        const packagesData = response.data.packages as Product[]; // Make sure the API returns an array
-
-        // Separate products by category
+        // NEW: /api/supabase/getPackages
+        const response = await axios.get('/api/supabase/2-getPackages');
+        const packagesData = response.data.packages as Product[];
+  
         const blandSelvMix = packagesData.filter(
           (product) => product.category === 'bland-selv-mix'
         );
         const viBlanderForDig = packagesData.filter(
           (product) => product.category === 'vi-blander-for-dig'
         );
-
+  
         setBlandSelvMixProducts(blandSelvMix);
         setViBlanderForDigProducts(viBlanderForDig);
       } catch (error) {
@@ -42,7 +42,7 @@ export default function Home(): JSX.Element {
         setIsLoading(false);
       }
     };
-
+  
     fetchProducts();
   }, []);
 

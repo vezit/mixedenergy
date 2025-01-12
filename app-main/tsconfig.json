@@ -1,4 +1,3 @@
-// tsconfig.json
 {
   "compilerOptions": {
     "target": "es2020",
@@ -17,7 +16,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    // 👇 This is important for Next.js + TS
+    // 👇 Important for Next.js + TS
     "jsx": "preserve",
     "incremental": true
   },
@@ -25,8 +24,9 @@
   "include": [
     "next-env.d.ts.bak",
     "**/*.ts",
-    "**/*.tsx"
-, "components/CustomerDetails.tsx.bak", "pages/drinks/[slug].js", "pages/_document.tsx.bak", "pages/_app.tsx.bak"  ],
+    "**/*.tsx",
+    "pages/drinks/[slug].js"
+  ],
   "exclude": [
     "node_modules"
   ]

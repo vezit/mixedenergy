@@ -1,4 +1,4 @@
-import { db } from './firebaseAdmin';
+import { db } from './firebaseAdmin.ts.old';
 
 // Define the shape of your drink data as stored in Firestore
 interface DrinkData {

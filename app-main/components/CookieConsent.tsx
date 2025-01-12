@@ -1,6 +1,8 @@
 // components/CookieConsent.tsx
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getCookie } from '../lib/cookies'; // Import your cookie helper
 
 interface GetSessionResponse {
   session: {
@@ -17,12 +19,16 @@ const CookieConsent: React.FC = () => {
   const [cookieError, setCookieError] = useState<boolean>(false);
 
   useEffect(() => {
-    // Fetch session data via API
+    // 1) We call getOrCreateSession using POST and withCredentials: true
     axios
-      .post<GetSessionResponse>('/api/firebase/1-getSession') // Use POST to ensure session creation
+      .post<GetSessionResponse>(
+        '/api/supabase/getOrCreateSession',
+        {},
+        { withCredentials: true }
+      )
       .then((response) => {
         if (!response.data.session.allowCookies) {
-          setShow(true); // Show banner if cookies aren't allowed yet
+          setShow(true);
         }
       })
       .catch((error) => {
@@ -33,9 +39,22 @@ const CookieConsent: React.FC = () => {
 
   const acceptCookies = async () => {
     try {
-      const response = await axios.post<AcceptCookiesResponse>('/api/firebase/1-acceptCookies');
+      // 2) Retrieve session_id from client cookies
+      const localSessionId = getCookie('session_id');
+      if (!localSessionId) {
+        console.error('No session_id cookie found. Please enable cookies.');
+        return;
+      }
+
+      // 3) POST to acceptCookies route, sending the sessionId in the body
+      const response = await axios.post<AcceptCookiesResponse>(
+        '/api/supabase/1-acceptCookies',
+        { sessionId: localSessionId },
+        { withCredentials: true }
+      );
+
       if (response.data.success) {
-        setShow(false); // Hide banner after accepting cookies
+        setShow(false);
       }
     } catch (error) {
       console.error('Error updating cookie consent:', error);
