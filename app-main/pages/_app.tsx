@@ -9,7 +9,7 @@ import { BasketProvider } from '../components/BasketContext';
 import React, { useState, useEffect, JSX } from 'react';
 import { useRouter } from 'next/router';
 import * as gtag from '../lib/gtag';
-import AddToBasketPopup from '../components/AddToBasketPopup';
+
 
 export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   const router = useRouter();
@@ -75,7 +75,6 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
         {/* Main Content */}
         <main className="flex-grow flex flex-col items-center justify-center bg-gray-100">
           <Component {...pageProps} />
-          <AddToBasketPopup />
         </main>
 
         {/* Footer */}
