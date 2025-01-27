@@ -35,10 +35,16 @@ if (!filePathArg) {
 // 4) Create Supabase client (admin)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Service Key:', supabaseServiceKey ? 'Present' : 'Missing');
+
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
   process.exit(1);
 }
+
+console.log('Initializing Supabase client...');
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 /** Small helper to prompt user to press Enter to continue */
@@ -57,7 +63,6 @@ function promptToContinue(message) {
 
 /**
  * Helper to run actual SQL on Supabase using our custom RPC `execute_sql`.
- * MAKE SURE you have created that function in your DB (see instructions above).
  */
 async function runSQL(sql) {
   console.log(`\nRunning SQL via execute_sql RPC:\n${sql}\n`);
@@ -65,6 +70,7 @@ async function runSQL(sql) {
   const { data, error } = await supabase.rpc('execute_sql', { statement: sql });
 
   if (error) {
+    console.error('runSQL error:', error.message);
     throw new Error(`runSQL error: ${error.message}`);
   }
   if (typeof data === 'string' && data.startsWith('Error:')) {
@@ -84,7 +90,9 @@ async function dropAllTables() {
     DROP TABLE IF EXISTS orders;
     DROP TABLE IF EXISTS sessions;
   `;
+  console.log('Dropping all tables...');
   await runSQL(dropSQL);
+  console.log('All tables dropped.');
 }
 
 /** Create all tables from scratch */
@@ -112,7 +120,6 @@ async function createAllTables() {
     category text,
     image text,
     packages jsonb,
-    -- This is CRUCIAL for 4-generateRandomSelection to read "collectionsDrinks" directly
     collectionsDrinks jsonb,
     created_at timestamptz default now(),
     updated_at timestamptz default now()
@@ -144,61 +151,267 @@ async function createAllTables() {
     updated_at timestamptz default now()
   );
   `;
+  console.log('Creating all tables...');
   await runSQL(createSQL);
+  console.log('All tables created.');
 }
 
-/** Safely get a property from an object, else return fallback. */
-function get(obj, key, fallback) {
-  if (!obj || typeof obj !== 'object') return fallback;
-  return key in obj ? obj[key] : fallback;
+/**
+ * Insert drinks into the `drinks` table.
+ * 
+ * @param {Object} drinksObj The `drinks` object from the JSON file.
+ */
+async function importDrinks(drinksObj) {
+  // We expect `drinksObj` to be an object where each key is a drink slug
+  // and the value is the drink data.
+  for (const [slug, drinkData] of Object.entries(drinksObj)) {
+    // For clarity, let's destructure the fields we need:
+    const {
+      name,
+      size,
+      isSugarFree,
+      _salePrice,
+      _purchasePrice,
+      _stock,
+      recyclingFee,
+      nutrition,
+      image,
+    } = drinkData;
+
+    try {
+      const { error } = await supabase
+        .from('drinks')
+        .insert([
+          {
+            slug,
+            name,
+            size,
+            is_sugar_free: isSugarFree,
+            sale_price: _salePrice,
+            purchase_price: _purchasePrice,
+            stock: _stock,
+            recycling_fee: recyclingFee,
+            nutrition,
+            image,
+          },
+        ]);
+
+      if (error) {
+        throw error;
+      } else {
+        console.log(`Inserted drink: ${slug}`);
+      }
+    } catch (err) {
+      console.error(`Error inserting drink ${slug}:`, err.message);
+      throw err; // rethrow if you want to abort entire import
+    }
+  }
+}
+
+/**
+ * Insert packages into the `packages` table.
+ * 
+ * @param {Object} packagesObj The `packages` object from the JSON file.
+ */
+async function importPackages(packagesObj) {
+  for (const [slug, pkgData] of Object.entries(packagesObj)) {
+    const {
+      title,
+      description,
+      category,
+      image,
+      packages, // array of {size, discount, roundUpOrDown}
+      collectionsDrinks, // array of drink slugs
+    } = pkgData;
+
+    try {
+      const { error } = await supabase
+        .from('packages')
+        .insert([
+          {
+            slug,
+            title,
+            description,
+            category,
+            image,
+            packages,
+            collectionsDrinks, // We'll also store it in JSON
+          },
+        ]);
+      if (error) {
+        throw error;
+      } else {
+        console.log(`Inserted package: ${slug}`);
+      }
+    } catch (err) {
+      console.error(`Error inserting package ${slug}:`, err.message);
+      throw err;
+    }
+  }
+}
+
+/**
+ * Create relationship rows for the packages_drinks table.
+ * We will create a row for each (package_slug, drink_slug) combo.
+ * 
+ * @param {Object} packagesObj The `packages` object from the JSON file.
+ */
+async function importPackagesDrinks(packagesObj) {
+  for (const [slug, pkgData] of Object.entries(packagesObj)) {
+    const { collectionsDrinks } = pkgData;
+    if (!collectionsDrinks || !Array.isArray(collectionsDrinks)) {
+      continue; // skip if no drinks
+    }
+
+    for (const drinkSlug of collectionsDrinks) {
+      try {
+        const { error } = await supabase
+          .from('packages_drinks')
+          .insert([
+            {
+              package_slug: slug,
+              drink_slug: drinkSlug,
+            },
+          ]);
+        if (error) {
+          throw error;
+        } else {
+          console.log(`Linked package '${slug}' to drink '${drinkSlug}'.`);
+        }
+      } catch (err) {
+        console.error(
+          `Error linking package ${slug} to drink ${drinkSlug}:`,
+          err.message
+        );
+        throw err;
+      }
+    }
+  }
+}
+
+/**
+ * Insert orders into the `orders` table.
+ * 
+ * @param {Object} ordersObj The `orders` object from the JSON file.
+ */
+async function importOrders(ordersObj) {
+  for (const [orderSlug, orderData] of Object.entries(ordersObj)) {
+    const {
+      sessionId,
+      orderId,
+      basketDetails,
+      quickpayDetails,
+      orderDetails,
+    } = orderData;
+
+    try {
+      const { error } = await supabase.from('orders').insert([
+        {
+          id: orderSlug, // or generate a UUID yourself
+          session_id: sessionId,
+          order_id: orderId,
+          basket_details: basketDetails,
+          quickpay_details: quickpayDetails,
+          order_details: orderDetails,
+        },
+      ]);
+
+      if (error) {
+        throw error;
+      } else {
+        console.log(`Inserted order: ${orderSlug}`);
+      }
+    } catch (err) {
+      console.error(`Error inserting order ${orderSlug}:`, err.message);
+      throw err;
+    }
+  }
+}
+
+/**
+ * Insert sessions into the `sessions` table.
+ * 
+ * @param {Object} sessionsObj The `sessions` object from the JSON file.
+ */
+async function importSessions(sessionsObj) {
+  for (const [sessionKey, sessionData] of Object.entries(sessionsObj)) {
+    const {
+      sessionId,
+      allowCookies,
+      basketDetails,
+      temporarySelections,
+    } = sessionData;
+
+    try {
+      const { error } = await supabase.from('sessions').insert([
+        {
+          session_id: sessionId || sessionKey,
+          allow_cookies: allowCookies,
+          basket_details: basketDetails,
+          temporary_selections: temporarySelections,
+        },
+      ]);
+
+      if (error) {
+        throw error;
+      } else {
+        console.log(`Inserted session: ${sessionId || sessionKey}`);
+      }
+    } catch (err) {
+      console.error(`Error inserting session ${sessionId || sessionKey}:`, err.message);
+      throw err;
+    }
+  }
 }
 
 /** Main entry point */
 async function main() {
   try {
     if (shouldDeleteTables) {
+      console.log('Starting table reset process...');
       await promptToContinue('WARNING: This will delete the existing database tables!');
-      console.log('Dropping tables...');
+      console.log('Deleting existing tables...');
       await dropAllTables();
+      console.log('Existing tables deleted.');
 
       await promptToContinue('About to create brand new tables in the database...');
       console.log('Creating tables...');
       await createAllTables();
-
-      console.log('Tables recreated. Now importing data...');
+      console.log('Tables recreated successfully.');
     }
 
+    console.log('Reading data from file...');
     const rawPath = path.resolve(__dirname, filePathArg);
+    console.log(`File path: ${rawPath}`);
     if (!fs.existsSync(rawPath)) {
       throw new Error(`File not found: ${rawPath}`);
     }
     const rawStr = fs.readFileSync(rawPath, 'utf-8');
     const jsonData = JSON.parse(rawStr);
+    console.log('Data loaded successfully.');
 
     const { drinks, packages, orders, sessions } = jsonData;
 
-    // 1) import drinks
     if (drinks) {
+      console.log(`Importing ${Object.keys(drinks).length} drinks...`);
       await importDrinks(drinks);
     }
-
-    // 2) import packages (including "collectionsDrinks")
     if (packages) {
+      console.log(`Importing ${Object.keys(packages).length} packages...`);
       await importPackages(packages);
-      await importPackagesDrinks(packages); // M2M pivot if you want it
+      console.log('Importing package-drinks relationships...');
+      await importPackagesDrinks(packages);
     }
-
-    // 3) import orders
     if (orders) {
+      console.log(`Importing ${Object.keys(orders).length} orders...`);
       await importOrders(orders);
     }
-
-    // 4) import sessions
     if (sessions) {
+      console.log(`Importing ${Object.keys(sessions).length} sessions...`);
       await importSessions(sessions);
     }
 
-    console.log('✅ All done!');
+    console.log('✅ All operations completed successfully.');
     process.exit(0);
   } catch (err) {
     console.error('❌ Migration error:', err.message);
@@ -206,157 +419,5 @@ async function main() {
   }
 }
 
-// ------------------
-// Insert or upsert DRINKS
-// ------------------
-async function importDrinks(drinksObj) {
-  const rows = Object.entries(drinksObj).map(([slug, doc]) => ({
-    slug,
-    name: doc.name,
-    size: doc.size,
-    is_sugar_free: get(doc, 'isSugarFree', false),
-    sale_price: get(doc, '_salePrice', 0),
-    purchase_price: get(doc, '_purchasePrice', 0),
-    stock: get(doc, '_stock', 0),
-    recycling_fee: get(doc, 'recyclingFee', 0),
-    nutrition: get(doc, 'nutrition', {}),
-    image: get(doc, 'image', null),
-  }));
-
-  console.log(`Inserting/Upserting ${rows.length} drinks ...`);
-  const { error } = await supabase.from('drinks').upsert(rows, { onConflict: 'slug' });
-
-  if (error) {
-    console.error('importDrinks error object:', error);
-    throw new Error(`importDrinks: ${error.message || JSON.stringify(error)}`);
-  }
-}
-
-// ------------------
-// Insert or upsert PACKAGES
-// ------------------
-async function importPackages(packagesObj) {
-  // We store doc.collectionsDrinks in the new "collectionsDrinks" JSONB column
-  const rows = Object.entries(packagesObj).map(([slug, doc]) => ({
-    slug,
-    title: doc.title,
-    description: doc.description,
-    category: doc.category,
-    image: doc.image,
-    packages: get(doc, 'packages', []),
-    collectionsDrinks: get(doc, 'collectionsDrinks', []),
-  }));
-
-  console.log(`Inserting/Upserting ${rows.length} packages ...`);
-  const { error } = await supabase.from('packages').upsert(rows, { onConflict: 'slug' });
-
-  if (error) {
-    console.error('importPackages error:', error);
-    throw new Error(`importPackages: ${error.message || JSON.stringify(error)}`);
-  }
-}
-
-/**
- * Insert the many-to-many relationships in packages_drinks.
- * We'll SKIP any references to drinks that don't exist, to avoid foreign key errors.
- */
-async function importPackagesDrinks(packagesObj) {
-  const linkRows = [];
-  for (const [slug, doc] of Object.entries(packagesObj)) {
-    const arr = get(doc, 'collectionsDrinks', []);
-    for (const drinkSlug of arr) {
-      linkRows.push({
-        package_slug: slug,
-        drink_slug: drinkSlug,
-      });
-    }
-  }
-  if (!linkRows.length) {
-    console.log('No package->drinks links found.');
-    return;
-  }
-  console.log(`Inserting ${linkRows.length} package-drinks links ...`);
-
-  const allDrinkSlugs = linkRows.map((row) => row.drink_slug);
-  const uniqueSlugs = [...new Set(allDrinkSlugs)];
-
-  // Check if these drinks exist
-  const { data: existingDrinks, error: drinksErr } = await supabase
-    .from('drinks')
-    .select('slug')
-    .in('slug', uniqueSlugs);
-
-  if (drinksErr) {
-    console.error('Error checking existing drinks:', drinksErr);
-    throw new Error(
-      `importPackagesDrinks can't fetch drinks: ${drinksErr.message || JSON.stringify(drinksErr)}`
-    );
-  }
-
-  const existingSlugs = new Set((existingDrinks || []).map((d) => d.slug));
-  const filteredRows = linkRows.filter((row) => existingSlugs.has(row.drink_slug));
-  const missingRows = linkRows.filter((row) => !existingSlugs.has(row.drink_slug));
-
-  if (missingRows.length > 0) {
-    const missingSlugs = [...new Set(missingRows.map((r) => r.drink_slug))];
-    console.warn(`Skipping ${missingRows.length} link(s). Missing drink slugs in 'drinks':`);
-    console.warn(missingSlugs.join(', '));
-  }
-
-  if (!filteredRows.length) {
-    console.log('No valid package->drinks references remain after filtering. Skipping insert.');
-    return;
-  }
-
-  const { error } = await supabase.from('packages_drinks').insert(filteredRows);
-
-  if (error) {
-    console.error('importPackagesDrinks error:', error);
-    throw new Error(`importPackagesDrinks: ${error.message || JSON.stringify(error)}`);
-  }
-}
-
-// ------------------
-// Insert or upsert ORDERS
-// ------------------
-async function importOrders(ordersObj) {
-  const rows = Object.entries(ordersObj).map(([id, doc]) => ({
-    id,
-    session_id: get(doc, 'sessionId', null),
-    order_id: get(doc, 'orderId', null),
-    basket_details: get(doc, 'basketDetails', {}),
-    quickpay_details: get(doc, 'quickpayDetails', {}),
-    order_details: get(doc, 'orderDetails', {}),
-  }));
-
-  console.log(`Inserting/Upserting ${rows.length} orders ...`);
-  const { error } = await supabase.from('orders').upsert(rows, { onConflict: 'id' });
-
-  if (error) {
-    console.error('importOrders error:', error);
-    throw new Error(`importOrders: ${error.message || JSON.stringify(error)}`);
-  }
-}
-
-// ------------------
-// Insert or upsert SESSIONS
-// ------------------
-async function importSessions(sessionsObj) {
-  const rows = Object.entries(sessionsObj).map(([sessionId, doc]) => ({
-    session_id: sessionId,
-    allow_cookies: get(doc, 'allowCookies', false),
-    basket_details: get(doc, 'basketDetails', {}),
-    temporary_selections: get(doc, 'temporarySelections', {}),
-  }));
-
-  console.log(`Inserting/Upserting ${rows.length} sessions ...`);
-  const { error } = await supabase.from('sessions').upsert(rows, { onConflict: 'session_id' });
-
-  if (error) {
-    console.error('importSessions error:', error);
-    throw new Error(`importSessions: ${error.message || JSON.stringify(error)}`);
-  }
-}
-
-// Go
+// Run the script
 main();

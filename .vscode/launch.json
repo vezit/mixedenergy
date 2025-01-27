@@ -1,68 +1,68 @@
 {
-  "version": "0.2.0",
-
-
-
-
-  "configurations": [
-    {
-      "name": "Next.js: Full Stack",
-      "type": "node",
-      "request": "launch",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev"
-      ],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "sourceMaps": true,
-      "restart": true,
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "cwd": "${workspaceFolder}/app-main",
-      "outFiles": [
-        "${workspaceFolder}/app-main/.next/**/*.js"
-      ],
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/app-main/.next/**/*.js",
-        "!**/node_modules/**"
-      ]
-    },
-    {
-      "name": "Attach to Node.js",
-      "type": "node",
-      "request": "attach",
-      "port": 9229,
-      "address": "127.0.0.1",
-      "localRoot": "${workspaceFolder}/app-main",
-      "remoteRoot": "/usr/src/project/app-main",
-      "skipFiles": [
-        "<node_internals>/**"
-      ]
-    },
-    {
-      "name": "Browser: chromium",
-      "runtimeExecutable": "C:\\Program Files\\chrome-win\\chrome.exe",
-      "request": "launch",
-      "type": "msedge",
-      "url": "http://localhost:3000/asdasd",
-      "webRoot": "${workspaceFolder}/app-main",
-      "disableNetworkCache": true
-    }
-  ],
-
-  "compounds": [
-    {
-      "name": "Start All",
-      "configurations": [
-        "Next.js: Full Stack",
-        "Attach to Node.js",
-        "Browser: chromium"
-      ]
-    }
-  ],
-
-
-}
+    "version": "0.2.0",
+  
+  
+  
+  
+    "configurations": [
+      {
+        "name": "Next.js: Full Stack",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": [
+          "run",
+          "dev"
+        ],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "sourceMaps": true,
+        "restart": true,
+        "skipFiles": [
+          "<node_internals>/**"
+        ],
+        "cwd": "${workspaceFolder}/app-main",
+        "outFiles": [
+          "${workspaceFolder}/app-main/.next/**/*.js"
+        ],
+        "resolveSourceMapLocations": [
+          "${workspaceFolder}/app-main/.next/**/*.js",
+          "!**/node_modules/**"
+        ]
+      },
+      {
+        "name": "Attach to Node.js",
+        "type": "node",
+        "request": "attach",
+        "port": 9229,
+        "address": "127.0.0.1",
+        "localRoot": "${workspaceFolder}/app-main",
+        "remoteRoot": "/usr/src/project/app-main",
+        "skipFiles": [
+          "<node_internals>/**"
+        ]
+      },
+      {
+        "name": "Browser: chromium",
+        "runtimeExecutable": "C:\\Program Files\\chrome-win\\chrome.exe",
+        "request": "launch",
+        "type": "msedge",
+        "url": "http://localhost:3000/asdasd",
+        "webRoot": "${workspaceFolder}/app-main",
+        "disableNetworkCache": true
+      }
+    ],
+  
+    "compounds": [
+      {
+        "name": "Start All",
+        "configurations": [
+          "Next.js: Full Stack",
+          "Attach to Node.js",
+          "Browser: chromium"
+        ]
+      }
+    ],
+  
+  
+  }

@@ -26,12 +26,12 @@ USER node
 # Set the working directory to the app-main directory
 WORKDIR /usr/src/project/app-main
 
-# First copy only package.json/package-lock.json, then install dependencies
-COPY --chown=node:node package*.json ./
-# RUN npm install
+# # First copy only package.json/package-lock.json, then install dependencies
+# COPY --chown=node:node package*.json ./
+# # RUN npm install
 
-# Now copy the rest of your project files
-COPY --chown=node:node . .
+# # Now copy the rest of your project files
+# COPY --chown=node:node . .
 
 # Expose the port Next.js (or your Node.js app) runs on
 EXPOSE 3000

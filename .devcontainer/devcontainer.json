@@ -15,7 +15,8 @@
                 "ms-python.debugpy",
                 "ms-python.python",
                 "stuart.unique-window-colors",
-                "MS-vsliveshare.vsliveshare"
+                "MS-vsliveshare.vsliveshare",
+                "ms-vscode.js-debug"
             ]
         }
     },
