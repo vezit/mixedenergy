@@ -16,7 +16,7 @@ export default function TestSessionPage() {
     const fetchSession = async () => {
       setLoading(true);
       try {
-        const response = await axios.get<SessionResponse>('/api/supabase/getSession');
+        const response = await axios.get<SessionResponse>('/api/supabase/getOrCreateSession');
         setSessionData(response.data);
       } catch (error) {
         console.error('Error fetching session:', error);

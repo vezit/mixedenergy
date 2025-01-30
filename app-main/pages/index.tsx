@@ -15,6 +15,9 @@ interface Product {
   category?: string;
 }
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+console.log('SUPABASE_URL:', SUPABASE_URL);
+
 export default function Home(): JSX.Element {
   const [blandSelvMixProducts, setBlandSelvMixProducts] = useState<Product[]>([]);
   const [viBlanderForDigProducts, setViBlanderForDigProducts] = useState<Product[]>([]);
@@ -81,7 +84,7 @@ export default function Home(): JSX.Element {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src={product.image || '/images/placeholder.jpg'}
+                  src={`${SUPABASE_URL}/${product.image}`}
                   alt={product.title}
                   className="w-full h-full object-cover"
                 />
@@ -110,7 +113,7 @@ export default function Home(): JSX.Element {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src={product.image || '/images/placeholder.jpg'}
+                  src={`${SUPABASE_URL}/${product.image}`}
                   alt={product.title}
                   className="w-full h-full object-cover"
                 />
