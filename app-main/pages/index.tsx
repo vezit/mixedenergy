@@ -16,7 +16,7 @@ interface Product {
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-console.log('SUPABASE_URL:', SUPABASE_URL);
+// console.log('SUPABASE_URL:', SUPABASE_URL);
 
 export default function Home(): JSX.Element {
   const [blandSelvMixProducts, setBlandSelvMixProducts] = useState<Product[]>([]);

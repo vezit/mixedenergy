@@ -1,15 +1,13 @@
-// /pages/api/supabase/4-generateRandomSelection.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { v4 as uuidv4 } from 'uuid';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 
 /** The shape of your incoming POST body */
 interface BodyParams {
-  sessionId: string; // require sessionId in the POST body
+  sessionId: string;
   slug: string;
   selectedSize: number;
-  sugarPreference?: string | null;
+  sugarPreference?: 'uden_sukker' | 'med_sukker' | 'alle';
   isCustomSelection?: boolean;
   selectedProducts?: Record<string, number>;
 }
@@ -18,109 +16,99 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log('[4-generateRandomSelection] Incoming request:', req.method);
+  console.log('[4-generateRandomSelection] Called, method =', req.method);
 
   try {
     if (req.method !== 'POST') {
       console.log('[4-generateRandomSelection] Method not allowed:', req.method);
-      return res.status(405).end(); // Method Not Allowed
+      return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // 1) Read sessionId from POST body
     const {
       sessionId,
       slug,
       selectedSize,
-      sugarPreference = null,
+      sugarPreference = 'alle',
       isCustomSelection = false,
-      selectedProducts = null,
+      selectedProducts,
     } = req.body as BodyParams;
 
-    console.log('[4-generateRandomSelection] Body params received:', {
-      sessionId,
-      slug,
-      selectedSize,
-      sugarPreference,
-      isCustomSelection,
-      selectedProducts,
-    });
+    console.log('[4-generateRandomSelection] Received body:', req.body);
 
-    // If sessionId is missing, return error
-    if (!sessionId) {
-      console.log('[4-generateRandomSelection] Missing sessionId in POST body.');
-      return res.status(400).json({ error: 'Missing sessionId in POST body.' });
+    // 1) Basic validation
+    if (!sessionId || !slug || !selectedSize) {
+      console.log('[4-generateRandomSelection] Missing required fields');
+      return res
+        .status(400)
+        .json({ error: 'Missing sessionId, slug, or selectedSize.' });
     }
 
-    // 2) Fetch the package row from Supabase
-    console.log('[4-generateRandomSelection] Fetching package with slug =', slug);
-    const { data: packageRow, error: packageError } = await supabaseAdmin
+    // 2) Fetch the package row (and join on package_drinks → drinks)
+    const { data: pkgRow, error: pkgError } = await supabaseAdmin
       .from('packages')
-      .select('*')
+      .select(
+        `
+        id,
+        slug,
+        package_drinks (
+          drinks (
+            slug,
+            is_sugar_free
+          )
+        )
+      `
+      )
       .eq('slug', slug)
       .single();
 
-    if (packageError) {
-      console.error('[4-generateRandomSelection] Error fetching package:', packageError);
+    if (pkgError) {
+      console.error('[4-generateRandomSelection] Error fetching package:', pkgError);
       return res.status(500).json({ error: 'Internal server error' });
     }
-    if (!packageRow) {
+    if (!pkgRow) {
       console.log('[4-generateRandomSelection] Package not found for slug:', slug);
-      return res.status(400).json({ error: 'Invalid package slug' });
+      return res.status(404).json({ error: 'Package not found' });
     }
 
-    // The "collectionsDrinks" field presumably lists the drink slugs for random selection
-    const { collectionsDrinks } = packageRow as any;
-    console.log('[4-generateRandomSelection] collectionsDrinks =', collectionsDrinks);
-    if (!collectionsDrinks || !Array.isArray(collectionsDrinks)) {
-      console.log('[4-generateRandomSelection] No collectionsDrinks array found.');
-      return res.status(400).json({ error: 'No collectionsDrinks found for this package' });
+    // Build an array of { slug, is_sugar_free }
+    const joinedDrinks: Array<{ slug: string; is_sugar_free: boolean }> =
+      pkgRow.package_drinks?.map((pd: any) => pd.drinks) || [];
+
+    if (!joinedDrinks.length) {
+      console.log('[4-generateRandomSelection] No joined drinks for package slug=', slug);
+      return res.status(400).json({ error: 'No drinks linked to this package' });
     }
 
-    // 3) Fetch relevant drinks
-    console.log('[4-generateRandomSelection] Now fetching drinks data for these slugs:', collectionsDrinks);
-    const drinksData = await getDrinksData(collectionsDrinks);
-    console.log('[4-generateRandomSelection] drinksData fetched:', drinksData);
-
+    // 3) If isCustomSelection => just use `selectedProducts`
     let finalSelectedProducts: Record<string, number> = {};
-
-    // 4) If custom selection, use it; else generate random
     if (isCustomSelection && selectedProducts) {
-      console.log('[4-generateRandomSelection] Using custom selection from body.');
-      finalSelectedProducts = selectedProducts;
+      finalSelectedProducts = { ...selectedProducts };
+      console.log('[4-generateRandomSelection] Using custom selection:', finalSelectedProducts);
     } else {
-      console.log('[4-generateRandomSelection] sugarPreference =', sugarPreference);
-      if (!sugarPreference) {
-        console.log('[4-generateRandomSelection] Missing sugarPreference for random selection.');
-        return res.status(400).json({ error: 'Missing sugarPreference for random selection' });
-      }
-      console.log('[4-generateRandomSelection] Generating random selection...');
+      // Otherwise, do random selection
       finalSelectedProducts = generateRandomSelection({
-        drinksData,
+        allDrinks: joinedDrinks,
         selectedSize,
         sugarPreference,
       });
+      console.log('[4-generateRandomSelection] Random selection generated:', finalSelectedProducts);
     }
 
-    // 5) Insert or update in "sessions" table
-    const selectionId = uuidv4();
-    console.log('[4-generateRandomSelection] selectionId generated:', selectionId);
-
-    console.log('[4-generateRandomSelection] Checking session row for sessionId =', sessionId);
+    // 4) Upsert into the session’s "temporary_selections"
     const { data: existingSession, error: sessionError } = await supabaseAdmin
       .from('sessions')
       .select('temporary_selections')
       .eq('session_id', sessionId)
       .single();
 
-    if (sessionError) {
-      console.error('[4-generateRandomSelection] Error fetching session row:', sessionError);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-    if (!existingSession) {
-      console.log('[4-generateRandomSelection] Session not found in DB for sessionId:', sessionId);
-      return res.status(404).json({ error: 'Session not found' });
+    if (sessionError || !existingSession) {
+      console.error('[4-generateRandomSelection] Session not found in DB for sessionId=', sessionId);
+      return res
+        .status(404)
+        .json({ error: 'Session not found in the database' });
     }
 
+    const selectionId = uuidv4();
     const tempSelections = existingSession.temporary_selections || {};
     tempSelections[selectionId] = {
       selectedProducts: finalSelectedProducts,
@@ -131,100 +119,61 @@ export default async function handler(
       createdAt: new Date().toISOString(),
     };
 
-    console.log('[4-generateRandomSelection] Merging new selection with existing session. Will update DB now...');
     const { error: updateError } = await supabaseAdmin
       .from('sessions')
       .update({ temporary_selections: tempSelections })
       .eq('session_id', sessionId);
 
     if (updateError) {
-      console.error('[4-generateRandomSelection] Error updating session row:', updateError);
+      console.error('[4-generateRandomSelection] Error updating session with selection:', updateError);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
-    // 6) Return the new selection
-    console.log('[4-generateRandomSelection] Successfully generated selection. Returning 200...');
+    // 5) Respond with success
+    console.log('[4-generateRandomSelection] Success, returning selectionId:', selectionId);
     return res.status(200).json({
       success: true,
       selectedProducts: finalSelectedProducts,
       selectionId,
     });
-  } catch (error: any) {
-    console.error('[4-generateRandomSelection] Catch block error:', error);
-    return res
-      .status(500)
-      .json({ error: error.message || 'Internal server error' });
+  } catch (err: any) {
+    console.error('[4-generateRandomSelection] Catch error:', err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
 
-/**
- * Fetch the drink data for the given slugs from Supabase
- */
-async function getDrinksData(drinkSlugs: string[]) {
-  console.log('[getDrinksData] Running .in("slug", drinkSlugs):', drinkSlugs);
-  const { data, error } = await supabaseAdmin
-    .from('drinks')
-    .select('slug, is_sugar_free')
-    .in('slug', drinkSlugs);
-
-  if (error) {
-    console.error('[getDrinksData] Error from DB:', error);
-    throw new Error(`Error fetching drinks: ${error.message}`);
-  }
-  if (!data || data.length === 0) {
-    console.log('[getDrinksData] No rows returned for slugs:', drinkSlugs);
-    throw new Error(`No drinks returned for slugs: ${drinkSlugs}`);
-  }
-
-  const drinksData: Record<string, { is_sugar_free: boolean }> = {};
-  for (const row of data) {
-    drinksData[row.slug] = {
-      is_sugar_free: row.is_sugar_free,
-    };
-  }
-  console.log('[getDrinksData] drinksData result:', drinksData);
-  return drinksData;
-}
-
-/**
- * Generate a random selection from the available drinks
- */
+/** A helper to generate random drinks among the package’s available drinks */
 function generateRandomSelection({
-  drinksData,
+  allDrinks,
   selectedSize,
   sugarPreference,
 }: {
-  drinksData: Record<string, { is_sugar_free: boolean }>;
+  allDrinks: { slug: string; is_sugar_free: boolean }[];
   selectedSize: number;
-  sugarPreference: string;
-}) {
-  console.log('[generateRandomSelection] selectedSize:', selectedSize, 'sugarPreference:', sugarPreference);
-
-  const randomSelection: Record<string, number> = {};
-  let remaining = selectedSize;
-
-  const available = Object.entries(drinksData).filter(([slug, drink]) => {
-    if (sugarPreference === 'uden_sukker') {
-      return drink.is_sugar_free;
-    } else if (sugarPreference === 'med_sukker') {
-      return !drink.is_sugar_free;
-    }
-    return true; // 'alle'
-  });
-
-  if (available.length === 0) {
-    console.log('[generateRandomSelection] No drinks match sugarPreference =', sugarPreference);
-    throw new Error('No drinks match your sugar preference.');
+  sugarPreference: 'uden_sukker' | 'med_sukker' | 'alle';
+}): Record<string, number> {
+  console.log('[generateRandomSelection] Filtering by sugarPreference=', sugarPreference);
+  let filtered = allDrinks;
+  if (sugarPreference === 'uden_sukker') {
+    filtered = allDrinks.filter((d) => d.is_sugar_free);
+  } else if (sugarPreference === 'med_sukker') {
+    filtered = allDrinks.filter((d) => !d.is_sugar_free);
   }
 
-  // Generate the random selection
+  if (!filtered.length) {
+    throw new Error(`No drinks match sugarPreference: ${sugarPreference}`);
+  }
+
+  const finalSelection: Record<string, number> = {};
+  let remaining = selectedSize;
+
+  // simple random picks
   while (remaining > 0) {
-    const randomIndex = Math.floor(Math.random() * available.length);
-    const [drinkSlug] = available[randomIndex];
-    randomSelection[drinkSlug] = (randomSelection[drinkSlug] || 0) + 1;
+    const randomIndex = Math.floor(Math.random() * filtered.length);
+    const slug = filtered[randomIndex].slug;
+    finalSelection[slug] = (finalSelection[slug] || 0) + 1;
     remaining--;
   }
 
-  console.log('[generateRandomSelection] Final random selection:', randomSelection);
-  return randomSelection;
+  return finalSelection;
 }

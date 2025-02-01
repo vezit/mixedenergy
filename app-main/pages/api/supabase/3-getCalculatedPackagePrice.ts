@@ -1,8 +1,6 @@
-// /pages/api/supabase/getCalculatedPackagePrice.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin'; 
-import { calculatePrice } from '../../../lib/priceCalculations'; 
-import { Database } from '../../../types/supabase'; // If you have generated types
+import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { calculatePrice } from '../../../lib/priceCalculations';
 
 interface BodyParams {
   selectedProducts?: Record<string, number>;
@@ -12,116 +10,160 @@ interface BodyParams {
   sugarPreference?: 'alle' | 'med_sukker' | 'uden_sukker';
 }
 
-/**
- * Example of how your "packages" row might look if you're using Supabase
- * with typed definitions. You can also just use "any" if you prefer.
- */
-type PackageRow = Database['public']['Tables']['packages']['Row'] & {
-  collectionsDrinks?: string[];
-};
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  try {
-    if (req.method !== 'POST') {
-      return res.status(405).end(); // Method Not Allowed
-    }
+  console.log('[3-getCalculatedPackagePrice] Called, method=', req.method);
 
+  if (req.method !== 'POST') {
+    console.log('[3-getCalculatedPackagePrice] Method not allowed:', req.method);
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  try {
     // 1) Parse request body
     const {
       selectedProducts = {},
       selectedSize,
       slug,
-      isMysteryBox,
+      isMysteryBox = false,
       sugarPreference = 'alle',
     } = req.body as BodyParams;
 
-    // 2) Fetch the package data from Supabase
-    const { data: packageRow, error: packageError } = await supabaseAdmin
-      .from('packages')
-      .select('*')
-      .eq('slug', slug)
-      .single<PackageRow>();
+    console.log('[3-getCalculatedPackagePrice] Body received:', req.body);
 
-    if (packageError) {
-      console.error('Package fetch error:', packageError);
-      return res.status(500).json({ error: 'Internal server error' });
+    if (!slug || !selectedSize) {
+      console.log('[3-getCalculatedPackagePrice] Missing slug or selectedSize');
+      return res.status(400).json({
+        error: 'Missing slug or selectedSize in POST body.',
+      });
     }
 
-    if (!packageRow) {
+    // 2) Fetch the package row from "packages" with the joined drinks
+    //    Make sure we select sale_price, recycling_fee, etc.
+    const { data: pkgRow, error: pkgError } = await supabaseAdmin
+      .from('packages')
+      .select(`
+        id,
+        slug,
+        title,
+        description,
+        category,
+        image,
+        package_sizes (
+          size,
+          discount,
+          round_up_or_down
+        ),
+        package_drinks (
+          drinks (
+            slug,
+            sale_price,
+            recycling_fee,
+            purchase_price,
+            is_sugar_free
+          )
+        )
+      `)
+      .eq('slug', slug)
+      .single();
+
+    if (pkgError) {
+      console.error('[3-getCalculatedPackagePrice] Supabase error:', pkgError);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    if (!pkgRow) {
+      console.log('[3-getCalculatedPackagePrice] No package found for slug:', slug);
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    // "collectionsDrinks" is presumably an array of drink slugs
-    const { collectionsDrinks } = packageRow;
+    // 3) Build an array from the joined package_drinks => drinks
+    const joinedDrinks: Array<{
+      slug: string;
+      sale_price?: number;
+      recycling_fee?: number;
+      purchase_price?: number;
+      is_sugar_free: boolean;
+    }> = pkgRow.package_drinks?.map((pd: any) => pd.drinks) || [];
 
+    // 3.5) Transform "package_sizes" into a .packages array
+    const packageData = {
+      ...pkgRow,
+      packages: (pkgRow.package_sizes ?? []).map((ps: any) => ({
+        size: ps.size,
+        discount: ps.discount,
+        roundUpOrDown: ps.round_up_or_down,
+      })),
+    };
+
+    // 4) If isMysteryBox => randomly pick from joinedDrinks
     let productsToCalculate = { ...selectedProducts };
-
-    // 3) Handle Mysterybox selection
-    if (isMysteryBox && collectionsDrinks?.length) {
-      // Fetch drinks that match the package's collectionsDrinks array
-      const { data: drinksData, error: drinksError } = await supabaseAdmin
-        .from('drinks')
-        .select('slug, is_sugar_free')
-        .in('slug', collectionsDrinks);
-
-      if (drinksError) {
-        console.error('Drinks fetch error:', drinksError);
-        return res.status(500).json({ error: 'Internal server error' });
+    if (isMysteryBox) {
+      console.log('[3-getCalculatedPackagePrice] MysteryBox => generating random selection');
+      let filtered = joinedDrinks;
+      if (sugarPreference === 'uden_sukker') {
+        filtered = joinedDrinks.filter((d) => d.is_sugar_free);
+      } else if (sugarPreference === 'med_sukker') {
+        filtered = joinedDrinks.filter((d) => !d.is_sugar_free);
       }
-
-      if (!drinksData?.length) {
-        return res.status(404).json({ error: 'No drinks found for package' });
-      }
-
-      // Filter drinks based on sugar preference
-      const filteredDrinks = drinksData.filter((drink) => {
-        if (sugarPreference === 'med_sukker') return !drink.is_sugar_free;
-        if (sugarPreference === 'uden_sukker') return drink.is_sugar_free;
-        return true; // "alle"
-      });
-
-      if (!filteredDrinks.length) {
+      if (!filtered.length) {
+        console.log('[3-getCalculatedPackagePrice] No drinks match sugarPref:', sugarPreference);
         return res.status(404).json({
-          error: `No drinks match your sugar preference: ${sugarPreference}`,
+          error: `No drinks match sugarPreference='${sugarPreference}' for this package.`,
         });
       }
 
-      // Generate a random selection for the total items = selectedSize
       productsToCalculate = {};
-      const totalItems = selectedSize;
-
-      for (let i = 0; i < totalItems; i++) {
-        const randomIndex = Math.floor(Math.random() * filteredDrinks.length);
-        const { slug: drinkSlug } = filteredDrinks[randomIndex];
-        productsToCalculate[drinkSlug] = (productsToCalculate[drinkSlug] || 0) + 1;
+      for (let i = 0; i < selectedSize; i++) {
+        const randomIndex = Math.floor(Math.random() * filtered.length);
+        const randomSlug = filtered[randomIndex].slug;
+        productsToCalculate[randomSlug] = (productsToCalculate[randomSlug] || 0) + 1;
       }
+      console.log('[3-getCalculatedPackagePrice] Mystery selection =', productsToCalculate);
     }
 
-    // 4) Calculate the price using your utility
-    //    The "calculatePrice" function presumably wants:
-    //    { packageData, selectedSize, selectedProducts }
-    //    Adjust if your function signature differs
-    const { 
-      pricePerPackage, 
-      recyclingFeePerPackage, 
-      originalTotalPrice 
-    } = await calculatePrice({
-      packageData: packageRow,   // or rename "package" => "packageData"
+    // 5) Pass "joinedDrinks" to your calculatePrice (some devs do it differently)
+    //    For example, you might build a 'drinksData' object keyed by slug:
+    const drinksData: Record<string, any> = {};
+    for (const d of joinedDrinks) {
+      drinksData[d.slug] = d;
+    }
+
+    console.log('[3-getCalculatedPackagePrice] Calling calculatePrice with:', {
       selectedSize,
       selectedProducts: productsToCalculate,
     });
 
-    // 5) Return the results
+    const {
+      pricePerPackage,
+      recyclingFeePerPackage,
+      originalTotalPrice,
+    } = await calculatePrice({
+      packageData,
+      selectedSize,
+      selectedProducts: productsToCalculate,
+
+      // If your calculatePrice expects a separate "drinksData" param:
+      drinksData, 
+    });
+
+    console.log('[3-getCalculatedPackagePrice] Price result:', {
+      pricePerPackage,
+      recyclingFeePerPackage,
+      originalTotalPrice,
+    });
+
+    // 6) Return success
     return res.status(200).json({
       price: pricePerPackage,
       recyclingFeePerPackage,
       originalPrice: originalTotalPrice,
     });
-  } catch (error) {
-    console.error('Error calculating package price:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+  } catch (err: any) {
+    console.error('[3-getCalculatedPackagePrice] Catch error:', err);
+    return res.status(500).json({
+      error: err.message || 'Internal server error',
+    });
   }
 }

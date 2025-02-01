@@ -8,46 +8,41 @@ import React, {
 } from 'react';
 import axios from 'axios';
 import { ICustomerDetails } from '../types/ICustomerDetails';
+import { getOrCreateSessionRequest } from '../lib/session';
 
-/** Example of a basket item type. Adjust as needed. */
+/** Example basket item type */
 interface IBasketItem {
   slug: string;
   quantity: number;
+  packages_size?: number;
+  selectedDrinks?: Record<string, number>;
   pricePerPackage?: number;
   totalPrice?: number;
+  totalRecyclingFee?: number;
+  sugarPreference?: string;
 }
 
-/** Example: used for adding items to the basket. */
+/** Parameters to add an item */
 interface AddItemParams {
   selectionId: string;
   quantity: number;
 }
 
-/** What your context exposes to consumers. */
+/** The context value type */
 export interface BasketContextValue {
   basketItems: IBasketItem[];
   isBasketLoaded: boolean;
-
   addItemToBasket: (params: AddItemParams) => Promise<void>;
   removeItemFromBasket: (index: number) => Promise<void>;
-
-  /** This is the unified interface. */
   customerDetails: ICustomerDetails;
-  /** Accept partial updates if you only want to update certain fields. */
   updateCustomerDetails: (updatedDetails: Partial<ICustomerDetails>) => Promise<void>;
 }
 
-interface BasketProviderProps {
-  children: ReactNode;
-}
-
-/** Create the context with our basket shape. */
 const BasketContext = createContext<BasketContextValue | undefined>(undefined);
 
-export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
+export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [basketItems, setBasketItems] = useState<IBasketItem[]>([]);
   const [isBasketLoaded, setIsBasketLoaded] = useState(false);
-
   const [customerDetails, setCustomerDetails] = useState<ICustomerDetails>({
     customerType: 'Privat',
     fullName: '',
@@ -60,17 +55,16 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
     country: 'Danmark',
   });
 
-  /** Example: fetch basket items on mount. */
+  // Fetch session on mount
   useEffect(() => {
     const fetchBasketItems = async () => {
       try {
-        const response = await axios.post('/api/supabase/getOrCreateSession', {})
-        // Example response might include a `basketDetails` object with customer details, etc.
-        if (response.data.session?.basketDetails?.items) {
-          setBasketItems(response.data.session.basketDetails.items);
+        const response = await getOrCreateSessionRequest();
+        if (response.session?.basketDetails?.items) {
+          setBasketItems(response.session.basketDetails.items);
         }
-        if (response.data.session?.basketDetails?.customerDetails) {
-          setCustomerDetails(response.data.session.basketDetails.customerDetails);
+        if (response.session?.basketDetails?.customerDetails) {
+          setCustomerDetails(response.session.basketDetails.customerDetails);
         }
       } catch (error) {
         console.error('Error fetching basket items:', error);
@@ -81,7 +75,10 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
     void fetchBasketItems();
   }, []);
 
-  /** Example: add item to basket. */
+  /**
+   * Add an item to basket using our 4-updateBasket API
+   * Then update local state with the new list of items.
+   */
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
       const response = await axios.post('/api/supabase/4-updateBasket', {
@@ -90,7 +87,10 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
         quantity,
       });
       if (response.data.success) {
-        // Re-fetch items or update local state
+        // Response now contains an updated "items" array
+        if (response.data.items) {
+          setBasketItems(response.data.items);
+        }
       } else {
         console.error('Failed to add item:', response.data);
       }
@@ -99,7 +99,6 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
     }
   };
 
-  /** Example: remove item from basket. */
   const removeItemFromBasket = async (index: number) => {
     try {
       const response = await axios.post('/api/supabase/4-updateBasket', {
@@ -107,37 +106,40 @@ export const BasketProvider: FC<BasketProviderProps> = ({ children }) => {
         itemIndex: index,
       });
       if (response.data.success) {
-        // Update local state
-        setBasketItems((prev) => {
-          const newItems = [...prev];
-          newItems.splice(index, 1);
-          return newItems;
-        });
+        // The API returns updated items, so we sync them
+        if (response.data.items) {
+          setBasketItems(response.data.items);
+        } else {
+          // Or manually remove from local state
+          setBasketItems((prev) => {
+            const newItems = [...prev];
+            newItems.splice(index, 1);
+            return newItems;
+          });
+        }
       }
     } catch (error) {
       console.error('Error removing item:', error);
     }
   };
 
-  /** Update local + remote customer details. */
-  const updateCustomerDetails = async (
-    updatedDetails: Partial<ICustomerDetails>
-  ): Promise<void> => {
+  const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
     // Update local state first
     setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
 
-    // Persist to backend
     try {
-      await axios.post('/api/supabase/4-updateBasket', {
+      const response = await axios.post('/api/supabase/4-updateBasket', {
         action: 'updateCustomerDetails',
         customerDetails: updatedDetails,
       });
+      if (!response.data.success) {
+        console.warn('Warning: partial failure updating customer details', response.data);
+      }
     } catch (error) {
       console.error('Error updating customer details:', error);
     }
   };
 
-  /** Provide these values to consumers. */
   return (
     <BasketContext.Provider
       value={{

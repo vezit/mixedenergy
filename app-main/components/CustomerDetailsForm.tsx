@@ -1,3 +1,5 @@
+// components/CustomerDetailsForm.tsx
+
 import React, { useCallback, useEffect, Dispatch, SetStateAction } from 'react';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 import { ICustomerDetails } from '../types/ICustomerDetails';

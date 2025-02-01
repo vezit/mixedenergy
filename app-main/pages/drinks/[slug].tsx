@@ -1,10 +1,11 @@
-// pages/drinks/[slug].js
+// pages/drinks/[slug].tsx
+
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import Loading from '../../components/Loading'; // Update to correct path if needed
-import {JSX} from 'react';
+import Loading from '../../components/Loading'; // Adjust the path if needed
+import { JSX } from 'react';
 
 interface Drink {
   name: string;
@@ -13,8 +14,10 @@ interface Drink {
   nutrition?: {
     per100ml?: { [key: string]: string | number };
   };
-  // ...add more fields if your data structure includes them
+  // ...additional fields if necessary
 }
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 export default function DrinkDetail(): JSX.Element {
   const router = useRouter();
@@ -50,7 +53,7 @@ export default function DrinkDetail(): JSX.Element {
     return <p>Drink not found.</p>;
   }
 
-  const imageUrl = imageError ? '/images/default-drink.png' : drink.image;
+  const imageUrl = `${SUPABASE_URL}${drink.image}`
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-8">

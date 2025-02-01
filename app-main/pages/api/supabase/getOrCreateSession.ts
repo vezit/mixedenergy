@@ -5,6 +5,7 @@ import { serialize } from 'cookie'
 import { v4 as uuidv4 } from 'uuid'
 import { supabaseAdmin } from '../../../lib/supabaseAdmin'
 import { filterData } from '../../../lib/filterData'
+import { getCallerInfo } from '../../../lib/callerInfo'
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,6 +15,13 @@ export default async function handler(
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method Not Allowed' })
     }
+
+    // Log caller information.
+    const callerInfo = getCallerInfo(req);
+    console.log('1-deleteSession called by:', callerInfo.referer);
+
+
+    console.log('req.headers.cookie:', req.headers.cookie)
 
     // We'll ignore any existing sessionId in req.body; 
     // we'll rely on the cookie if it exists, or create a new one.

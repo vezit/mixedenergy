@@ -43,35 +43,38 @@ export function deleteCookie(name: string): void {
 export async function deleteAllCookies(
   deleteSessionStorage = true,
   deleteLocalStorage = true,
-  deleteSessionInFirebase = true
+  deleteSessionInSupabase = true
 ): Promise<void> {
-  // Delete all cookies
-  const cookies = document.cookie.split(';');
-  for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i].trim();
-    const eqPos = cookie.indexOf('=');
-    const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
-    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-  }
-
-  // Optionally delete session storage
-  if (deleteSessionStorage) {
-    sessionStorage.clear();
-  }
-
-  // Optionally delete local storage
-  if (deleteLocalStorage) {
-    localStorage.clear();
-  }
-
-  // Optionally delete session in Firebase
-  if (deleteSessionInFirebase) {
+  // 1. Optionally delete session in Supabase **before** clearing cookies
+  if (deleteSessionInSupabase) {
     try {
-      await fetch('/api/firebase/1-deleteSession', {
+      // Make sure to pass "credentials: 'include'" if you want
+      // the browser to automatically include the "session_id" cookie.
+      await fetch('/api/supabase/1-deleteSession', {
         method: 'POST',
-      });
+        credentials: 'include',
+      })
     } catch (error) {
-      console.error('Error deleting session in Firebase:', error);
+      console.error('Error deleting session in Supabase:', error)
     }
+  }
+
+  // 2. Now delete all cookies
+  const cookies = document.cookie.split(';')
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i].trim()
+    const eqPos = cookie.indexOf('=')
+    const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+  }
+
+  // 3. Optionally delete session storage
+  if (deleteSessionStorage) {
+    sessionStorage.clear()
+  }
+
+  // 4. Optionally delete local storage
+  if (deleteLocalStorage) {
+    localStorage.clear()
   }
 }

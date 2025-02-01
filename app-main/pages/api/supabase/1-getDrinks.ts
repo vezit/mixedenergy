@@ -1,4 +1,4 @@
-// /pages/api/supabase/getDrinks.ts
+// pages/api/supabase/getDrinks.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 
@@ -17,13 +17,17 @@ export default async function handler(
       return res.status(500).json({ error: 'Internal server error' });
     }
 
-    // Convert the array into a record keyed by slug (mimics Firestore's doc.id => doc.data)
+    // Convert the array into an object keyed by slug
     const drinks: Record<string, unknown> = {};
-    for (const row of rows ?? []) {
-      // Assume row.slug is the unique identifier
-      drinks[row.slug] = row;
+    if (rows) {
+      for (const row of rows) {
+        if (row.slug) {  // ensure that the row has a slug
+          drinks[row.slug] = row;
+        }
+      }
     }
 
+    // Always return an object with a "drinks" property (even if empty)
     return res.status(200).json({ drinks });
   } catch (error) {
     console.error('Error fetching drinks:', error);

@@ -5,6 +5,7 @@ const isLocal = process.env.NODE_ENV === 'development';
 export default {
   images: {
     domains: ['firebasestorage.googleapis.com'],
+    domains: ['192.168.5.10'],
   },
   // webpack(config, { dev }) {
   //   if (dev) {

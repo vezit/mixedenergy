@@ -8,17 +8,18 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
+    // Allow only POST requests.
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method Not Allowed' })
     }
 
-    // read sessionId from body
+    // Read sessionId from the request body.
     const { sessionId } = req.body
     if (!sessionId) {
       return res.status(400).json({ error: 'Missing sessionId in POST body.' })
     }
 
-    // see if we have a session row
+    // Optionally, check if the session row exists.
     const { data: existingSession, error: selectError } = await supabaseAdmin
       .from('sessions')
       .select('*')
@@ -33,17 +34,14 @@ export default async function handler(
       return res.status(404).json({ error: 'Session not found' })
     }
 
-    // update
-    const { error: updateError } = await supabaseAdmin
-      .from('sessions')
-      .update({
-        allow_cookies: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('session_id', sessionId)
+    // Call the stored procedure "accept_cookies" via RPC.
+    // This function will update allow_cookies to true and set updated_at using Danish time.
+    const { error: rpcError } = await supabaseAdmin.rpc('accept_cookies', {
+      session_id_param: sessionId,
+    })
 
-    if (updateError) {
-      console.error('Error updating session:', updateError)
+    if (rpcError) {
+      console.error('Error updating session via RPC:', rpcError)
       return res.status(500).json({ error: 'Internal server error' })
     }
 
