@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 import { filterData } from '../../../lib/filterData'; // your own function
 
 interface RequestBody {

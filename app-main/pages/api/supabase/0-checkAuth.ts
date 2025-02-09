@@ -1,7 +1,7 @@
 // api/supabase/0-checkAuth.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import cookie from 'cookie';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
 export default async function handler(
   req: NextApiRequest,

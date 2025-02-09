@@ -2,7 +2,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next'; 
 // ^ only if you're using TS. If JS, remove this line.
-import { supabaseAdmin } from '../../../../lib/supabaseAdmin'; 
+import { supabaseAdmin } from '../../../../lib/api/supabaseAdmin'; 
 // Adjust path if needed
 
 export default async function handler(

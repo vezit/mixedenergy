@@ -1,6 +1,6 @@
 // /pages/api/supabase/testRelations.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
 /**
  * Example endpoint that demonstrates a relational query:

@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import cookie from 'cookie';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
 export default async function handler(
   req: NextApiRequest,

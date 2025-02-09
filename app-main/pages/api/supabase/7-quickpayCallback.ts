@@ -1,7 +1,7 @@
 // /pages/api/supabase/quickpayCallback.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
 export default async function handler(
   req: NextApiRequest,

@@ -1,6 +1,6 @@
 // pages/api/supabase/getDrinks.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
 export default async function handler(
   req: NextApiRequest,

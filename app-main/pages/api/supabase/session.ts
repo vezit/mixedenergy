@@ -2,45 +2,49 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { parse, serialize } from 'cookie';
 import { v4 as uuidv4 } from 'uuid';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import { filterData } from '../../../lib/filterData'; // optional, from your snippet
-import { getCallerInfo } from '../../../lib/callerInfo'; // optional, from your snippet
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
+
+// Optional simple filter
+function filterData(obj: any) {
+  return obj; // or do deeper transformations
+}
+
+interface SessionRow {
+  session_id: string;
+  basket_details?: any;
+  allow_cookies?: boolean;
+  // etc.
+}
 
 /**
- * This endpoint does BOTH "getOrCreateSession" AND "getBasket":
- * - If no cookie, create new session_id + insert row in `sessions`.
- * - Otherwise, fetch existing session row.
- * - If ?noBasket=1, strip basket_details from the returned data.
+ * A single GET endpoint that:
+ *  - Checks the `session_id` cookie
+ *  - If missing, creates one, inserts row in 'sessions'
+ *  - Returns the final row (including basket_details)
+ *  - If you want to omit basket_details, use ?noBasket=1
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    // We can accept either GET or POST (or both).
-    // If you prefer only GET, do if(req.method!=='GET') ...
-    if (req.method !== 'GET' && req.method !== 'POST') {
+    if (req.method !== 'GET') {
       return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // Optional: log caller info
-    const callerInfo = getCallerInfo(req);
-    console.log('[session] Called by:', callerInfo);
+    const noBasket = req.query.noBasket === '1';
 
-    // 1) Check if we only want minimal data
-    const noBasket = req.query.noBasket === '1'; // e.g. /api/supabase/session?noBasket=1
-
-    // 2) Parse cookies for "session_id"
+    // 1) Parse or create session_id
     const cookiesHeader = req.headers.cookie || '';
     const parsedCookies = parse(cookiesHeader);
-    let sessionId = parsedCookies['session_id'];
+    let sessionId = parsedCookies.session_id;
 
-    // If no cookie, create a new session_id
     if (!sessionId) {
-      sessionId = uuidv4().slice(0, 30); // or full UUID, your call
-      // Set it on the response
+      // create new session_id
+      sessionId = uuidv4().slice(0, 30); 
+      // set cookie
       res.setHeader(
         'Set-Cookie',
         serialize('session_id', sessionId, {
-          httpOnly: false, // or true if you prefer
-          maxAge: 365 * 24 * 60 * 60, // 1 year
+          httpOnly: false, 
+          maxAge: 365 * 24 * 60 * 60,
           path: '/',
           sameSite: 'strict',
           secure: process.env.NODE_ENV === 'production',
@@ -48,24 +52,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
     }
 
-    // 3) Check if there's already a row in `sessions` for this sessionId
-    const { data: existingSession, error: existingError } = await supabaseAdmin
+    // 2) Find session row
+    const { data: existingSession, error: selectErr } = await supabaseAdmin
       .from('sessions')
       .select('*')
       .eq('session_id', sessionId)
-      .maybeSingle();
+      .maybeSingle<SessionRow>();
 
-    if (existingError) {
-      console.error('[session] Error checking existing session:', existingError);
+    if (selectErr) {
+      console.error('[session] select error:', selectErr);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
     let newlyCreated = false;
-
-    // 4) If no row, create one
     if (!existingSession) {
       newlyCreated = true;
-      const newSessionData = {
+      // create row
+      const newSession = {
         session_id: sessionId,
         allow_cookies: false,
         basket_details: {
@@ -84,45 +87,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           deliveryDetails: {},
         },
       };
-      const { error: insertError } = await supabaseAdmin
+      const { error: insertErr } = await supabaseAdmin
         .from('sessions')
-        .insert([newSessionData]);
-      if (insertError) {
-        console.error('[session] Error inserting new session:', insertError);
+        .insert([newSession]);
+      if (insertErr) {
+        console.error('[session] insert error:', insertErr);
         return res.status(500).json({ error: 'Internal server error' });
       }
     }
 
-    // 5) Re-fetch the final session row
-    const { data: sessionRow, error: fetchError } = await supabaseAdmin
-      .from('sessions')
-      .select('*')
-      .eq('session_id', sessionId)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error('[session] Error fetching final session:', fetchError);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-    if (!sessionRow) {
-      return res.status(500).json({ error: 'Session not found after creation' });
-    }
-
-    // 6) If we have ?noBasket=1, remove `basket_details` from the returned data
-    if (noBasket && sessionRow.basket_details) {
-      delete sessionRow.basket_details;
+    // 3) Re-fetch or reuse session
+    let finalSession: SessionRow | null = null;
+    if (newlyCreated) {
+      const { data, error } = await supabaseAdmin
+        .from('sessions')
+        .select('*')
+        .eq('session_id', sessionId)
+        .single<SessionRow>();
+      if (error || !data) {
+        console.error('[session] refetch error:', error);
+        return res.status(500).json({ error: 'Session not found after creation' });
+      }
+      finalSession = data;
+    } else {
+      finalSession = existingSession;
     }
 
-    // Optional: filter out underscores, etc.
-    const filtered = filterData ? filterData(sessionRow, Infinity) : sessionRow;
+    // 4) Omit basket_details if ?noBasket=1
+    let output = { ...finalSession };
+    if (noBasket && output?.basket_details) {
+      delete output.basket_details;
+    }
 
-    // 7) Return
+    // optional transform
+    const filtered = filterData(output);
+
     return res.status(200).json({
-      session: filtered,
       newlyCreated,
+      session: filtered,
     });
-  } catch (error: any) {
-    console.error('[session] Catch Error:', error);
+  } catch (err: any) {
+    console.error('[session] catch error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

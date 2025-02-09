@@ -1,7 +1,7 @@
 // pages/api/supabase/getBasket.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { parse } from 'cookie';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
 interface SessionRow {
   session_id: string;

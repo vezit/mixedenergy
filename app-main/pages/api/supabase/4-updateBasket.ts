@@ -1,7 +1,7 @@
 // pages/api/supabase/4-updateBasket.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { parse } from 'cookie';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 import { calculatePrice } from '../../../lib/priceCalculations';
 
 // Data interfaces

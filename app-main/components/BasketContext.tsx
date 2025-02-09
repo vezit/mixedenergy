@@ -12,7 +12,6 @@ import { ICustomerDetails } from '../types/ICustomerDetails';
 import { getSession } from '../lib/session';
 import { getCookie } from '../lib/cookies';
 
-/** If you want every axios request to include cookies: */
 axios.defaults.withCredentials = true;
 
 export interface IBasketItem {
@@ -58,19 +57,22 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     country: 'Danmark',
   });
 
-  // On mount, load session
+  // On mount: fetch or create the session
   useEffect(() => {
     const fetchBasketItems = async () => {
       try {
-        const response = await getSession();
-        if (response.session?.basketDetails?.items) {
-          setBasketItems(response.session.basketDetails.items);
+        // single call to /api/supabase/session
+        const response = await getSession(/* noBasket=false */);
+        const sessionData = response.session;
+        // if the row has basket_details, store in state
+        if (sessionData.basket_details?.items) {
+          setBasketItems(sessionData.basket_details.items);
         }
-        if (response.session?.basketDetails?.customerDetails) {
-          setCustomerDetails(response.session.basketDetails.customerDetails);
+        if (sessionData.basket_details?.customerDetails) {
+          setCustomerDetails(sessionData.basket_details.customerDetails);
         }
       } catch (error) {
-        console.error('Error fetching basket items:', error);
+        console.error('Error fetching or creating session:', error);
       } finally {
         setIsBasketLoaded(true);
       }
@@ -78,7 +80,7 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     void fetchBasketItems();
   }, []);
 
-  // 1) addItem
+  // addItem
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
       const sessionId = getCookie('session_id');
@@ -86,19 +88,17 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
         action: 'addItem',
         selectionId,
         quantity,
-        sessionId, // fallback for server
+        sessionId,
       });
       if (response.data.success && response.data.items) {
         setBasketItems(response.data.items);
-      } else {
-        console.error('Failed to add item:', response.data);
       }
     } catch (error) {
       console.error('Error adding item to basket:', error);
     }
   };
 
-  // 2) removeItem
+  // removeItem
   const removeItemFromBasket = async (index: number) => {
     try {
       const sessionId = getCookie('session_id');
@@ -107,24 +107,15 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
         itemIndex: index,
         sessionId,
       });
-      if (response.data.success) {
-        if (response.data.items) {
-          setBasketItems(response.data.items);
-        } else {
-          // fallback removal
-          setBasketItems((prev) => {
-            const newItems = [...prev];
-            newItems.splice(index, 1);
-            return newItems;
-          });
-        }
+      if (response.data.success && response.data.items) {
+        setBasketItems(response.data.items);
       }
     } catch (error) {
       console.error('Error removing item:', error);
     }
   };
 
-  // 3) updateQuantity
+  // updateQuantity
   const updateItemQuantity = async (index: number, newQuantity: number) => {
     try {
       const sessionId = getCookie('session_id');
@@ -134,25 +125,15 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
         newQuantity,
         sessionId,
       });
-      if (response.data.success) {
-        if (response.data.items) {
-          setBasketItems(response.data.items);
-        } else {
-          setBasketItems((prev) => {
-            const updated = [...prev];
-            if (updated[index]) {
-              updated[index].quantity = newQuantity;
-            }
-            return updated;
-          });
-        }
+      if (response.data.success && response.data.items) {
+        setBasketItems(response.data.items);
       }
     } catch (error) {
       console.error('Error updating item quantity:', error);
     }
   };
 
-  // 4) updateCustomerDetails
+  // updateCustomerDetails
   const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
     setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
     try {
@@ -163,7 +144,7 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
         sessionId,
       });
       if (!response.data.success) {
-        console.warn('Warning: partial failure updating customer details', response.data);
+        console.warn('Warning updating customer details', response.data);
       }
     } catch (error) {
       console.error('Error updating customer details:', error);
@@ -188,9 +169,9 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
 };
 
 export const useBasket = (): BasketContextValue => {
-  const context = useContext(BasketContext);
-  if (!context) {
+  const ctx = useContext(BasketContext);
+  if (!ctx) {
     throw new Error('useBasket must be used within a BasketProvider.');
   }
-  return context;
+  return ctx;
 };

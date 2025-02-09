@@ -13,7 +13,6 @@ import OrderConfirmation, {
 } from '../components/OrderConfirmation';
 import BasketItems from '../components/BasketItems';
 import CustomerDetailsForm from '../components/CustomerDetailsForm'; // Example form
-import { ICustomerDetails } from '../types/ICustomerDetails';
 import { getCookie } from '../lib/cookies';
 
 interface BasketProps {}

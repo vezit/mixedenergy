@@ -1,6 +1,6 @@
 // api/supabase/1-deleteSession.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 import { getCallerInfo } from '../../../lib/callerInfo';
 // Import the parse function from the cookie package.
 import { parse } from 'cookie';
