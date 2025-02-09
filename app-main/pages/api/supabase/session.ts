@@ -1,133 +1,87 @@
 // pages/api/supabase/session.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { parse, serialize } from 'cookie';
-import { v4 as uuidv4 } from 'uuid';
-import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
+import {
+  getOrCreateSession,
+  deleteSession,
+  acceptCookies,
+  getBasket,
+  updateSession, // <-- Use updateSession instead of updateBasket
+} from '../../../lib/api/session/session';
 
-// Optional simple filter
-function filterData(obj: any) {
-  return obj; // or do deeper transformations
-}
-
-interface SessionRow {
-  session_id: string;
-  basket_details?: any;
-  allow_cookies?: boolean;
-  // etc.
-}
-
-/**
- * A single GET endpoint that:
- *  - Checks the `session_id` cookie
- *  - If missing, creates one, inserts row in 'sessions'
- *  - Returns the final row (including basket_details)
- *  - If you want to omit basket_details, use ?noBasket=1
- */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    if (req.method !== 'GET') {
-      return res.status(405).json({ error: 'Method Not Allowed' });
-    }
+    if (req.method === 'GET') {
+      // GET => get or create session
+      const noBasket = req.query.noBasket === '1';
+      const cookieHeader = req.headers.cookie || '';
 
-    const noBasket = req.query.noBasket === '1';
+      const { newlyCreated, session, sessionId } = await getOrCreateSession(cookieHeader, noBasket);
 
-    // 1) Parse or create session_id
-    const cookiesHeader = req.headers.cookie || '';
-    const parsedCookies = parse(cookiesHeader);
-    let sessionId = parsedCookies.session_id;
-
-    if (!sessionId) {
-      // create new session_id
-      sessionId = uuidv4().slice(0, 30); 
-      // set cookie
-      res.setHeader(
-        'Set-Cookie',
-        serialize('session_id', sessionId, {
-          httpOnly: false, 
-          maxAge: 365 * 24 * 60 * 60,
+      // If newly created, set a "session_id" cookie
+      if (newlyCreated) {
+        res.setHeader('Set-Cookie', serialize('session_id', sessionId, {
+          httpOnly: false,
+          maxAge: 365 * 24 * 60 * 60, // e.g. 1 year
           path: '/',
           sameSite: 'strict',
           secure: process.env.NODE_ENV === 'production',
-        })
-      );
+        }));
+      }
+
+      return res.status(200).json({ newlyCreated, session });
     }
 
-    // 2) Find session row
-    const { data: existingSession, error: selectErr } = await supabaseAdmin
-      .from('sessions')
-      .select('*')
-      .eq('session_id', sessionId)
-      .maybeSingle<SessionRow>();
+    else if (req.method === 'POST') {
+      const cookiesHeader = req.headers.cookie || '';
+      const parsedCookies = parse(cookiesHeader);
+      const sessionId = parsedCookies['session_id'] || req.body.sessionId;
 
-    if (selectErr) {
-      console.error('[session] select error:', selectErr);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+      if (!sessionId) {
+        return res.status(400).json({ error: 'No session ID provided' });
+      }
 
-    let newlyCreated = false;
-    if (!existingSession) {
-      newlyCreated = true;
-      // create row
-      const newSession = {
-        session_id: sessionId,
-        allow_cookies: false,
-        basket_details: {
-          items: [],
-          customerDetails: {
-            customerType: null,
-            fullName: null,
-            mobileNumber: null,
-            email: null,
-            address: null,
-            postalCode: null,
-            city: null,
-            country: 'Danmark',
-          },
-          paymentDetails: {},
-          deliveryDetails: {},
-        },
-      };
-      const { error: insertErr } = await supabaseAdmin
-        .from('sessions')
-        .insert([newSession]);
-      if (insertErr) {
-        console.error('[session] insert error:', insertErr);
-        return res.status(500).json({ error: 'Internal server error' });
+      const { action } = req.body;
+      if (!action) {
+        return res.status(400).json({ error: 'Missing action in request body' });
+      }
+
+      // ACTION: deleteSession
+      if (action === 'deleteSession') {
+        await deleteSession(sessionId);
+        return res.status(200).json({ success: true, message: 'Session deleted successfully' });
+      }
+
+      // ACTION: acceptCookies
+      else if (action === 'acceptCookies') {
+        const result = await acceptCookies(sessionId);
+        return res.status(200).json(result);
+      }
+
+      // ACTION: getBasket
+      else if (action === 'getBasket') {
+        const basket = await getBasket(sessionId);
+        return res.status(200).json({ success: true, basket });
+      }
+
+      // ACTION: addItem, removeItem, updateQuantity, updateCustomerDetails
+      else if (['addItem','removeItem','updateQuantity','updateCustomerDetails'].includes(action)) {
+        // Use updateSession instead of updateBasket
+        const updateResult = await updateSession(sessionId, action, req.body);
+        return res.status(200).json(updateResult);
+      }
+
+      // ACTION: unknown
+      else {
+        return res.status(400).json({ error: 'Invalid action' });
       }
     }
 
-    // 3) Re-fetch or reuse session
-    let finalSession: SessionRow | null = null;
-    if (newlyCreated) {
-      const { data, error } = await supabaseAdmin
-        .from('sessions')
-        .select('*')
-        .eq('session_id', sessionId)
-        .single<SessionRow>();
-      if (error || !data) {
-        console.error('[session] refetch error:', error);
-        return res.status(500).json({ error: 'Session not found after creation' });
-      }
-      finalSession = data;
-    } else {
-      finalSession = existingSession;
-    }
-
-    // 4) Omit basket_details if ?noBasket=1
-    let output = { ...finalSession };
-    if (noBasket && output?.basket_details) {
-      delete output.basket_details;
-    }
-
-    // optional transform
-    const filtered = filterData(output);
-
-    return res.status(200).json({
-      newlyCreated,
-      session: filtered,
-    });
+    // If neither GET nor POST => 405
+    return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (err: any) {
     console.error('[session] catch error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }

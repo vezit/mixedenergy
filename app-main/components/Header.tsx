@@ -22,16 +22,19 @@ const Header: React.FC = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+
+        setIsLoggedIn(false);
+        setUsername('');
         // OLD: /api/firebase/0-checkAuth
         // NEW: /api/supabase/checkAuth
-        const response = await axios.get('/api/supabase/0-checkAuth');
-        if (response.data.loggedIn) {
-          setIsLoggedIn(true);
-          setUsername(response.data.email);
-        } else {
-          setIsLoggedIn(false);
-          setUsername('');
-        }
+        // const response = await axios.get('/api/supabase/0-checkAuth');
+        // if (response.data.loggedIn) {
+        //   setIsLoggedIn(true);
+        //   setUsername(response.data.email);
+        // } else {
+        //   setIsLoggedIn(false);
+        //   setUsername('');
+        // }
       } catch (error) {
         console.error('Error checking auth status:', error);
         setIsLoggedIn(false);

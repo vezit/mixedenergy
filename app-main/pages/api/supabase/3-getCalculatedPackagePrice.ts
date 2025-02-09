@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
-import { calculatePrice } from '../../../lib/priceCalculations';
+import { calculatePrice } from '../../../lib/api/priceCalculations';
 
 interface BodyParams {
   selectedProducts?: Record<string, number>;

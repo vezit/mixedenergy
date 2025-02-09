@@ -1,4 +1,5 @@
 // /components/BasketContext.tsx
+
 import React, {
   createContext,
   useContext,
@@ -9,7 +10,7 @@ import React, {
 } from 'react';
 import axios from 'axios';
 import { ICustomerDetails } from '../types/ICustomerDetails';
-import { getSession } from '../lib/session';
+import { getSession } from '../lib/session'; // presumably calls GET /api/supabase/session
 import { getCookie } from '../lib/cookies';
 
 axios.defaults.withCredentials = true;
@@ -57,14 +58,13 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     country: 'Danmark',
   });
 
-  // On mount: fetch or create the session
+  // 1) On mount: GET /api/supabase/session to fetch or create session
   useEffect(() => {
     const fetchBasketItems = async () => {
       try {
-        // single call to /api/supabase/session
-        const response = await getSession(/* noBasket=false */);
+        const response = await getSession(/* noBasket= */ false);
         const sessionData = response.session;
-        // if the row has basket_details, store in state
+        // if there's a basket_details, load it
         if (sessionData.basket_details?.items) {
           setBasketItems(sessionData.basket_details.items);
         }
@@ -80,15 +80,15 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     void fetchBasketItems();
   }, []);
 
-  // addItem
+  // 2) addItem
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
       const sessionId = getCookie('session_id');
-      const response = await axios.post('/api/supabase/4-updateBasket', {
+      const response = await axios.post('/api/supabase/session', {
         action: 'addItem',
         selectionId,
         quantity,
-        sessionId,
+        sessionId, // fallback
       });
       if (response.data.success && response.data.items) {
         setBasketItems(response.data.items);
@@ -98,11 +98,11 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  // removeItem
+  // 3) removeItem
   const removeItemFromBasket = async (index: number) => {
     try {
       const sessionId = getCookie('session_id');
-      const response = await axios.post('/api/supabase/4-updateBasket', {
+      const response = await axios.post('/api/supabase/session', {
         action: 'removeItem',
         itemIndex: index,
         sessionId,
@@ -115,11 +115,11 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  // updateQuantity
+  // 4) updateItemQuantity
   const updateItemQuantity = async (index: number, newQuantity: number) => {
     try {
       const sessionId = getCookie('session_id');
-      const response = await axios.post('/api/supabase/4-updateBasket', {
+      const response = await axios.post('/api/supabase/session', {
         action: 'updateQuantity',
         itemIndex: index,
         newQuantity,
@@ -133,12 +133,13 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  // updateCustomerDetails
+  // 5) updateCustomerDetails
   const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
+    // update local state
     setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
     try {
       const sessionId = getCookie('session_id');
-      const response = await axios.post('/api/supabase/4-updateBasket', {
+      const response = await axios.post('/api/supabase/session', {
         action: 'updateCustomerDetails',
         customerDetails: updatedDetails,
         sessionId,

@@ -2,16 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getSession } from '../lib/session';
-import { getCookie } from '../lib/cookies'; // Assuming you have your cookie helper here
+import { getCookie } from '../lib/cookies';
 
 interface GetSessionResponse {
   session: {
-    allowCookies?: boolean;
+    allow_cookies?: boolean;
+    // or basket_details, etc.
   };
-}
-
-interface AcceptCookiesResponse {
-  success: boolean;
 }
 
 const CookieConsent: React.FC = () => {
@@ -19,9 +16,10 @@ const CookieConsent: React.FC = () => {
   const [cookieError, setCookieError] = useState<boolean>(false);
 
   useEffect(() => {
-    getSession( /* withBasket */ false)
+    // attempt to get session
+    getSession(false)
       .then((response: GetSessionResponse) => {
-        if (!response.session.allowCookies) {
+        if (!response.session.allow_cookies) {
           setShow(true);
         }
       })
@@ -39,10 +37,16 @@ const CookieConsent: React.FC = () => {
         return;
       }
 
-      const response = await axios.post<AcceptCookiesResponse>(
-        '/api/supabase/1-acceptCookies',
-        { sessionId: localSessionId },
-        { withCredentials: true }
+      // Now call /api/supabase/session with action=acceptCookies
+      const response = await axios.post(
+        '/api/supabase/session',
+        {
+          action: 'acceptCookies',
+          sessionId: localSessionId,
+        },
+        {
+          withCredentials: true,
+        }
       );
 
       if (response.data.success) {

@@ -28,6 +28,7 @@
         "${workspaceFolder}/app-main/.next/**/*.js",
         "!**/node_modules/**"
       ],
+      "port": 9229 // If you want to force attach on 9229
     },
     {
       // 2) Attach to an existing Node.js process on 9229
