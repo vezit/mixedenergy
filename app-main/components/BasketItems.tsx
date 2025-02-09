@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 import ExplosionEffect from './ExplosionEffect';
-import { BasketItem } from '../types/BasketItem'; // <-- import the shared interface
+import { IBasketItem } from './BasketContext';
 
 interface PackageData {
   image?: string;
@@ -12,24 +12,16 @@ interface DrinkData {
   image?: string;
 }
 
-/** Props to pass into BasketItems */
 interface BasketItemsProps {
-  basketItems: BasketItem[];
-
-  // For collapsible/expandable UI:
+  basketItems: IBasketItem[];
   expandedItems: Record<number, boolean>;
   toggleExpand: (index: number) => void;
-
-  // Data used to show package details
   packagesData: Record<string, PackageData>;
   drinksData: Record<string, DrinkData | undefined>;
-
   updateQuantity: (index: number, newQuantity: number) => void;
   explodedItems: Record<number, boolean>;
   triggerExplosion?: (index: number) => void;
   removeItem: (index: number) => void;
-
-  // Summed totals in øre
   totalPrice: number;
   totalRecyclingFee: number;
 }
@@ -60,7 +52,6 @@ const BasketItems: FC<BasketItemsProps> = ({
         const packageData = packagesData[item.slug];
         const packageImage = packageData?.image;
 
-        // Use optional chaining & ?? 0 to avoid undefined
         const pricePerPackage = (item.pricePerPackage ?? 0) / 100;
         const itemTotalPrice = (item.totalPrice ?? 0) / 100;
         const recyclingFee = (item.totalRecyclingFee ?? 0) / 100;

@@ -4,11 +4,11 @@ import React, { useCallback, useEffect, Dispatch, SetStateAction } from 'react';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 import { ICustomerDetails } from '../types/ICustomerDetails';
 
-/**
- * 1) **ICustomerDetails** includes an index signature to allow flexible property access.
- * 2) The 'customerType' or other fields are optional to avoid stricter errors.
+/** 
+ * Define a union of valid field keys using "keyof ICustomerDetails".
+ * This ensures we only use valid property names like 'fullName', 'email', etc.
  */
-
+type CustomerDetailsKey = keyof ICustomerDetails;
 
 /** Error messages keyed by field name. */
 interface IErrors {
@@ -93,7 +93,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   );
 
   /** Basic client-side validation for required fields. */
-  const validateField = (fieldName: string, value: string | undefined) => {
+  const validateField = (fieldName: CustomerDetailsKey, value: string | undefined) => {
     if (!value || !value.trim()) {
       return 'This field is required';
     }
@@ -120,25 +120,28 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   /** Called on every input change. */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    // Cast name to a valid customer-details key:
+    const fieldName = name as CustomerDetailsKey;
 
     // Merge the updated field into existing customerDetails
     const updatedDetails: ICustomerDetails = {
       ...customerDetails,
-      [name]: value,
+      [fieldName]: value,
     };
 
     // Update local (or global) state with partial details
     updateCustomerDetails(updatedDetails);
 
     // Validate the field
-    const errorMsg = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: errorMsg }));
+    const errorMsg = validateField(fieldName, value);
+    setErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
 
     // Debounced push to backend
-    debouncedUpdate({ [name]: value });
+    debouncedUpdate({ [fieldName]: value });
   };
 
-  const handleInputBlur = (fieldName: string) => {
+  /** Called when an input loses focus. */
+  const handleInputBlur = (fieldName: CustomerDetailsKey) => {
     // Mark field as touched
     setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
 
@@ -154,7 +157,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
   /** Check if all required fields are valid. */
   const allFieldsValid = () => {
-    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
+    // Restrict to known required keys
+    const requiredFields: CustomerDetailsKey[] = [
+      'fullName',
+      'mobileNumber',
+      'email',
+      'address',
+      'postalCode',
+      'city',
+    ];
+
     return requiredFields.every(
       (field) =>
         !errors[field] &&
@@ -165,10 +177,17 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
   /** Validate once on mount. */
   useEffect(() => {
-    const fieldsToValidate = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
+    const requiredFields: CustomerDetailsKey[] = [
+      'fullName',
+      'mobileNumber',
+      'email',
+      'address',
+      'postalCode',
+      'city',
+    ];
     const newErrors: IErrors = { ...errors };
 
-    fieldsToValidate.forEach((field) => {
+    requiredFields.forEach((field) => {
       const value = customerDetails[field];
       const errorMsg = validateField(field, value);
       if (errorMsg) {
@@ -180,7 +199,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   }, []);
 
   /** Renders an icon for valid/invalid fields. */
-  const renderIcon = (fieldName: string) => {
+  const renderIcon = (fieldName: CustomerDetailsKey) => {
     if (errors[fieldName]) {
       return (
         <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />

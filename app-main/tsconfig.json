@@ -22,11 +22,11 @@
   },
   // 👇 Make sure next-env.d.ts is included
   "include": [
-    "next-env.d.ts.bak",
+    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     "pages/drinks/[slug].js"
-  ],
+ ],
   "exclude": [
     "node_modules"
   ]

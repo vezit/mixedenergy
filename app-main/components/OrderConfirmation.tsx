@@ -3,9 +3,7 @@ import LoadingButton from './LoadingButton';
 import { useRouter } from 'next/router';
 import { useBasket } from './BasketContext';
 
-// ======== INTERFACES ======== //
-
-// Make a single, shared interface for your customer details:
+/** Shared interfaces could be imported from a single place */
 export interface ICustomerDetails {
   fullName: string;
   mobileNumber: string;
@@ -13,8 +11,7 @@ export interface ICustomerDetails {
   address?: string;
   postalCode?: string;
   city?: string;
-  // Add more fields if needed
-  [key: string]: any; // optional index signature if your code uses extra fields
+  [key: string]: any;
 }
 
 export interface IDeliveryAddress {
@@ -29,58 +26,45 @@ export interface IDeliveryAddress {
 
 export interface IBasketItem {
   quantity: number;
-  // Add more fields if needed, such as totalPrice or totalRecyclingFee, if used
+  totalPrice?: number;
+  totalRecyclingFee?: number;
 }
 
 export interface IBasketSummary {
   deliveryDetails?: {
     deliveryAddress?: IDeliveryAddress;
-    deliveryFee?: number; // in "øre", e.g., 2999 for 29.99 kr
+    deliveryFee?: number; // in "øre"
   };
 }
 
-// Error messages are strings
 interface ErrorMap {
   [field: string]: string;
 }
 
-// "Touched fields" are boolean
 interface TouchedFieldsMap {
   [field: string]: boolean;
 }
 
-/**
- * PROPS: Option A => `basketSummary?: IBasketSummary | null`
- * This allows the parent to pass either IBasketSummary, null, or omit it.
- */
 interface OrderConfirmationProps {
-  // Required props
   customerDetails: ICustomerDetails;
-  deliveryOption: string; // e.g. "pickupPoint" | "homeDelivery"
-  selectedPoint: any;     // or define a custom interface if you know the shape
+  deliveryOption: string;
+  selectedPoint: any;
   updateDeliveryDetailsInBackend: (
     deliveryOption: string,
     extras?: { selectedPickupPoint?: any }
   ) => Promise<void>;
-  totalPrice: number;        // e.g. sum of prices in øre
-  totalRecyclingFee: number; // e.g. sum of recycling fees in øre
+  totalPrice: number;
+  totalRecyclingFee: number;
   basketItems: IBasketItem[];
-
-  // Optionally allow `null`
   basketSummary?: IBasketSummary | null;
-
-  // Error + Touched
   errors: ErrorMap;
   setErrors: React.Dispatch<React.SetStateAction<ErrorMap>>;
   touchedFields: TouchedFieldsMap;
   setTouchedFields: React.Dispatch<React.SetStateAction<TouchedFieldsMap>>;
-
-  // Submission flags
   submitAttempted: boolean;
   setSubmitAttempted: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-// ======== COMPONENT ======== //
 const OrderConfirmation: FC<OrderConfirmationProps> = ({
   customerDetails,
   deliveryOption,
@@ -102,10 +86,8 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const router = useRouter();
-  // Remove if not using anything from the basket
   const basketContext = useBasket();
 
-  // Helper: split address into streetName and streetNumber
   const splitAddress = (address: string) => {
     const regex = /^(.*?)(\s+\d+\S*)$/;
     const match = address.match(regex);
@@ -124,7 +106,6 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
 
   const [deliveryAddress, setDeliveryAddress] = useState<IDeliveryAddress>({});
 
-  // On mount or when certain dependencies change, build the delivery address from either basketSummary or local logic
   useEffect(() => {
     if (
       basketSummary &&
@@ -134,7 +115,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
       // Use the existing address from basketSummary
       setDeliveryAddress(basketSummary.deliveryDetails.deliveryAddress);
     } else {
-      // Otherwise, construct based on selection
+      // Otherwise, construct from current selection
       if (deliveryOption === 'pickupPoint') {
         if (selectedPoint) {
           setDeliveryAddress({
@@ -156,7 +137,9 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
           });
         }
       } else if (deliveryOption === 'homeDelivery') {
-        const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
+        const { streetName, streetNumber } = splitAddress(
+          customerDetails.address || ''
+        );
         setDeliveryAddress({
           name: customerDetails.fullName,
           streetName,
@@ -169,9 +152,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     }
   }, [basketSummary, customerDetails, deliveryOption, selectedPoint]);
 
-  // MAIN SUBMIT HANDLER
   const handlePayment = async () => {
-    // Mark that user attempted to submit
     setSubmitAttempted(true);
 
     // Validate required customer details
@@ -182,7 +163,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     const newTouchedFields: TouchedFieldsMap = { ...touchedFields };
 
     requiredFields.forEach((field) => {
-      // @ts-ignore if your ICustomerDetails can have undefined fields
+      // @ts-ignore
       if (!customerDetails[field] || !customerDetails[field].trim()) {
         customerDetailsValid = false;
         newErrors[field] = 'Dette felt er påkrævet';
@@ -199,7 +180,6 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
       return;
     }
 
-    // Validate delivery details
     if (deliveryOption === 'pickupPoint' && !selectedPoint) {
       document.getElementById('shipping-and-payment')?.scrollIntoView({ behavior: 'smooth' });
       alert('Vælg venligst et afhentningssted.');
@@ -220,7 +200,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
 
     // Check if basket is empty
     if (!basketItems || basketItems.length === 0) {
-      window.location.href = '/'; // redirect if no items
+      window.location.href = '/';
       return;
     }
 
@@ -237,7 +217,9 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     setIsProcessingPayment(true);
     try {
       // 1) Ensure delivery details are updated in backend
-      await updateDeliveryDetailsInBackend(deliveryOption, { selectedPickupPoint: selectedPoint });
+      await updateDeliveryDetailsInBackend(deliveryOption, {
+        selectedPickupPoint: selectedPoint,
+      });
 
       // 2) Create Order and initiate payment
       const response = await fetch('/api/firebase/6-createOrder', {
@@ -264,7 +246,6 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     }
   };
 
-  // RENDER
   return (
     <div id="order-confirmation">
       <h2 className="text-2xl font-bold mb-4">Bekræft Ordre</h2>
@@ -272,12 +253,10 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
       {/* Order Summary */}
       <div className="mb-8">
         <h3 className="text-xl font-bold mb-4">Ordreoversigt</h3>
-        {/* Delivery Option */}
         <div className="mb-4">
           <h4 className="font-bold">Leveringstype:</h4>
           <p>{deliveryOption === 'pickupPoint' ? 'Afhentningssted' : 'Hjemmelevering'}</p>
         </div>
-        {/* Delivery Address */}
         <div className="mb-4">
           <h4 className="font-bold">Leveringsadresse:</h4>
           <p>{deliveryAddress.name || ''}</p>
@@ -289,14 +268,12 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
           </p>
           <p>{deliveryAddress.country || ''}</p>
         </div>
-        {/* Customer Details */}
         <div className="mb-4">
           <h4 className="font-bold">Kundeoplysninger:</h4>
           <p>Navn: {customerDetails.fullName}</p>
           <p>Email: {customerDetails.email}</p>
           <p>Telefon: {customerDetails.mobileNumber}</p>
         </div>
-        {/* Order Details */}
         <div className="mb-4">
           <h4 className="font-bold">Ordre Detaljer:</h4>
           <p>Antal pakker: {basketItems.reduce((acc, item) => acc + item.quantity, 0)}</p>
@@ -311,21 +288,17 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
         </div>
       </div>
 
-      {/* Total Price Including VAT */}
       <div className="mt-8 text-center">
         <div className="text-lg font-semibold">I alt at betale inkl. moms</div>
         <h3 className="text-2xl font-bold">
           {(
-            (totalPrice +
-              totalRecyclingFee +
-              (basketSummary?.deliveryDetails?.deliveryFee || 0)) /
+            (totalPrice + totalRecyclingFee + (basketSummary?.deliveryDetails?.deliveryFee || 0)) /
             100
           ).toFixed(2)}{' '}
           kr.
         </h3>
       </div>
 
-      {/* Terms and Conditions */}
       <div className="mt-4 flex justify-center">
         <label className="flex items-center">
           <input
@@ -354,7 +327,6 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
       </div>
       {termsError && <p className="text-red-600 text-center mt-2">{termsError}</p>}
 
-      {/* Submit Button */}
       <div className="mt-8 flex justify-center">
         <LoadingButton
           onClick={handlePayment}

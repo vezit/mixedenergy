@@ -10,8 +10,8 @@ import axios from 'axios';
 import { ICustomerDetails } from '../types/ICustomerDetails';
 import { getOrCreateSessionRequest } from '../lib/session';
 
-/** Example basket item type */
-interface IBasketItem {
+/** Export the IBasketItem interface so other files can import it. */
+export interface IBasketItem {
   slug: string;
   quantity: number;
   packages_size?: number;
@@ -22,18 +22,19 @@ interface IBasketItem {
   sugarPreference?: string;
 }
 
-/** Parameters to add an item */
+/** Parameters when adding an item to the basket */
 interface AddItemParams {
   selectionId: string;
   quantity: number;
 }
 
-/** The context value type */
+/** The shape of our basket context state/methods */
 export interface BasketContextValue {
   basketItems: IBasketItem[];
   isBasketLoaded: boolean;
   addItemToBasket: (params: AddItemParams) => Promise<void>;
   removeItemFromBasket: (index: number) => Promise<void>;
+  updateItemQuantity: (index: number, newQuantity: number) => Promise<void>;
   customerDetails: ICustomerDetails;
   updateCustomerDetails: (updatedDetails: Partial<ICustomerDetails>) => Promise<void>;
 }
@@ -55,7 +56,7 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     country: 'Danmark',
   });
 
-  // Fetch session on mount
+  // Fetch basket data on mount (session info + existing items, if any)
   useEffect(() => {
     const fetchBasketItems = async () => {
       try {
@@ -76,8 +77,8 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
   }, []);
 
   /**
-   * Add an item to basket using our 4-updateBasket API
-   * Then update local state with the new list of items.
+   * Add an item to the basket via our API,
+   * then update local `basketItems` state from API response.
    */
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
@@ -86,11 +87,8 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
         selectionId,
         quantity,
       });
-      if (response.data.success) {
-        // Response now contains an updated "items" array
-        if (response.data.items) {
-          setBasketItems(response.data.items);
-        }
+      if (response.data.success && response.data.items) {
+        setBasketItems(response.data.items);
       } else {
         console.error('Failed to add item:', response.data);
       }
@@ -99,6 +97,9 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
+  /**
+   * Remove an item from the basket by index.
+   */
   const removeItemFromBasket = async (index: number) => {
     try {
       const response = await axios.post('/api/supabase/4-updateBasket', {
@@ -106,11 +107,10 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
         itemIndex: index,
       });
       if (response.data.success) {
-        // The API returns updated items, so we sync them
         if (response.data.items) {
           setBasketItems(response.data.items);
         } else {
-          // Or manually remove from local state
+          // If the API doesn't return the updated list, remove locally.
           setBasketItems((prev) => {
             const newItems = [...prev];
             newItems.splice(index, 1);
@@ -123,10 +123,41 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
-    // Update local state first
-    setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
+  /**
+   * Update item quantity by index.
+   */
+  const updateItemQuantity = async (index: number, newQuantity: number) => {
+    try {
+      const response = await axios.post('/api/supabase/4-updateBasket', {
+        action: 'updateQuantity',
+        itemIndex: index,
+        newQuantity,
+      });
+      if (response.data.success) {
+        if (response.data.items) {
+          setBasketItems(response.data.items);
+        } else {
+          // Fallback if no items array is returned
+          setBasketItems((prev) => {
+            const updated = [...prev];
+            if (updated[index]) {
+              updated[index].quantity = newQuantity;
+            }
+            return updated;
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating item quantity:', error);
+    }
+  };
 
+  /**
+   * Update local + remote customer details (name, email, etc.).
+   */
+  const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
+    // Update locally first
+    setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
     try {
       const response = await axios.post('/api/supabase/4-updateBasket', {
         action: 'updateCustomerDetails',
@@ -147,6 +178,7 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
         isBasketLoaded,
         addItemToBasket,
         removeItemFromBasket,
+        updateItemQuantity,
         customerDetails,
         updateCustomerDetails,
       }}

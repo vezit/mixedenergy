@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import MapComponent, { PickupPoint } from './MapComponent'; // <-- Import PickupPoint
+import MapComponent, { PickupPoint } from './MapComponent';
 import LoadingSpinner from './LoadingSpinner';
 
 interface IOpeningHour {
@@ -32,16 +32,14 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
   selectedPoint,
   setSelectedPoint,
 }) => {
-  const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]); 
+  const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle delivery option change
   const handleDeliveryOptionChange = (option: string) => {
     setDeliveryOption(option);
     if (option === 'pickupPoint') {
       setLoading(true);
-      // Minimum loading time (in case data loads too quickly)
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
       }
@@ -60,7 +58,6 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     }
   };
 
-  // Split address into streetName and streetNumber
   const splitAddress = (address: string) => {
     const regex = /^(.*?)(\s+\d+\S*)$/;
     const match = address.match(regex);
@@ -79,7 +76,6 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
 
   const fetchPickupPoints = (updatedDetails: ICustomerDetails) => {
     const { streetName, streetNumber } = splitAddress(updatedDetails.address || '');
-    // Only fetch if city and postalCode are present
     if (updatedDetails.city && updatedDetails.postalCode) {
       let url = `/api/postnord/servicepoints?city=${encodeURIComponent(
         updatedDetails.city
@@ -95,13 +91,11 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
       fetch(url)
         .then((res) => res.json())
         .then((data) => {
-          // Adjust this based on your actual API response structure
           const points: PickupPoint[] =
             data.servicePointInformationResponse?.servicePoints || [];
 
           setPickupPoints(points);
           if (points.length > 0) {
-            // Select the first pickup point by default
             setSelectedPoint(points[0].servicePointId);
             updateDeliveryDetailsInBackend('pickupPoint', {
               selectedPickupPoint: points[0],
@@ -123,7 +117,6 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
           setLoading(false);
         });
     } else {
-      // If insufficient data, skip fetch
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
         loadingTimeoutRef.current = null;
@@ -142,7 +135,6 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     }
   };
 
-  // Fetch pickup points whenever the user changes postalCode (or city) and the delivery option is 'pickupPoint'
   useEffect(() => {
     if (deliveryOption === 'pickupPoint' && customerDetails.postalCode) {
       fetchPickupPoints(customerDetails);
@@ -150,7 +142,6 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerDetails.postalCode, deliveryOption]);
 
-  // Utility to translate English day to Danish (adjust if needed)
   const translateDay = (day: string): string => {
     const days: Record<string, string> = {
       Monday: 'Mandag',
@@ -203,10 +194,8 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
               </div>
             ) : (
               <>
-                {/* If pickupPoints are loaded, show a dropdown and map */}
                 {pickupPoints.length > 0 && (
                   <div className="mt-4 border-t pt-4">
-                    {/* Dropdown to select pickup point */}
                     <div className="mb-4">
                       <select
                         value={selectedPoint || ''}
@@ -224,10 +213,8 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                       </select>
                     </div>
 
-                    {/* Show selected pickup details & map */}
                     {selectedPickup && (
                       <div className="flex flex-col md:flex-row md:space-x-4">
-                        {/* Pickup point details */}
                         <div className="md:w-1/2 mb-4 md:mb-0">
                           <h3 className="text-sm font-bold">
                             {selectedPickup.name} - {selectedPickup.visitingAddress.streetName}{' '}
@@ -257,7 +244,6 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                           </ul>
                         </div>
 
-                        {/* Map with markers */}
                         <div className="md:w-1/2">
                           <MapComponent
                             pickupPoints={pickupPoints}

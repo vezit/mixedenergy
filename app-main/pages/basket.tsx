@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-/** 
- * Example: your custom hook from "BasketContext" 
- * (the actual code may differ—this is just an example).
- */
+// 1) Use the context that we fixed above
 import { useBasket } from '../components/BasketContext';
 
-/** 
- * Some auxiliary components 
- * (e.g. placeholders; your actual code may vary).
- */
+// 2) Import other components as needed
 import Loading from '../components/Loading';
 import ShippingAndPayment from '../components/ShippingAndPayment';
-import OrderConfirmation, { IBasketItem, IBasketSummary } from '../components/OrderConfirmation';
+import OrderConfirmation, {
+  IBasketItem,
+  IBasketSummary,
+} from '../components/OrderConfirmation';
 import BasketItems from '../components/BasketItems';
-
-/**
- * Import the form component and the interface separately.
- */
+import CustomerDetailsForm from '../components/CustomerDetailsForm'; // Example form
 import { ICustomerDetails } from '../types/ICustomerDetails';
 
 interface BasketProps {}
@@ -26,26 +20,15 @@ interface BasketProps {}
 const Basket: React.FC<BasketProps> = () => {
   const router = useRouter();
 
-  /**
-   * These come from your basket context or however you manage state:
-   *
-   *   basketItems: IBasketItem[]
-   *   removeItemFromBasket: (itemIndex: number) => void
-   *   updateItemQuantity: (itemIndex: number, newQty: number) => void
-   *   customerDetails: ICustomerDetails
-   *   updateCustomerDetails: (details: Partial<ICustomerDetails>) => void
-   *   isBasketLoaded: boolean
-   */
   const {
     basketItems,
     removeItemFromBasket,
-    updateItemQuantity,
-    customerDetails, //  ICustomerDetails
-    updateCustomerDetails, // (details: Partial<ICustomerDetails>) => void
+    updateItemQuantity, // <-- Now properly imported from context
+    customerDetails,
+    updateCustomerDetails,
     isBasketLoaded,
   } = useBasket();
 
-  /** Local state */
   const [packagesData, setPackagesData] = useState<Record<string, any>>({});
   const [explodedItems, setExplodedItems] = useState<Record<number, boolean>>({});
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
@@ -59,20 +42,18 @@ const Basket: React.FC<BasketProps> = () => {
   const [errors, setErrors] = useState<Record<string, any>>({});
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
-  /** Summation logic (example) */
+  /** Example summation logic */
   const totalPrice = basketItems.reduce((acc, item: IBasketItem) => {
-    const itemPrice = (item as any).totalPrice ?? 0;
+    const itemPrice = item.totalPrice ?? 0;
     return acc + itemPrice;
   }, 0);
 
   const totalRecyclingFee = basketItems.reduce((acc, item: IBasketItem) => {
-    const recyclingFee = (item as any).totalRecyclingFee ?? 0;
+    const recyclingFee = item.totalRecyclingFee ?? 0;
     return acc + recyclingFee;
   }, 0);
 
-  /**
-   * Example function to update basket's delivery details in backend
-   */
+  /** Example function to update basket's delivery details in backend */
   const updateDeliveryDetailsInBackend = async (
     deliveryType: string,
     extras?: { selectedPickupPoint?: any }
@@ -194,10 +175,10 @@ const Basket: React.FC<BasketProps> = () => {
             totalRecyclingFee={totalRecyclingFee}
           />
 
-          {/* Customer Details Form */}
+          {/* Customer Details Form (example) */}
           <CustomerDetailsForm
-            customerDetails={customerDetails} // ICustomerDetails
-            updateCustomerDetails={updateCustomerDetails} // (details: Partial<ICustomerDetails>) => void
+            customerDetails={customerDetails}
+            updateCustomerDetails={updateCustomerDetails}
             updateDeliveryDetailsInBackend={updateDeliveryDetailsInBackend}
             errors={errors}
             setErrors={setErrors}
@@ -210,7 +191,7 @@ const Basket: React.FC<BasketProps> = () => {
             <ShippingAndPayment
               deliveryOption={deliveryOption}
               setDeliveryOption={setDeliveryOption}
-              customerDetails={customerDetails} // also ICustomerDetails
+              customerDetails={customerDetails}
               updateDeliveryDetailsInBackend={updateDeliveryDetailsInBackend}
               selectedPoint={selectedPoint}
               setSelectedPoint={setSelectedPoint}
@@ -219,7 +200,7 @@ const Basket: React.FC<BasketProps> = () => {
 
           {/* Order Confirmation */}
           <OrderConfirmation
-            customerDetails={customerDetails} // ICustomerDetails
+            customerDetails={customerDetails}
             deliveryOption={deliveryOption}
             selectedPoint={selectedPoint}
             updateDeliveryDetailsInBackend={updateDeliveryDetailsInBackend}
