@@ -68,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // ACTION: addItem, removeItem, updateQuantity, updateCustomerDetails
       else if (['addItem','removeItem','updateQuantity','updateCustomerDetails'].includes(action)) {
         // Use updateSession instead of updateBasket
-        const updateResult = await updateSession(sessionId, action, req.body);
+        const updateResult = await updateSession(action, sessionId, req.body);
         return res.status(200).json(updateResult);
       }
 

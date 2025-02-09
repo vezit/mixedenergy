@@ -60,9 +60,9 @@ export interface DeliveryDetails {
  * - Possible actions: addItem, removeItem, updateQuantity, updateDeliveryDetails, updateCustomerDetails
  */
 export async function updateSession(
-  sessionId: string,
   action: string,
-  body: any
+  sessionId: string,
+  body: any,
 ) {
   // 1) Fetch the session row
   const { data: sessionRow, error: sessionError } = await supabaseAdmin
