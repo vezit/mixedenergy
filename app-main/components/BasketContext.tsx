@@ -1,3 +1,4 @@
+// /components/BasketContext.tsx
 import React, {
   createContext,
   useContext,
@@ -8,9 +9,12 @@ import React, {
 } from 'react';
 import axios from 'axios';
 import { ICustomerDetails } from '../types/ICustomerDetails';
-import { getOrCreateSessionRequest } from '../lib/session';
+import { getSession } from '../lib/session';
+import { getCookie } from '../lib/cookies';
 
-/** Export the IBasketItem interface so other files can import it. */
+/** If you want every axios request to include cookies: */
+axios.defaults.withCredentials = true;
+
 export interface IBasketItem {
   slug: string;
   quantity: number;
@@ -22,13 +26,11 @@ export interface IBasketItem {
   sugarPreference?: string;
 }
 
-/** Parameters when adding an item to the basket */
 interface AddItemParams {
   selectionId: string;
   quantity: number;
 }
 
-/** The shape of our basket context state/methods */
 export interface BasketContextValue {
   basketItems: IBasketItem[];
   isBasketLoaded: boolean;
@@ -56,11 +58,11 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     country: 'Danmark',
   });
 
-  // Fetch basket data on mount (session info + existing items, if any)
+  // On mount, load session
   useEffect(() => {
     const fetchBasketItems = async () => {
       try {
-        const response = await getOrCreateSessionRequest();
+        const response = await getSession();
         if (response.session?.basketDetails?.items) {
           setBasketItems(response.session.basketDetails.items);
         }
@@ -76,16 +78,15 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     void fetchBasketItems();
   }, []);
 
-  /**
-   * Add an item to the basket via our API,
-   * then update local `basketItems` state from API response.
-   */
+  // 1) addItem
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
+      const sessionId = getCookie('session_id');
       const response = await axios.post('/api/supabase/4-updateBasket', {
         action: 'addItem',
         selectionId,
         quantity,
+        sessionId, // fallback for server
       });
       if (response.data.success && response.data.items) {
         setBasketItems(response.data.items);
@@ -97,20 +98,20 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  /**
-   * Remove an item from the basket by index.
-   */
+  // 2) removeItem
   const removeItemFromBasket = async (index: number) => {
     try {
+      const sessionId = getCookie('session_id');
       const response = await axios.post('/api/supabase/4-updateBasket', {
         action: 'removeItem',
         itemIndex: index,
+        sessionId,
       });
       if (response.data.success) {
         if (response.data.items) {
           setBasketItems(response.data.items);
         } else {
-          // If the API doesn't return the updated list, remove locally.
+          // fallback removal
           setBasketItems((prev) => {
             const newItems = [...prev];
             newItems.splice(index, 1);
@@ -123,21 +124,20 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  /**
-   * Update item quantity by index.
-   */
+  // 3) updateQuantity
   const updateItemQuantity = async (index: number, newQuantity: number) => {
     try {
+      const sessionId = getCookie('session_id');
       const response = await axios.post('/api/supabase/4-updateBasket', {
         action: 'updateQuantity',
         itemIndex: index,
         newQuantity,
+        sessionId,
       });
       if (response.data.success) {
         if (response.data.items) {
           setBasketItems(response.data.items);
         } else {
-          // Fallback if no items array is returned
           setBasketItems((prev) => {
             const updated = [...prev];
             if (updated[index]) {
@@ -152,16 +152,15 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  /**
-   * Update local + remote customer details (name, email, etc.).
-   */
+  // 4) updateCustomerDetails
   const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
-    // Update locally first
     setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
     try {
+      const sessionId = getCookie('session_id');
       const response = await axios.post('/api/supabase/4-updateBasket', {
         action: 'updateCustomerDetails',
         customerDetails: updatedDetails,
+        sessionId,
       });
       if (!response.data.success) {
         console.warn('Warning: partial failure updating customer details', response.data);

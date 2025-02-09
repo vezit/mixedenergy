@@ -1,10 +1,10 @@
 // pages/api/supabase/4-updateBasket.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { parse } from 'cookie';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { calculatePrice } from '../../../lib/priceCalculations';
 
-// Data interfaces
 interface SessionRow {
   session_id: string;
   basket_details: BasketDetails;
@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const basketDetails: BasketDetails = sessionRow.basket_details || {};
     let items: BasketItem[] = basketDetails.items || [];
 
-    // 4) Read "action"
+    // 4) Read the "action" from the body
     const { action } = req.body;
     if (!action) {
       return res.status(400).json({ error: 'Missing action in request body' });
@@ -106,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Quantity must be > 0' });
       }
 
-      // 1) Retrieve the selection from temporary_selections
+      // 1) Get the selection from temporary_selections
       const tempSelections = sessionRow.temporary_selections || {};
       const selection = tempSelections[selectionId];
       if (!selection) {
@@ -114,7 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const {
-        selectedProducts, // e.g. { "faxe-kondi-booster-sort-zero": 2, ... }
+        selectedProducts,  // e.g. { "faxe-kondi-booster-sort-zero": 2, ... }
         sugarPreference,
         selectedSize,
         packageSlug,
@@ -206,7 +206,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           break;
         }
       }
-      // If not found, push new
+      // If not found, push a new item
       if (!itemFound) {
         items.push({
           slug: packageSlug,
@@ -221,9 +221,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // Update basketDetails
       basketDetails.items = items;
 
-      // 6) Recalc shipping if set
+      // 6) Recalc shipping if a delivery method is set
       await recalcDeliveryFee(basketDetails);
 
       // 7) Update DB
@@ -302,6 +303,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Invalid customerDetails format' });
       }
 
+      // Optional: validate fields, etc.
       basketDetails.customerDetails = {
         ...(basketDetails.customerDetails || {}),
         ...customerDetails,
@@ -342,9 +344,11 @@ async function updateBasketDetails(sessionId: string, newBasketDetails: BasketDe
 /** Re-check total weight and set `deliveryFee` if a delivery method is set. */
 async function recalcDeliveryFee(basketDetails: BasketDetails) {
   if (!basketDetails.deliveryDetails?.deliveryType) {
-    return; // no shipping chosen
+    return; // no shipping chosen yet
   }
+  // Recalc total weight
   const weight = await calculateTotalBasketWeight(basketDetails.items ?? []);
+  // Recompute fee
   const fee = getDeliveryFee(weight, basketDetails.deliveryDetails.deliveryType);
   basketDetails.deliveryDetails.deliveryFee = fee;
 }
@@ -361,17 +365,18 @@ function isSameSelection(a: Record<string, number>, b: Record<string, number>) {
   return true;
 }
 
-/** Approximate weight from a drink "size" string (e.g. "0.5 l") */
+/** Approximate weight from a drink "size" string (e.g. "0.5 l"). */
 function approximateWeightFromSize(sizeString: string): number {
   const volumeMatch = sizeString.match(/([\d.]+)\s*l/);
   if (!volumeMatch) return 0;
   const volumeLiters = parseFloat(volumeMatch[1]);
-  // ~1 liter = ~1kg, plus packaging
+  // approx 1 liter = 1 kg
   let weight = volumeLiters;
+  // add packaging weight
   if (volumeLiters === 0.5) {
-    weight += 0.02;
+    weight += 0.02; // ~20g
   } else if (volumeLiters === 0.25) {
-    weight += 0.015;
+    weight += 0.015; // ~15g
   } else {
     weight += 0.04 * volumeLiters;
   }
@@ -383,7 +388,7 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
   let totalWeight = 0;
   const slugCountMap: Record<string, number> = {};
 
-  // gather how many of each drink
+  // 1) Count how many of each drink
   for (const item of items) {
     const { selectedDrinks, quantity } = item;
     for (const [drinkSlug, count] of Object.entries(selectedDrinks)) {
@@ -394,7 +399,7 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
   const allSlugs = Object.keys(slugCountMap);
   if (!allSlugs.length) return 0;
 
-  // fetch drinks for "size"
+  // 2) Fetch drinks from DB for their "size"
   const { data: drinkRows, error } = await supabaseAdmin
     .from('drinks')
     .select('slug, size')
@@ -404,6 +409,7 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
     throw new Error(`[4-updateBasket] Error fetching drinks: ${error.message}`);
   }
 
+  // 3) Sum total weight
   for (const row of drinkRows ?? []) {
     const count = slugCountMap[row.slug] || 0;
     const weightPerUnit = approximateWeightFromSize(row.size || '');
@@ -413,7 +419,7 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
   return totalWeight;
 }
 
-/** Return shipping fee in øre */
+/** Return shipping fee in øre (e.g. 8300 = 83.00 DKK). */
 function getDeliveryFee(weight: number, deliveryOption: string): number {
   const pickupPointFees = [
     { maxWeight: 1, fee: 3200 },
@@ -426,6 +432,7 @@ function getDeliveryFee(weight: number, deliveryOption: string): number {
     { maxWeight: 30, fee: 12500 },
     { maxWeight: 35, fee: 13500 },
   ];
+
   const homeDeliveryFees = [
     { maxWeight: 1, fee: 4300 },
     { maxWeight: 2, fee: 5000 },
@@ -440,5 +447,7 @@ function getDeliveryFee(weight: number, deliveryOption: string): number {
 
   const feeTable = deliveryOption === 'pickupPoint' ? pickupPointFees : homeDeliveryFees;
   const bracket = feeTable.find((b) => weight <= b.maxWeight);
-  return bracket ? bracket.fee : feeTable[feeTable.length - 1].fee;
+  return bracket
+    ? bracket.fee
+    : feeTable[feeTable.length - 1].fee;
 }

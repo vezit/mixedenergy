@@ -1,7 +1,7 @@
 // components/CookieConsent.tsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { getOrCreateSessionRequest } from '../lib/session';
+import { getSession } from '../lib/session';
 import { getCookie } from '../lib/cookies'; // Assuming you have your cookie helper here
 
 interface GetSessionResponse {
@@ -19,7 +19,7 @@ const CookieConsent: React.FC = () => {
   const [cookieError, setCookieError] = useState<boolean>(false);
 
   useEffect(() => {
-    getOrCreateSessionRequest()
+    getSession( /* withBasket */ false)
       .then((response: GetSessionResponse) => {
         if (!response.session.allowCookies) {
           setShow(true);

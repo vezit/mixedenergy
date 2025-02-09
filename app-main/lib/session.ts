@@ -2,26 +2,21 @@
 import axios from 'axios';
 
 export interface SessionResponse {
-  session: any; // adjust this type as needed
+  session: any;   // adjust to match your actual shape
   newlyCreated: boolean;
 }
 
-let sessionPromise: Promise<SessionResponse> | null = null;
+/**
+ * Calls /api/supabase/session, creating a new session if needed,
+ * and returning the session row (which may include basket_details).
+ */
+export async function getSession(withBasket = true): Promise<SessionResponse> {
+  const url = withBasket
+    ? '/api/supabase/session'        // returns basket_details by default
+    : '/api/supabase/session?noBasket=1'; // strips basket_details
 
-export function getOrCreateSessionRequest(): Promise<SessionResponse> {
-  if (!sessionPromise) {
-    sessionPromise = axios
-      .post<SessionResponse>(
-        '/api/supabase/getOrCreateSession',
-        {},
-        { withCredentials: true }
-      )
-      .then((res) => res.data)
-      .catch((err) => {
-        // If the request fails, reset the promise so subsequent calls can try again.
-        sessionPromise = null;
-        throw err;
-      });
-  }
-  return sessionPromise;
+  const { data } = await axios.get<SessionResponse>(url, {
+    withCredentials: true, // ensure cookies are sent
+  });
+  return data;
 }

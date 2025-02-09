@@ -14,7 +14,6 @@ import OrderConfirmation, {
 import BasketItems from '../components/BasketItems';
 import CustomerDetailsForm from '../components/CustomerDetailsForm'; // Example form
 import { ICustomerDetails } from '../types/ICustomerDetails';
-import { getCookie } from '../lib/cookies';
 
 interface BasketProps {}
 
@@ -123,14 +122,7 @@ const Basket: React.FC<BasketProps> = () => {
   /** Fetch basket summary */
   const fetchBasketSummary = async () => {
     try {
-      const r = await fetch('/api/supabase/5-getBasket', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getCookie('session_id')}` // Assuming 'session_id' is the cookie you want to parse
-        },
-        credentials: 'include'
-      });
+      const r = await fetch('/api/supabase/5-getBasket');
       const data = await r.json();
       setBasketSummary(data.basketDetails ?? null);
 

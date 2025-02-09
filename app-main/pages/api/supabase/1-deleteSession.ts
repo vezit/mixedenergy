@@ -1,3 +1,4 @@
+// api/supabase/1-deleteSession.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { getCallerInfo } from '../../../lib/callerInfo';

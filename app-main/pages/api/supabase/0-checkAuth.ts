@@ -1,3 +1,4 @@
+// api/supabase/0-checkAuth.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import cookie from 'cookie';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';

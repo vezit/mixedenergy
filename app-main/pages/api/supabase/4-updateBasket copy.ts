@@ -4,7 +4,7 @@ import { parse } from 'cookie';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { calculatePrice } from '../../../lib/priceCalculations';
 
-// Data interfaces
+/** Session interfaces — same as before */
 interface SessionRow {
   session_id: string;
   basket_details: BasketDetails;
@@ -36,6 +36,7 @@ interface CustomerDetails {
   address?: string | null;
   postalCode?: string | null;
   city?: string | null;
+  // etc.
   [key: string]: any;
 }
 
@@ -60,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // 1) Parse sessionId from cookie or body
+    // 1) Parse cookies from header, then fallback to req.body.sessionId
     const cookiesHeader = req.headers.cookie;
     const parsedCookies = cookiesHeader ? parse(cookiesHeader) : {};
     const sessionId = parsedCookies['session_id'] || req.body.sessionId;
@@ -69,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'No session ID provided (cookie or body)' });
     }
 
-    // 2) Fetch the session row
+    // 2) Fetch the session row from 'sessions' table
     const { data: sessionRow, error: sessionError } = await supabaseAdmin
       .from('sessions')
       .select('session_id, basket_details, temporary_selections')
@@ -84,20 +85,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // 3) Extract basket details
+    // 3) Extract current basket details
     const basketDetails: BasketDetails = sessionRow.basket_details || {};
     let items: BasketItem[] = basketDetails.items || [];
 
-    // 4) Read "action"
+    // 4) Extract "action"
     const { action } = req.body;
     if (!action) {
       return res.status(400).json({ error: 'Missing action in request body' });
     }
 
     // --------------------------------------------------
-    // ACTION: addItem
+    //  ACTION: updateDeliveryDetails
     // --------------------------------------------------
-    if (action === 'addItem') {
+    if (action === 'updateDeliveryDetails') {
+      const { deliveryOption, deliveryAddress, providerDetails } = req.body;
+      if (!deliveryOption || !deliveryAddress || !providerDetails) {
+        return res.status(400).json({ error: 'Missing delivery details' });
+      }
+
+      // 1) Create or update a DeliveryDetails object
+      const deliveryDetails: DeliveryDetails = {
+        provider: 'postnord',
+        trackingNumber: null,
+        estimatedDeliveryDate: null,
+        deliveryType: deliveryOption,
+        deliveryFee: 0,
+        currency: 'DKK',
+        deliveryAddress,
+        providerDetails,
+        createdAt: new Date().toISOString(),
+      };
+
+      basketDetails.deliveryDetails = deliveryDetails;
+
+      // 2) Recalc shipping fee based on total weight
+      await recalcDeliveryFee(basketDetails);
+
+      // 3) Save to DB
+      await updateBasketDetails(sessionId, basketDetails);
+
+      return res.status(200).json({
+        success: true,
+        deliveryDetails: basketDetails.deliveryDetails,
+      });
+    }
+
+    // --------------------------------------------------
+    //  ACTION: addItem
+    // --------------------------------------------------
+    else if (action === 'addItem') {
       const { selectionId, quantity } = req.body;
       if (!selectionId) {
         return res.status(400).json({ error: 'Missing selectionId' });
@@ -114,16 +151,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const {
-        selectedProducts, // e.g. { "faxe-kondi-booster-sort-zero": 2, ... }
+        selectedProducts,
         sugarPreference,
         selectedSize,
         packageSlug,
       } = selection;
 
-      // 2) Fetch the main package row
+      // 2) Fetch package from Supabase
       const { data: pkgRow, error: pkgError } = await supabaseAdmin
         .from('packages')
-        .select('id, slug, title, description, image, category')
+        .select('*')
         .eq('slug', packageSlug)
         .single();
 
@@ -135,62 +172,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Invalid package slug' });
       }
 
-      // 2a) Also fetch the package_sizes for this package
-      const { data: sizeRows, error: sizeError } = await supabaseAdmin
-        .from('package_sizes')
-        .select('size, discount, round_up_or_down')
-        .eq('package_id', pkgRow.id);
-
-      if (sizeError) {
-        console.error('[4-updateBasket] Error fetching package_sizes:', sizeError);
-        return res.status(500).json({ error: 'Internal server error' });
-      }
-
-      // Create array of { size, discount, roundUpOrDown }
-      const packages = (sizeRows ?? []).map((row) => ({
-        size: row.size,
-        discount: row.discount ? Number(row.discount) : undefined,
-        roundUpOrDown: row.round_up_or_down || 5,
-      }));
-
-      // 3) Fetch the selected drinks from "drinks"
-      const drinkSlugs = Object.keys(selectedProducts);
-      const { data: drinkRows, error: drinksError } = await supabaseAdmin
-        .from('drinks')
-        .select('slug, sale_price, recycling_fee')
-        .in('slug', drinkSlugs);
-
-      if (drinksError) {
-        console.error('[4-updateBasket] Error fetching drinks:', drinksError);
-        return res.status(500).json({ error: 'Internal server error' });
-      }
-
-      // Build a { [slug]: { sale_price, recycling_fee } } object
-      const drinksData: Record<string, { sale_price: number; recycling_fee?: number }> = {};
-      for (const row of drinkRows ?? []) {
-        drinksData[row.slug] = {
-          sale_price: row.sale_price,
-          recycling_fee: row.recycling_fee ?? 0,
-        };
-      }
-
-      // 4) Calculate the price for ONE package
+      // 3) Compute price + recycling fee for ONE package
       const { pricePerPackage, recyclingFeePerPackage } = await calculatePrice({
-        packageData: {
-          ...pkgRow,
-          // Attach the "packages" array so calculatePrice() can find size=8,12,18
-          packages,
-        },
+        packageData: pkgRow,
         selectedSize,
         selectedProducts,
-        drinksData,
       });
 
-      // Multiply by quantity
+      // Multiply by "quantity"
       const totalPrice = pricePerPackage * quantity;
       const totalRecyclingFee = recyclingFeePerPackage * quantity;
 
-      // 5) Check if a similar item already exists in the basket
+      // 4) Check if a similar item already exists
       let itemFound = false;
       for (const item of items) {
         if (
@@ -198,7 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           item.packages_size === selectedSize &&
           isSameSelection(item.selectedDrinks, selectedProducts)
         ) {
-          // Update existing item
+          // Update existing
           item.quantity += quantity;
           item.totalPrice += totalPrice;
           item.totalRecyclingFee += totalRecyclingFee;
@@ -223,10 +216,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       basketDetails.items = items;
 
-      // 6) Recalc shipping if set
+      // 5) Recalc shipping fee if a delivery method is set
       await recalcDeliveryFee(basketDetails);
 
-      // 7) Update DB
+      // 6) Update DB
       await updateBasketDetails(sessionId, basketDetails);
 
       return res.status(200).json({
@@ -237,7 +230,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // --------------------------------------------------
-    // ACTION: removeItem
+    //  ACTION: removeItem
     // --------------------------------------------------
     else if (action === 'removeItem') {
       const { itemIndex } = req.body;
@@ -251,7 +244,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       items.splice(itemIndex, 1);
       basketDetails.items = items;
+
+      // Recalc shipping if needed
       await recalcDeliveryFee(basketDetails);
+
       await updateBasketDetails(sessionId, basketDetails);
 
       return res.status(200).json({
@@ -262,7 +258,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // --------------------------------------------------
-    // ACTION: updateQuantity
+    //  ACTION: updateQuantity
     // --------------------------------------------------
     else if (action === 'updateQuantity') {
       const { itemIndex, quantity } = req.body;
@@ -283,7 +279,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       item.totalRecyclingFee = item.recyclingFeePerPackage * quantity;
 
       basketDetails.items = items;
+
+      // Recalc shipping if needed
       await recalcDeliveryFee(basketDetails);
+
       await updateBasketDetails(sessionId, basketDetails);
 
       return res.status(200).json({
@@ -294,7 +293,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // --------------------------------------------------
-    // ACTION: updateCustomerDetails
+    //  ACTION: updateCustomerDetails
     // --------------------------------------------------
     else if (action === 'updateCustomerDetails') {
       const { customerDetails } = req.body;
@@ -302,20 +301,70 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Invalid customerDetails format' });
       }
 
+      // (Optional) Validate fields
+      const allowedFields = [
+        'fullName',
+        'mobileNumber',
+        'email',
+        'address',
+        'postalCode',
+        'city',
+      ];
+      const errors: Record<string, string> = {};
+      const updatedCustomerDetails: Record<string, string | null> = {};
+
+      for (const field of allowedFields) {
+        let value = customerDetails[field];
+        if (typeof value !== 'string' || !value.trim()) {
+          updatedCustomerDetails[field] = null;
+          errors[field] = `${field} er påkrævet`;
+        } else {
+          value = value.trim();
+          if (field === 'mobileNumber') {
+            const mobileNumberRegex = /^\d{8}$/;
+            if (!mobileNumberRegex.test(value)) {
+              updatedCustomerDetails[field] = null;
+              errors[field] = 'Mobilnummer skal være 8 cifre';
+            } else {
+              updatedCustomerDetails[field] = value;
+            }
+          } else if (field === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+              updatedCustomerDetails[field] = null;
+              errors[field] = 'E-mail format er ugyldigt';
+            } else {
+              updatedCustomerDetails[field] = value;
+            }
+          } else if (field === 'postalCode') {
+            const postalCodeRegex = /^\d{4}$/;
+            if (!postalCodeRegex.test(value)) {
+              updatedCustomerDetails[field] = null;
+              errors[field] = 'Postnummer skal være 4 cifre';
+            } else {
+              updatedCustomerDetails[field] = value;
+            }
+          } else {
+            updatedCustomerDetails[field] = value;
+          }
+        }
+      }
+
       basketDetails.customerDetails = {
         ...(basketDetails.customerDetails || {}),
-        ...customerDetails,
+        ...updatedCustomerDetails,
       };
+
       await updateBasketDetails(sessionId, basketDetails);
 
       return res.status(200).json({
         success: true,
-        errors: {},
+        errors, // Some fields may have validation messages
       });
     }
 
     // --------------------------------------------------
-    // ACTION: Unknown
+    //  ACTION: Unknown
     // --------------------------------------------------
     else {
       return res.status(400).json({ error: 'Invalid action' });
@@ -326,7 +375,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-/** Update basket_details in DB */
+/** Updates the session's `basket_details` in the DB */
 async function updateBasketDetails(sessionId: string, newBasketDetails: BasketDetails) {
   const { error } = await supabaseAdmin
     .from('sessions')
@@ -339,21 +388,30 @@ async function updateBasketDetails(sessionId: string, newBasketDetails: BasketDe
   }
 }
 
-/** Re-check total weight and set `deliveryFee` if a delivery method is set. */
+/**
+ * Re-check total weight and set `deliveryFee` if a delivery method is set.
+ */
 async function recalcDeliveryFee(basketDetails: BasketDetails) {
   if (!basketDetails.deliveryDetails?.deliveryType) {
-    return; // no shipping chosen
+    // No shipping chosen yet
+    return;
   }
+  // Recalc total weight
   const weight = await calculateTotalBasketWeight(basketDetails.items ?? []);
+  // Recompute fee
   const fee = getDeliveryFee(weight, basketDetails.deliveryDetails.deliveryType);
   basketDetails.deliveryDetails.deliveryFee = fee;
 }
 
-/** Compare two "selectedDrinks" objects for equality. */
+/**
+ * Compare two "selectedDrinks" objects to see if they represent the same selection.
+ */
 function isSameSelection(a: Record<string, number>, b: Record<string, number>) {
   const aKeys = Object.keys(a).sort();
   const bKeys = Object.keys(b).sort();
-  if (aKeys.length !== bKeys.length) return false;
+  if (aKeys.length !== bKeys.length) {
+    return false;
+  }
   for (let i = 0; i < aKeys.length; i++) {
     if (aKeys[i] !== bKeys[i]) return false;
     if (a[aKeys[i]] !== b[bKeys[i]]) return false;
@@ -361,29 +419,36 @@ function isSameSelection(a: Record<string, number>, b: Record<string, number>) {
   return true;
 }
 
-/** Approximate weight from a drink "size" string (e.g. "0.5 l") */
+/**
+ * Approximate weight from a drink size string (e.g. "0.5 l").
+ */
 function approximateWeightFromSize(sizeString: string): number {
   const volumeMatch = sizeString.match(/([\d.]+)\s*l/);
   if (!volumeMatch) return 0;
   const volumeLiters = parseFloat(volumeMatch[1]);
-  // ~1 liter = ~1kg, plus packaging
+
+  // approx 1 liter = 1 kg
   let weight = volumeLiters;
+
+  // Add packaging weight
   if (volumeLiters === 0.5) {
-    weight += 0.02;
+    weight += 0.02; // ~20g
   } else if (volumeLiters === 0.25) {
-    weight += 0.015;
+    weight += 0.015; // ~15g
   } else {
     weight += 0.04 * volumeLiters;
   }
   return weight;
 }
 
-/** Calculate total basket weight by fetching each drink's `size` from DB. */
+/**
+ * Calculate total basket weight by fetching each drink's `size` from the DB.
+ */
 async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> {
   let totalWeight = 0;
-  const slugCountMap: Record<string, number> = {};
 
-  // gather how many of each drink
+  // 1) Count how many drinks of each slug
+  const slugCountMap: Record<string, number> = {};
   for (const item of items) {
     const { selectedDrinks, quantity } = item;
     for (const [drinkSlug, count] of Object.entries(selectedDrinks)) {
@@ -394,7 +459,7 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
   const allSlugs = Object.keys(slugCountMap);
   if (!allSlugs.length) return 0;
 
-  // fetch drinks for "size"
+  // 2) Fetch drinks from DB for their "size"
   const { data: drinkRows, error } = await supabaseAdmin
     .from('drinks')
     .select('slug, size')
@@ -404,6 +469,7 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
     throw new Error(`[4-updateBasket] Error fetching drinks: ${error.message}`);
   }
 
+  // 3) Sum up total weight
   for (const row of drinkRows ?? []) {
     const count = slugCountMap[row.slug] || 0;
     const weightPerUnit = approximateWeightFromSize(row.size || '');
@@ -413,8 +479,11 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
   return totalWeight;
 }
 
-/** Return shipping fee in øre */
+/**
+ * Return the shipping fee in øre (e.g. 8300 = 83.00 DKK)
+ */
 function getDeliveryFee(weight: number, deliveryOption: string): number {
+  // Example tables
   const pickupPointFees = [
     { maxWeight: 1, fee: 3200 },
     { maxWeight: 2, fee: 3900 },
@@ -426,6 +495,7 @@ function getDeliveryFee(weight: number, deliveryOption: string): number {
     { maxWeight: 30, fee: 12500 },
     { maxWeight: 35, fee: 13500 },
   ];
+
   const homeDeliveryFees = [
     { maxWeight: 1, fee: 4300 },
     { maxWeight: 2, fee: 5000 },
@@ -440,5 +510,7 @@ function getDeliveryFee(weight: number, deliveryOption: string): number {
 
   const feeTable = deliveryOption === 'pickupPoint' ? pickupPointFees : homeDeliveryFees;
   const bracket = feeTable.find((b) => weight <= b.maxWeight);
-  return bracket ? bracket.fee : feeTable[feeTable.length - 1].fee;
+  return bracket
+    ? bracket.fee
+    : feeTable[feeTable.length - 1].fee; // fallback if weight > last bracket
 }
