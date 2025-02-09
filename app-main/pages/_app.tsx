@@ -9,6 +9,9 @@ import React, { useState, useEffect, JSX } from 'react';
 import { useRouter } from 'next/router';
 import * as gtag from '../lib/gtag';
 
+// << import your new SessionProvider
+import { SessionProvider } from '../contexts/SessionContext';
+
 export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   const router = useRouter();
   const [isStorageEnabled, setIsStorageEnabled] = useState(true);
@@ -56,35 +59,38 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   }, [router.events]);
 
   return (
-    <BasketProvider>
-      <div className="flex flex-col min-h-screen">
-        {/* Development Warning */}
-        <div className="bg-orange-500 text-white text-center p-2">
-          This website is still under development.
-        </div>
-
-        {/* Cookie/Local Storage Warning */}
-        {!isStorageEnabled && (
-          <div className="bg-red-500 text-white text-center p-2">
-            Our website requires cookies and local storage to function properly.
-            Please enable cookies and local storage in your browser settings.
+    <SessionProvider> {/* Wrap in SessionProvider */}
+      <BasketProvider>
+        <div className="flex flex-col min-h-screen">
+          {/* Development Warning */}
+          <div className="bg-orange-500 text-white text-center p-2">
+            This website is still under development.
           </div>
-        )}
 
-        {/* Header */}
-        <Header />
+          {/* Cookie/Local Storage Warning */}
+          {!isStorageEnabled && (
+            <div className="bg-red-500 text-white text-center p-2">
+              Our website requires cookies and local storage to function
+              properly. Please enable cookies and local storage in your
+              browser settings.
+            </div>
+          )}
 
-        {/* Main Content */}
-        <main className="flex-grow flex flex-col items-center justify-center bg-gray-100">
-          <Component {...pageProps} />
-        </main>
+          {/* Header */}
+          <Header />
 
-        {/* Footer */}
-        <Footer />
+          {/* Main Content */}
+          <main className="flex-grow flex flex-col items-center justify-center bg-gray-100">
+            <Component {...pageProps} />
+          </main>
 
-        {/* Cookie Consent */}
-        <CookieConsent />
-      </div>
-    </BasketProvider>
+          {/* Footer */}
+          <Footer />
+
+          {/* Cookie Consent */}
+          <CookieConsent />
+        </div>
+      </BasketProvider>
+    </SessionProvider>
   );
 }

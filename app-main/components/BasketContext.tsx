@@ -1,5 +1,3 @@
-// /components/BasketContext.tsx
-
 import React, {
   createContext,
   useContext,
@@ -8,12 +6,9 @@ import React, {
   ReactNode,
   FC,
 } from 'react';
-import axios from 'axios';
-import { ICustomerDetails } from '../types/ICustomerDetails';
-import { getSession } from '../lib/session'; // presumably calls GET /api/supabase/session
+import { useSessionContext } from '../contexts/SessionContext'; // <-- new import
 import { getCookie } from '../lib/cookies';
-
-axios.defaults.withCredentials = true;
+import { ICustomerDetails } from '../types/ICustomerDetails';
 
 export interface IBasketItem {
   slug: string;
@@ -58,94 +53,104 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     country: 'Danmark',
   });
 
-  // 1) On mount: GET /api/supabase/session to fetch or create session
-  useEffect(() => {
-    const fetchBasketItems = async () => {
-      try {
-        const response = await getSession(/* noBasket= */ false);
-        const sessionData = response.session;
-        // if there's a basket_details, load it
-        if (sessionData.basket_details?.items) {
-          setBasketItems(sessionData.basket_details.items);
-        }
-        if (sessionData.basket_details?.customerDetails) {
-          setCustomerDetails(sessionData.basket_details.customerDetails);
-        }
-      } catch (error) {
-        console.error('Error fetching or creating session:', error);
-      } finally {
-        setIsBasketLoaded(true);
-      }
-    };
-    void fetchBasketItems();
-  }, []);
+  // Access the session + updateSession from our SessionProvider
+  const { session, loading, updateSession } = useSessionContext();
 
-  // 2) addItem
+  /**
+   * On mount (and whenever session changes):
+   * - If session is loaded, read basket details into local state
+   */
+  useEffect(() => {
+    if (!loading && session?.session?.basket_details) {
+      const { items, customerDetails: custDet } = session.session.basket_details;
+
+      if (items) {
+        setBasketItems(items);
+      }
+      if (custDet) {
+        setCustomerDetails(custDet);
+      }
+      setIsBasketLoaded(true);
+    }
+  }, [loading, session]);
+
+  /**
+   * 1) addItemToBasket
+   */
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
-      const sessionId = getCookie('session_id');
-      const response = await axios.post('/api/supabase/session', {
-        action: 'addItem',
-        selectionId,
-        quantity,
-        sessionId, // fallback
-      });
-      if (response.data.success && response.data.items) {
-        setBasketItems(response.data.items);
+      // fallback if cookie is blocked
+      const sessionId = getCookie('session_id') ?? undefined;
+      const response = await updateSession(
+        'addItem',
+        { selectionId, quantity },
+        sessionId
+      );
+      // If server responds with updated items
+      if (response?.success && response.items) {
+        setBasketItems(response.items);
       }
     } catch (error) {
       console.error('Error adding item to basket:', error);
     }
   };
 
-  // 3) removeItem
+  /**
+   * 2) removeItemFromBasket
+   */
   const removeItemFromBasket = async (index: number) => {
     try {
-      const sessionId = getCookie('session_id');
-      const response = await axios.post('/api/supabase/session', {
-        action: 'removeItem',
-        itemIndex: index,
-        sessionId,
-      });
-      if (response.data.success && response.data.items) {
-        setBasketItems(response.data.items);
+      const sessionId = getCookie('session_id') ?? undefined;
+      const response = await updateSession(
+        'removeItem',
+        { itemIndex: index },
+        sessionId
+      );
+      if (response?.success && response.items) {
+        setBasketItems(response.items);
       }
     } catch (error) {
       console.error('Error removing item:', error);
     }
   };
 
-  // 4) updateItemQuantity
+  /**
+   * 3) updateItemQuantity
+   */
   const updateItemQuantity = async (index: number, newQuantity: number) => {
     try {
-      const sessionId = getCookie('session_id');
-      const response = await axios.post('/api/supabase/session', {
-        action: 'updateQuantity',
-        itemIndex: index,
-        newQuantity,
-        sessionId,
-      });
-      if (response.data.success && response.data.items) {
-        setBasketItems(response.data.items);
+      const sessionId = getCookie('session_id') ?? undefined;
+      const response = await updateSession(
+        'updateQuantity',
+        { itemIndex: index, newQuantity },
+        sessionId
+      );
+      if (response?.success && response.items) {
+        setBasketItems(response.items);
       }
     } catch (error) {
       console.error('Error updating item quantity:', error);
     }
   };
 
-  // 5) updateCustomerDetails
-  const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
-    // update local state
+  /**
+   * 4) updateCustomerDetails
+   */
+  const updateCustomerDetails = async (
+    updatedDetails: Partial<ICustomerDetails>
+  ) => {
+    // optimistic update
     setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
+
     try {
-      const sessionId = getCookie('session_id');
-      const response = await axios.post('/api/supabase/session', {
-        action: 'updateCustomerDetails',
-        customerDetails: updatedDetails,
-        sessionId,
-      });
-      if (!response.data.success) {
-        console.warn('Warning updating customer details', response.data);
+      const sessionId = getCookie('session_id') ?? undefined;
+      const response = await updateSession(
+        'updateCustomerDetails',
+        { customerDetails: updatedDetails },
+        sessionId
+      );
+      if (!response?.success) {
+        console.warn('Warning updating customer details:', response);
       }
     } catch (error) {
       console.error('Error updating customer details:', error);

@@ -1,5 +1,5 @@
 // lib/cookies.js
-
+import { deleteSession } from '../lib/session';
 /**
  * Helper function to get the cookie value by name
  */
@@ -48,33 +48,29 @@ export async function deleteAllCookies(
   // 1. Optionally delete session in Supabase **before** clearing cookies
   if (deleteSessionInSupabase) {
     try {
-      // Make sure to pass "credentials: 'include'" if you want
-      // the browser to automatically include the "session_id" cookie.
-      await fetch('/api/supabase/1-deleteSession', {
-        method: 'POST',
-        credentials: 'include',
-      })
+      // Instead of using fetch, just call our lib/session.ts function.
+      await deleteSession();
     } catch (error) {
-      console.error('Error deleting session in Supabase:', error)
+      console.error('Error deleting session in Supabase:', error);
     }
   }
 
-  // 2. Now delete all cookies
-  const cookies = document.cookie.split(';')
+  // 2. Delete all cookies from the browser
+  const cookies = document.cookie.split(';');
   for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i].trim()
-    const eqPos = cookie.indexOf('=')
-    const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+    const cookie = cookies[i].trim();
+    const eqPos = cookie.indexOf('=');
+    const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
   }
 
   // 3. Optionally delete session storage
   if (deleteSessionStorage) {
-    sessionStorage.clear()
+    sessionStorage.clear();
   }
 
   // 4. Optionally delete local storage
   if (deleteLocalStorage) {
-    localStorage.clear()
+    localStorage.clear();
   }
 }
