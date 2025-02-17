@@ -3,69 +3,84 @@
 import { supabaseAdmin } from '../supabaseAdmin';
 import { calculatePrice } from '../priceCalculations';
 
-/** Input parameters. */
 interface CreateTempSelectionParams {
   sessionId: string;
-  selectedProducts: Record<string, number>;
-  selectedSize: number;
   packageSlug: string;
+  selectedSize: number;
+  sugarPreference?: 'uden_sukker' | 'med_sukker' | 'alle';
   isMysteryBox?: boolean;
-  sugarPreference?: string;
+  /**
+   * If the client wants to provide a custom selection, it can do so.
+   * If omitted or empty, we do random picks if isMysteryBox=true.
+   */
+  selectedProducts?: Record<string, number>;
 }
 
-/** Return shape. */
 interface CreateTempSelectionResult {
   success: boolean;
-
-  /**
-   * The deterministic key used as the "selectionId" in your temporary_selections object.
-   * e.g. "mixed-boosters-12-alle"
-   */
   selectionId: string;
 
+  // from price calculations
   pricePerPackage: number;
   recyclingFeePerPackage: number;
+  originalTotalPrice: number;
 }
 
 /**
  * createTemporarySelection
- *  - Validates that the user-specified `selectedProducts` matches `selectedSize`
- *  - Fetches the package from DB
- *  - Calls `calculatePrice` to get the per-package + recycling fee
- *  - Stores this selection into session.temporary_selections
- *    at a deterministic key: "packageSlug-selectedSize-sugarPreference"
- *  - Returns { success, selectionId, pricePerPackage, recyclingFeePerPackage }
+ * 
+ * 1) Loads the package + package_drinks + associated drinks from DB.
+ * 2) If `isMysteryBox` (or no `selectedProducts`), picks random drinks from the package,
+ *    filtering by `sugarPreference`.
+ * 3) Calculates final price (discounts, recyclingFee, etc.).
+ * 4) Stores everything in session.temporary_selections + returns it.
  */
 export async function createTemporarySelection(
   params: CreateTempSelectionParams
 ): Promise<CreateTempSelectionResult> {
   const {
     sessionId,
-    selectedProducts,
-    selectedSize,
     packageSlug,
+    selectedSize,
+    sugarPreference = 'alle',
     isMysteryBox = false,
-    sugarPreference,
+    selectedProducts = {},
   } = params;
 
   // 1) Basic checks
-  if (!sessionId) {
-    throw new Error('Missing sessionId');
-  }
-  if (!selectedSize || !selectedProducts || !packageSlug) {
-    throw new Error('Missing required fields: selectedSize, selectedProducts, or packageSlug');
+  if (!sessionId) throw new Error('Missing sessionId');
+  if (!packageSlug || !selectedSize) {
+    throw new Error('Missing packageSlug or selectedSize');
   }
 
-  // Confirm total items = selectedSize
-  const totalSelected = Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0);
-  if (totalSelected !== selectedSize) {
-    throw new Error('Selected products do not match the package size');
-  }
-
-  // 2) Fetch package from DB (to confirm existence & possibly get sizes/drinks)
+  // 2) Load the package + drinks from DB
+  //    so we can do random picks and have pricing data
   const { data: pkgRow, error: pkgError } = await supabaseAdmin
     .from('packages')
-    .select('*')
+    .select(
+      `
+        id,
+        slug,
+        title,
+        description,
+        category,
+        image,
+        package_sizes (
+          size,
+          discount,
+          round_up_or_down
+        ),
+        package_drinks (
+          drink_id,
+          drinks (
+            slug,
+            sale_price,
+            recycling_fee,
+            is_sugar_free
+          )
+        )
+      `
+    )
     .eq('slug', packageSlug)
     .single();
 
@@ -76,16 +91,58 @@ export async function createTemporarySelection(
     throw new Error(`Invalid package slug: "${packageSlug}"`);
   }
 
-  // 3) Calculate price + recycling fee
-  const { pricePerPackage, recyclingFeePerPackage } = await calculatePrice({
-    packageData: pkgRow,
+  const joinedDrinks: Array<{
+    slug: string;
+    sale_price: number;
+    recycling_fee?: number;
+    is_sugar_free: boolean;
+  }> = (pkgRow.package_drinks ?? []).map((pd: any) => pd.drinks);
+
+  if (!joinedDrinks.length) {
+    throw new Error(`No drinks linked to package "${packageSlug}".`);
+  }
+
+  // 3) If isMysteryBox or no selectedProducts => do random picks
+  let finalSelectedProducts = { ...selectedProducts };
+  if (isMysteryBox || Object.keys(selectedProducts).length === 0) {
+    finalSelectedProducts = buildRandomSelection({
+      joinedDrinks,
+      selectedSize,
+      sugarPreference,
+    });
+  }
+
+  // 4) Confirm total items = selectedSize
+  const totalItems = Object.values(finalSelectedProducts).reduce((sum, n) => sum + n, 0);
+  if (totalItems !== selectedSize) {
+    throw new Error(`Selected products total (${totalItems}) != selectedSize (${selectedSize}).`);
+  }
+
+  // 5) Build a "drinksData" object for price calculations
+  //    Keyed by drinkSlug => { sale_price, recycling_fee, ... }
+  const drinksData: Record<string, { sale_price: number; recycling_fee: number }> = {};
+  for (const d of joinedDrinks) {
+    drinksData[d.slug] = {
+      sale_price: d.sale_price,
+      recycling_fee: d.recycling_fee || 0,
+    };
+  }
+
+  // 6) Convert package_sizes => .packages for calculatePrice
+  const packageData = {
+    ...pkgRow,
+    packages: pkgRow.package_sizes || [],
+  };
+
+  // 7) Run price calculation
+  const { pricePerPackage, recyclingFeePerPackage, originalTotalPrice } = await calculatePrice({
+    packageData,
     selectedSize,
-    selectedProducts,
-    // If your `pkgRow` doesn't have joined package_sizes or drinks,
-    // you may need to provide them or fetch them separately.
+    selectedProducts: finalSelectedProducts,
+    drinksData, // pass the prepared object
   });
 
-  // 4) Retrieve the existing session row so we can merge the new selection
+  // 8) Retrieve the existing session row
   const { data: sessionRow, error: sessionError } = await supabaseAdmin
     .from('sessions')
     .select('temporary_selections')
@@ -96,41 +153,91 @@ export async function createTemporarySelection(
     throw new Error(`Session fetch error: ${sessionError.message}`);
   }
   if (!sessionRow) {
-    throw new Error('Session not found');
+    throw new Error(`Session not found for session_id="${sessionId}"`);
   }
 
-  // 5) Build a deterministic key: "<packageSlug>-<selectedSize>-<sugarPreference>"
-  //    e.g. "mixed-boosters-12-alle"
-  //    If sugarPreference is undefined, default to something (e.g. "alle" or "unknown").
-  const normalizedSugarPref = sugarPreference || 'alle';
-  const selectionKey = `${packageSlug}-${selectedSize}-${normalizedSugarPref}`;
-
-  // 6) Insert/overwrite that key in the existing temporary_selections object
+  // 9) Build a key: "slug-size-sugarPref"
+  const selectionKey = `${packageSlug}-${selectedSize}-${sugarPreference}`;
   const existingTempSelections = sessionRow.temporary_selections || {};
+
+  // 10) Insert or overwrite
   existingTempSelections[selectionKey] = {
-    selectedProducts,
+    selectedProducts: finalSelectedProducts,
     selectedSize,
     packageSlug,
+    sugarPreference,
     isMysteryBox,
-    sugarPreference: normalizedSugarPref,
     createdAt: new Date().toISOString(),
+    // Embed price data so the front end can read it from the session:
+    priceData: {
+      pricePerPackage,
+      recyclingFeePerPackage,
+      originalTotalPrice,
+    },
   };
 
-  // 7) Update the DB
-  const { error: updateError } = await supabaseAdmin
+  // 11) Update the DB
+  const { error: updateErr } = await supabaseAdmin
     .from('sessions')
     .update({ temporary_selections: existingTempSelections })
     .eq('session_id', sessionId);
 
-  if (updateError) {
-    throw new Error(`Error updating session: ${updateError.message}`);
+  if (updateErr) {
+    throw new Error(`Error updating session: ${updateErr.message}`);
   }
 
-  // 8) Return the result, using `selectionKey` as "selectionId"
+  // 12) Return the results
   return {
     success: true,
-    selectionId: selectionKey, // same as the new key
+    selectionId: selectionKey,
     pricePerPackage,
     recyclingFeePerPackage,
+    originalTotalPrice,
   };
+}
+
+/**
+ * buildRandomSelection
+ *  - filters by sugarPreference
+ *  - picks exactly 'selectedSize' drinks
+ */
+function buildRandomSelection({
+  joinedDrinks,
+  selectedSize,
+  sugarPreference,
+}: {
+  joinedDrinks: Array<{
+    slug: string;
+    sale_price: number;
+    recycling_fee?: number;
+    is_sugar_free: boolean;
+  }>;
+  selectedSize: number;
+  sugarPreference: 'uden_sukker' | 'med_sukker' | 'alle';
+}): Record<string, number> {
+  // 1) Filter
+  let filtered = joinedDrinks;
+  if (sugarPreference === 'uden_sukker') {
+    filtered = joinedDrinks.filter((d) => d.is_sugar_free);
+  } else if (sugarPreference === 'med_sukker') {
+    filtered = joinedDrinks.filter((d) => !d.is_sugar_free);
+  }
+
+  if (!filtered.length) {
+    throw new Error(
+      `No drinks match sugarPreference="${sugarPreference}" for this package.`
+    );
+  }
+
+  // 2) Random picks
+  const result: Record<string, number> = {};
+  let remaining = selectedSize;
+  while (remaining > 0) {
+    const idx = Math.floor(Math.random() * filtered.length);
+    const drinkSlug = filtered[idx].slug;
+    result[drinkSlug] = (result[drinkSlug] || 0) + 1;
+    remaining--;
+  }
+
+  return result;
 }

@@ -10,7 +10,6 @@ import {
 } from '../../../lib/api/session/session';
 
 // NEW imports from your libraries:
-import { generateRandomSelection } from '../../../lib/api/session/generateRandomSelection';
 import { createTemporarySelection } from '../../../lib/api/session/createTemporarySelection';
 import { getCalculatedPackagePrice } from '../../../lib/api/session/getCalculatedPackagePrice';
 
@@ -89,17 +88,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json(updateResult);
       }
 
-      // 5) NEW: GENERATE RANDOM SELECTION
-      else if (action === 'generateRandomSelection') {
-        // e.g. body includes { sessionId, slug, selectedSize, sugarPreference, isCustomSelection, selectedProducts }
-        const result = await generateRandomSelection({
-          sessionId,
-          ...rest, // spread rest of the fields from body
-        });
-        return res.status(200).json(result);
-      }
 
-      // 6) NEW: CREATE TEMPORARY SELECTION
+      // 5) NEW: CREATE TEMPORARY SELECTION
       else if (action === 'createTemporarySelection') {
         // e.g. { sessionId, selectedProducts, selectedSize, packageSlug, isMysteryBox, sugarPreference }
         const result = await createTemporarySelection({
@@ -109,14 +99,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json(result);
       }
 
-      // 7) NEW: GET CALCULATED PACKAGE PRICE
+      // 6) NEW: GET CALCULATED PACKAGE PRICE
       else if (action === 'getCalculatedPackagePrice') {
         // e.g. { slug, selectedSize, selectedProducts, isMysteryBox, sugarPreference }
         const result = await getCalculatedPackagePrice(rest);
         return res.status(200).json(result);
       }
 
-      // 8) UNKNOWN ACTION
+      // 7) UNKNOWN ACTION
       else {
         return res.status(400).json({ error: 'Invalid action' });
       }
