@@ -1,5 +1,5 @@
 // pages/products/vi-blander-for-dig/[slug].tsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import Image from 'next/image';
@@ -12,9 +12,7 @@ import LoadingConfettiButton from '../../../components/LoadingConfettiButton';
 import ConfettiAnimation from '../../../components/ConfettiAnimation';
 import { getCookie } from '../../../lib/cookies';
 
-/**
- * Types for product & drinks
- */
+/** Data from DB about package sizes. */
 interface ProductPackage {
   size: number;
   discount?: number;
@@ -27,7 +25,7 @@ interface ProductType {
   image: string;
   description: string;
   category: string;
-  packages?: ProductPackage[]; // from "package_sizes"
+  packages?: ProductPackage[];  // from "package_sizes"
   collectionsDrinks?: string[]; // from joined drinks
 }
 
@@ -41,21 +39,32 @@ type DrinksDataType = Record<
 
 type RandomSelectionType = Record<string, number>;
 
-interface TemporarySelections {
-  [key: string]: {
-    selectedProducts: RandomSelectionType;
-    selectedSize: number;
-    packageSlug: string;
-    sugarPreference?: string;
-    isMysteryBox?: boolean;
-    createdAt: string;
-  };
+/** 
+ * After calling createTemporarySelection, we might get price etc. 
+ * from "priceData" or direct return. 
+ */
+interface PriceData {
+  pricePerPackage: number;
+  recyclingFeePerPackage: number;
+  originalTotalPrice: number;
 }
 
-/**
- * The main component for '/vi-blander-for-dig/[slug]'
+interface SessionTemporarySelection {
+  selectedProducts: RandomSelectionType;
+  selectedSize: number;
+  packageSlug: string;
+  sugarPreference?: string;
+  isMysteryBox?: boolean;
+  createdAt: string;
+  priceData?: PriceData;
+}
+
+/** 
+ * The shape of "temporary_selections" in DB 
  */
-const ViBlanderForDigProduct: React.FC = () => {
+type TemporarySelections = Record<string, SessionTemporarySelection>;
+
+export default function ViBlanderForDigProduct() {
   const router = useRouter();
   const slug = router.query.slug as string;
 
@@ -70,10 +79,10 @@ const ViBlanderForDigProduct: React.FC = () => {
   // The session_id read from cookie
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // The fetched product
+  // The product from DB
   const [product, setProduct] = useState<ProductType | null>(null);
 
-  // For showing user’s random selection
+  // The "random" selection for the user
   const [randomSelection, setRandomSelection] = useState<RandomSelectionType>({});
   const [selectionId, setSelectionId] = useState<string | null>(null);
 
@@ -81,57 +90,46 @@ const ViBlanderForDigProduct: React.FC = () => {
   const [price, setPrice] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number>(0);
 
-  // User choices
+  // User's chosen size & sugar preference
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [sugarPreference, setSugarPreference] = useState<'alle' | 'med_sukker' | 'uden_sukker'>(
-    'alle'
-  );
+  const [sugarPreference, setSugarPreference] = useState<'alle' | 'med_sukker' | 'uden_sukker'>('alle');
 
-  // For displaying drink data (images, names)
+  // The number of packages to add to cart
+  const [quantity, setQuantity] = useState<number>(1);
+
+  // Drinks info for display
   const [drinksData, setDrinksData] = useState<DrinksDataType>({});
 
-  // For the confetti effect
+  // For confetti effect
   const addToCartButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // If you need to build a Supabase image URL, use this
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
-  /**
-   * 1) Read the session_id cookie on mount
-   */
+  // 1) On mount, read session_id from cookie
   useEffect(() => {
-    try {
-      const sid = getCookie('session_id');
-      if (sid) {
-        console.debug('[ViBlanderForDigProduct] session_id cookie =', sid);
-        setSessionId(sid);
-      } else {
-        console.warn('No session_id cookie found.');
-      }
-    } catch (err) {
-      console.error('Error reading cookie:', err);
+    const sid = getCookie('session_id');
+    if (sid) {
+      setSessionId(sid);
+      console.debug('[ViBlanderForDigProduct] Found session_id cookie:', sid);
+    } else {
+      console.warn('No session_id cookie found');
     }
   }, []);
 
-  /**
-   * 2) Fetch product details from /api/supabase/packages/[slug]
-   */
+  // 2) Whenever slug changes, load the product
   useEffect(() => {
     if (!slug) return;
-    console.debug('[ViBlanderForDigProduct] Slug changed =>', slug);
     setLoading(true);
 
-    (async () => {
+    (async function fetchProduct() {
       try {
-        const { data } = await axios.get(`/api/supabase/packages/${slug}`);
-        if (!data?.package) {
-          console.warn('No "package" found for slug=', slug);
+        const resp = await axios.get(`/api/supabase/packages/${slug}`);
+        if (!resp.data?.package) {
+          console.warn('No package found for slug=', slug);
           setProduct(null);
           return;
         }
-
-        const pkg: ProductType = data.package;
+        const pkg: ProductType = resp.data.package;
         setProduct(pkg);
 
         // If we have package sizes, default to the first
@@ -139,12 +137,12 @@ const ViBlanderForDigProduct: React.FC = () => {
           setSelectedSize(pkg.packages[0].size);
         }
 
-        // If product has 'collectionsDrinks', fetch their data
-        if (pkg.collectionsDrinks && pkg.collectionsDrinks.length > 0) {
-          const resp = await axios.post('/api/supabase/3-getDrinksBySlugs', {
+        // If "collectionsDrinks" exist, fetch them
+        if (pkg.collectionsDrinks?.length) {
+          const drinksResp = await axios.post('/api/supabase/3-getDrinksBySlugs', {
             slugs: pkg.collectionsDrinks,
           });
-          setDrinksData(resp.data?.drinks || {});
+          setDrinksData(drinksResp.data?.drinks || {});
         } else {
           setDrinksData({});
         }
@@ -157,69 +155,69 @@ const ViBlanderForDigProduct: React.FC = () => {
     })();
   }, [slug]);
 
-  /**
-   * 3) Whenever selectedSize or sugarPreference changes => check if there's already a
-   *    temporary selection for "<slug>-<selectedSize>-<sugarPreference>" in DB.
-   *    If not found => create a new selection (with isMysteryBox = true).
-   */
+  // 3) Whenever the user changes selectedSize or sugarPreference => fetch or create selection
+  //    i.e., if no "selectionKey" in DB => call createTemporarySelection
   useEffect(() => {
     if (!sessionId || !product || !selectedSize) {
-      console.debug('[checkExistingSelection] Missing sessionId/product/selectedSize => skipping');
+      // Not enough info yet
       return;
     }
-    const selectionKey = getSelectionKey();
-
-    (async () => {
-      setLoading(true);
-      try {
-        // 1) Fetch the current session from server
-        const resp = await axios.get('/api/supabase/session');
-        const currentSession = resp.data?.session;
-        if (!currentSession?.temporary_selections) {
-          // No existing selections => create new
-          console.debug('[checkExistingSelection] No temporary_selections => create new');
-          await createSelectionInSupabase(true);
-          return;
-        }
-
-        // 2) See if selectionKey is in session.temporary_selections
-        const temp = currentSession.temporary_selections as TemporarySelections;
-        if (temp[selectionKey]) {
-          console.debug('[checkExistingSelection] Found existing =>', selectionKey);
-          const existing = temp[selectionKey];
-          setRandomSelection(existing.selectedProducts);
-          setSelectionId(selectionKey);
-
-          // fetch price
-          await fetchPrice(existing.selectedProducts);
-        } else {
-          console.debug('[checkExistingSelection] Not found => create new');
-          await createSelectionInSupabase(true);
-        }
-      } catch (err) {
-        console.error('Error checking existing selection =>', err);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    void fetchOrCreateSelection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, product, selectedSize, sugarPreference]);
 
   /**
-   * A unique key: "<slug>-<selectedSize>-<sugarPreference>"
+   * fetchOrCreateSelection => 
+   *    1) GET /api/supabase/session
+   *    2) Check "temporary_selections[selectionKey]"
+   *    3) If not found => createTemporarySelection
+   *    4) Then set local states (randomSelection, selectionId, price, etc.)
    */
-  const getSelectionKey = useCallback(() => {
-    const pref = sugarPreference || 'alle';
-    return `${slug}-${selectedSize}-${pref}`;
-  }, [slug, selectedSize, sugarPreference]);
+  async function fetchOrCreateSelection() {
+    setLoading(true);
+    try {
+      // 1) GET session
+      const sessionResp = await axios.get('/api/supabase/session');
+      const currentSession = sessionResp.data?.session;
+      if (!currentSession) {
+        console.warn('[fetchOrCreateSelection] No session returned from server');
+        return;
+      }
+
+      const selectionKey = buildSelectionKey(slug, selectedSize, sugarPreference);
+      const tempSelections = currentSession.temporary_selections as TemporarySelections || {};
+
+      // 2) see if we have a selection at that key
+      const existing = tempSelections[selectionKey];
+      if (existing) {
+        console.debug('[fetchOrCreateSelection] Found existing selection =>', selectionKey);
+        setRandomSelection(existing.selectedProducts || {});
+        setSelectionId(selectionKey);
+
+        // Price => either from existing.priceData or we can do separate
+        if (existing.priceData) {
+          setPrice(existing.priceData.pricePerPackage);
+          setOriginalPrice(existing.priceData.originalTotalPrice || existing.priceData.pricePerPackage);
+        } else {
+          // no priceData => fallback? e.g. do a getCalculatedPackagePrice call
+          await doSeparatePriceCalc(existing.selectedProducts);
+        }
+      } else {
+        console.debug('[fetchOrCreateSelection] Not found => calling createTemporarySelection');
+        await createTemporarySelection(true);
+      }
+    } catch (err) {
+      console.error('[fetchOrCreateSelection] Error =>', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   /**
-   * createSelectionInSupabase
-   *   Calls your single route with action="createTemporarySelection"
-   *   and { isMysteryBox: true } so the server picks random drinks
-   *   or merges a custom selection if you prefer.
+   * createTemporarySelection => calls POST /api/supabase/session with "createTemporarySelection"
+   *    isMysteryBox => random picks on server
    */
-  async function createSelectionInSupabase(isMysteryBox: boolean) {
+  async function createTemporarySelection(isMysteryBox: boolean) {
     if (!sessionId || !slug || !selectedSize) return;
 
     setIsGenerating(true);
@@ -230,35 +228,32 @@ const ViBlanderForDigProduct: React.FC = () => {
         selectedSize,
         sugarPreference,
         isMysteryBox,
-        // If you want to pass a custom "selectedProducts", you can do so
-        // selectedProducts: {...} 
       };
-      console.debug('[createSelectionInSupabase] =>', body);
+      console.debug('[createTemporarySelection] =>', body);
 
       const resp = await axios.post('/api/supabase/session', {
         action: 'createTemporarySelection',
         ...body,
       });
-
       if (!resp.data?.success) {
-        console.error('createTemporarySelection => success=false', resp.data.error);
-        alert(resp.data.error || 'Error creating temporary selection');
+        console.error('[createTemporarySelection] success=false =>', resp.data.error);
+        alert(resp.data.error || 'Error creating selection');
         return;
       }
 
-      // e.g. { selectionId, pricePerPackage, recyclingFeePerPackage }
-      const { selectionId, pricePerPackage } = resp.data;
-      console.debug('Created new selection =>', selectionId);
+      // from server: e.g. { selectionId, pricePerPackage, recyclingFeePerPackage, originalTotalPrice }
+      const { selectionId, pricePerPackage, originalTotalPrice } = resp.data;
+      console.debug('[createTemporarySelection] Created =>', selectionId);
 
       setSelectionId(selectionId);
+      setPrice(pricePerPackage);
+      setOriginalPrice(originalTotalPrice ?? pricePerPackage);
 
-      // The server also calculates pricePerPackage => but let's do a dedicated fetchPrice call
-      // if you want to show final price with recyclingFee. 
-      // Or you can do everything from the server response.
-      await fetchPriceFromServer(resp.data);
-
+      // We'll re-fetch the session to get the random drinks
+      // or you can store them in the server response. 
+      await fetchOrCreateSelection();
     } catch (err) {
-      console.error('[createSelectionInSupabase] Error =>', err);
+      console.error('[createTemporarySelection] Error =>', err);
       alert('Error creating selection');
     } finally {
       setIsGenerating(false);
@@ -266,85 +261,67 @@ const ViBlanderForDigProduct: React.FC = () => {
   }
 
   /**
-   * If the server's createTemporarySelection returns a partial price,
-   * you can call this to display it. Alternatively, call fetchPrice if needed.
+   * doSeparatePriceCalc => if we want a separate "getCalculatedPackagePrice" call
    */
-  async function fetchPriceFromServer(serverResp: any) {
-    if (serverResp?.pricePerPackage) {
-      // store it in local state
-      setPrice(serverResp.pricePerPackage);
-      setOriginalPrice(serverResp.pricePerPackage);
-    }
-  }
-
-  /**
-   * fetchPrice => calls action="getCalculatedPackagePrice"
-   *   if you want a separate server calculation
-   */
-  async function fetchPrice(selectedProducts: RandomSelectionType) {
+  async function doSeparatePriceCalc(selectedProducts: RandomSelectionType) {
     if (!selectedSize || !slug) return;
     try {
-      const payload = {
-        selectedSize,
-        slug,
-        selectedProducts,
-      };
-      console.debug('[fetchPrice] =>', payload);
-
       const resp = await axios.post('/api/supabase/session', {
         action: 'getCalculatedPackagePrice',
-        ...payload,
+        slug,
+        selectedSize,
+        selectedProducts,
       });
       if (resp.data?.price) {
         setPrice(resp.data.price);
         setOriginalPrice(resp.data.originalPrice ?? resp.data.price);
-        console.debug(
-          '[fetchPrice] set price =>',
-          resp.data.price,
-          ' original =>',
-          resp.data.originalPrice
-        );
       }
     } catch (err) {
-      console.error('[fetchPrice] Error =>', err);
+      console.error('[doSeparatePriceCalc] Error =>', err);
     }
   }
 
+  // For the unique key => "mixed-boosters-12-alle"
+  function buildSelectionKey(slug: string, size: number | null, pref: string): string {
+    return `${slug}-${size}-${pref}`;
+  }
+
   /**
-   * addToBasketAction => calls addItemToBasket from context
+   * Overwrite selection => call createTemporarySelection again
    */
-  const addToBasketAction = async () => {
+  async function regenerateSelection() {
+    await createTemporarySelection(true);
+  }
+
+  /**
+   * addToBasket => calls addItemToBasket from your basket context
+   */
+  async function addToBasketAction() {
     if (!selectionId) {
-      alert('No selection found—please create a selection first.');
+      alert('No selection found—create a selection first');
       return;
     }
     setIsAddingToCart(true);
     try {
       await addItemToBasket({
         selectionId,
-        quantity: Number(quantity),
+        quantity,
       });
       setShowConfetti(true);
     } catch (err) {
       console.error('[addToBasket] Error =>', err);
-      alert('Error adding to basket. Please try again.');
+      alert('Error adding to basket');
     } finally {
       setIsAddingToCart(false);
     }
-  };
+  }
 
-  /**
-   * Optionally let user click a "Regenerate" button to overwrite the existing selection
-   */
-  const handleRegenerate = async () => {
-    // Overwrite the selection in DB
-    await createSelectionInSupabase(true);
-  };
+  // Confetti callback
+  function handleConfettiEnd() {
+    setShowConfetti(false);
+  }
 
-  /** Confetti callback */
-  const handleConfettiEnd = () => setShowConfetti(false);
-
-  // ----------- RENDER -----------
+  // -------------- RENDER --------------
   if (loading) {
     return <Loading />;
   }
@@ -357,7 +334,7 @@ const ViBlanderForDigProduct: React.FC = () => {
       <h1 className="text-4xl font-bold text-center mb-8">{product.title}</h1>
 
       <div className="flex flex-col md:flex-row">
-        {/* Left: image + description */}
+        {/* Left side: product image + description */}
         <div className="md:w-1/2 flex-1">
           {product.image && (
             <img
@@ -372,9 +349,9 @@ const ViBlanderForDigProduct: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: selection + user actions */}
+        {/* Right side: selection & user controls */}
         <div className="md:w-1/2 md:pl-8 flex-1 flex flex-col justify-between">
-          {/* 1) Pick package size */}
+          {/* 1) Select package size */}
           <div className="mt-4">
             <p>Select Package Size:</p>
             {product.packages && product.packages.length > 0 ? (
@@ -436,7 +413,6 @@ const ViBlanderForDigProduct: React.FC = () => {
               Your Random {product.title}
             </h2>
             <ul className="list-disc list-inside mt-4 px-4">
-              {/* The randomSelection is empty unless we have some from the DB */}
               {Object.entries(randomSelection).map(([drinkSlug, qty]) => {
                 const drinkName = drinksData[drinkSlug]?.name || drinkSlug;
                 const drinkImage = drinksData[drinkSlug]?.image || '';
@@ -463,10 +439,10 @@ const ViBlanderForDigProduct: React.FC = () => {
             </ul>
           </div>
 
-          {/* 4) Buttons + Price */}
+          {/* 4) Buttons & Price */}
           <div className="mt-8">
             <LoadingButton
-              onClick={() => createSelectionInSupabase(true)} // Overwrite selection with new random
+              onClick={regenerateSelection}
               loading={isGenerating}
               className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition w-full"
             >
@@ -498,7 +474,6 @@ const ViBlanderForDigProduct: React.FC = () => {
         </div>
       </div>
 
-      {/* Confetti effect */}
       {showConfetti && (
         <ConfettiAnimation
           onAnimationEnd={handleConfettiEnd}
@@ -507,6 +482,4 @@ const ViBlanderForDigProduct: React.FC = () => {
       )}
     </div>
   );
-};
-
-export default ViBlanderForDigProduct;
+}
