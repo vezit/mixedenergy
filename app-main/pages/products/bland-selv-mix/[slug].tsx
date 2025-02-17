@@ -1,11 +1,10 @@
-// pages/products/bland-selv-mix/[slug].js
+// pages/products/bland-selv-mix/[slug].tsx
 
 import React, {
   useState,
   useEffect,
   useRef,
   useCallback,
-  MouseEventHandler,
 } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -16,9 +15,9 @@ import LoadingConfettiButton from '../../../components/LoadingConfettiButton';
 import ConfettiAnimation from '../../../components/ConfettiAnimation';
 import { useBasket } from '../../../components/BasketContext';
 
-// ------------------
+//
 // Type Definitions
-// ------------------
+//
 interface ProductPackage {
   size: number;
 }
@@ -27,8 +26,8 @@ interface ProductType {
   title: string;
   image: string;
   description: string;
-  packages?: ProductPackage[];
-  collectionsDrinks?: string[];
+  packages?: ProductPackage[];      // from Supabase "package_sizes"
+  collectionsDrinks?: string[];     // from joined drinks
 }
 
 interface DrinkData {
@@ -36,20 +35,25 @@ interface DrinkData {
   image: string;
 }
 
-type DrinksDataType = Record<string, DrinkData>; // e.g. { "coca-cola-zero": { name: "Coca Cola Zero", image: "..." }, ... }
-type SelectedProductsType = Record<string, number>; // e.g. { "coca-cola-zero": 2, "pepsi-max": 3 }
+type DrinksDataType = Record<string, DrinkData>;
+type SelectedProductsType = Record<string, number>;
+
+//
+// **Add this** to build absolute image URLs
+//
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
 const BlandSelvMixProduct: React.FC = () => {
   const router = useRouter();
   const slug = router.query.slug as string | undefined;
 
-  const addToCartButtonRef = useRef<HTMLButtonElement | null>(null); // Ref for the "Add to Cart" button
+  const addToCartButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const [product, setProduct] = useState<ProductType | null>(null);
   const [drinksData, setDrinksData] = useState<DrinksDataType>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedProducts, setSelectedProducts] = useState<SelectedProductsType>({});
-  const [selectedSize, setSelectedSize] = useState<number | null>(null); // will be set after fetching product
+  const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [maxProducts, setMaxProducts] = useState<number>(0);
 
   const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
@@ -57,10 +61,9 @@ const BlandSelvMixProduct: React.FC = () => {
 
   const { addItemToBasket } = useBasket();
 
-  // ---------------
+  //
   // Local Storage
-  // ---------------
-  // Load data from localStorage on mount
+  //
   useEffect(() => {
     if (!slug) return;
 
@@ -74,15 +77,13 @@ const BlandSelvMixProduct: React.FC = () => {
         }
       >;
       if (allSlugsData[slug]) {
-        const { selectedSize: storedSize, selectedProducts: storedProducts } =
-          allSlugsData[slug];
+        const { selectedSize: storedSize, selectedProducts: storedProds } = allSlugsData[slug];
         if (storedSize) setSelectedSize(storedSize);
-        if (storedProducts) setSelectedProducts(storedProducts);
+        if (storedProds) setSelectedProducts(storedProds);
       }
     }
   }, [slug]);
 
-  // Save data to localStorage whenever selectedSize or selectedProducts change
   useEffect(() => {
     if (!slug) return;
 
@@ -97,130 +98,120 @@ const BlandSelvMixProduct: React.FC = () => {
     localStorage.setItem('slugBlandSelvMix', JSON.stringify(allData));
   }, [slug, selectedSize, selectedProducts]);
 
-  // ---------------
-  // Fetch data
-  // ---------------
+  //
+  // Fetch product + drinks
+  //
   useEffect(() => {
     if (!slug) return;
 
-    const fetchProductAndDrinks = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch product data
-        const productResponse = await axios.get(`/api/firebase/products/${slug}`);
-        const productData: ProductType = productResponse.data.package;
+        // 1) Get the package info from Supabase
+        const { data } = await axios.get(`/api/supabase/packages/${slug}`);
+        const productData: ProductType = data.package;
         setProduct(productData);
 
-        // If selectedSize not set, use the first available package
+        // 2) Default to first size if not chosen
         if (!selectedSize && productData.packages && productData.packages.length > 0) {
           setSelectedSize(productData.packages[0].size);
         }
 
-        // Fetch drinks data
-        if (productData.collectionsDrinks && productData.collectionsDrinks.length > 0) {
-          const drinksResponse = await axios.post('/api/firebase/3-getDrinksBySlugs', {
+        // 3) If package has "collectionsDrinks", fetch them
+        if (productData.collectionsDrinks?.length) {
+          const resp = await axios.post('/api/supabase/3-getDrinksBySlugs', {
             slugs: productData.collectionsDrinks,
           });
-          setDrinksData(drinksResponse.data.drinks as DrinksDataType);
+          setDrinksData(resp.data.drinks as DrinksDataType);
         }
-      } catch (error) {
-        console.error('Error fetching product or drinks:', error);
+      } catch (err) {
+        console.error('[BlandSelvMix] Error fetching data:', err);
         setProduct(null);
       } finally {
         setLoading(false);
       }
     };
 
-    void fetchProductAndDrinks();
+    void fetchData();
   }, [slug, selectedSize]);
 
-  // Update maxProducts whenever selectedSize changes
   useEffect(() => {
     if (selectedSize) {
       setMaxProducts(selectedSize);
     }
   }, [selectedSize]);
 
-  // ---------------
+  //
   // Handlers
-  // ---------------
-  // Calculate the total number of selected drinks
+  //
   const getTotalSelected = useCallback((): number => {
     return Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0);
   }, [selectedProducts]);
 
-  // Function to handle quantity changes
   const handleProductQuantityChange = (drinkSlug: string, action: 'increment' | 'decrement') => {
-    setSelectedProducts((prevSelected) => {
-      const currentQty = prevSelected[drinkSlug] || 0;
+    setSelectedProducts((prev) => {
+      const currentQty = prev[drinkSlug] || 0;
       let newQty = currentQty;
 
       if (action === 'increment' && getTotalSelected() < maxProducts) {
-        newQty = currentQty + 1;
+        newQty++;
       } else if (action === 'decrement' && currentQty > 0) {
-        newQty = currentQty - 1;
+        newQty--;
       }
 
-      const updatedSelected = { ...prevSelected, [drinkSlug]: newQty };
-      if (updatedSelected[drinkSlug] === 0) {
-        delete updatedSelected[drinkSlug];
+      const updated = { ...prev, [drinkSlug]: newQty };
+      if (updated[drinkSlug] === 0) {
+        delete updated[drinkSlug];
       }
-
-      return updatedSelected;
+      return updated;
     });
   };
 
-  // Create a temporary selection
+  // Create a custom selection
   const createTemporarySelection = async (): Promise<string | null> => {
     try {
-      // Create temporary selection using the provided API
-      const response = await axios.post('/api/firebase/4-generateRandomSelection', {
+      const resp = await axios.post('/api/supabase/4-generateRandomSelection', {
         slug,
         selectedSize,
         selectedProducts,
-        isCustomSelection: true, // Indicate that this is a custom selection
-        sugarPreference: null,   // We can explicitly set sugarPreference to null or omit it
+        isCustomSelection: true,
+        sugarPreference: null,
       });
-
-      if (response.data.success) {
-        const selectionId = response.data.selectionId as string;
-        return selectionId;
+      if (resp.data.success) {
+        return resp.data.selectionId as string;
       } else {
-        console.error('Failed to create temporary selection:', response.data);
+        console.error('[createTemporarySelection] Failed:', resp.data);
         alert('Failed to create selection. Please try again.');
         return null;
       }
     } catch (error) {
-      console.error('Error creating temporary selection:', error);
+      console.error('[createTemporarySelection] Error:', error);
       alert('Error creating selection. Please try again.');
       return null;
     }
   };
 
-  // Add the selected products to the basket
   const addToBasket = async () => {
     if (getTotalSelected() !== maxProducts) {
       alert(`Please select exactly ${maxProducts} drinks.`);
       return;
     }
-
     setIsAddingToCart(true);
     try {
-      // 1) Create temporary selection
+      // 1) Create the selection
       const selectionId = await createTemporarySelection();
-      if (!selectionId) {
-        // Failed to create temporary selection
-        return;
-      }
+      if (!selectionId) return;
 
-      // 2) Use BasketContext to add item to basket
+      // 2) Add to basket
       await addItemToBasket({ selectionId, quantity: 1 });
+
+      // 3) Confetti
       setShowConfetti(true);
 
-      // 3) Clear selected products (optional, up to your flow)
+      // 4) Clear picks
       setSelectedProducts({});
 
-      // 4) Remove from localStorage
+      // 5) Clear localStorage for this slug
       const storedData = localStorage.getItem('slugBlandSelvMix');
       if (storedData) {
         const allData = JSON.parse(storedData);
@@ -228,20 +219,19 @@ const BlandSelvMixProduct: React.FC = () => {
         localStorage.setItem('slugBlandSelvMix', JSON.stringify(allData));
       }
     } catch (error: any) {
-      console.error('Error adding to basket:', error);
+      console.error('[addToBasket] Error:', error);
+
       if (
-        error.response &&
-        error.response.data &&
-        error.response.data.error === 'Invalid or expired selectionId'
+        error.response?.data?.error === 'Invalid or expired selectionId'
       ) {
-        // The selectionId is invalid or expired, retry creating a new one
+        // Attempt creating new selection
         const newSelectionId = await createTemporarySelection();
         if (newSelectionId) {
           try {
             await addItemToBasket({ selectionId: newSelectionId, quantity: 1 });
             setShowConfetti(true);
           } catch (err) {
-            console.error('Error adding to basket with new selectionId:', err);
+            console.error('[addToBasket] Retry error:', err);
             alert('Error adding to basket. Please try again.');
           }
         } else {
@@ -255,47 +245,48 @@ const BlandSelvMixProduct: React.FC = () => {
     }
   };
 
-  // Close confetti
-  const handleConfettiEnd = () => {
-    setShowConfetti(false);
-  };
+  const handleConfettiEnd = () => setShowConfetti(false);
 
-  // ---------------
+  //
   // Render
-  // ---------------
+  //
   if (loading) {
     return <Loading />;
   }
-
   if (!product) {
     return <p>Product not found.</p>;
   }
 
   return (
     <div className="container mx-auto p-8">
-      {/* Product Title */}
-      <h1 className="text-4xl font-bold text-center mb-8">{product.title}</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">
+        {product.title}
+      </h1>
 
       <div className="flex flex-col md:flex-row items-center">
-        {/* Left Column: Image and Description */}
+        {/* Left: Product image + description */}
         <div className="md:w-1/2">
           {product.image && (
-            <img src={product.image} alt={product.title} className="w-full h-auto" />
+            <img
+              // **Use the absolute URL**
+              src={`${SUPABASE_URL}${product.image}`}
+              alt={product.title}
+              className="w-full h-auto"
+            />
           )}
 
-          {/* Description */}
           <div className="mt-6">
             <h2 className="text-2xl font-bold mb-2">Description</h2>
             <p className="text-lg text-gray-700">{product.description}</p>
           </div>
         </div>
 
-        {/* Right Column: Selection and Actions */}
+        {/* Right: Selections */}
         <div className="md:w-1/2 md:pl-8">
-          {/* Package Size Selection */}
+          {/* Package Size */}
           <div className="mt-4">
             <p>Select Package Size:</p>
-            {product.packages && product.packages.length > 0 ? (
+            {product.packages?.length ? (
               product.packages.map((pkg) => (
                 <label key={pkg.size} className="mr-4">
                   <input
@@ -313,26 +304,33 @@ const BlandSelvMixProduct: React.FC = () => {
             )}
           </div>
 
-          {/* Scrollable Drinks Selection */}
+          {/* Drinks selection */}
           <div className="mt-4">
             <p>Select drinks (exactly {maxProducts}):</p>
-            {Object.keys(drinksData).map((drinkSlug, index) => {
+            {Object.keys(drinksData).map((drinkSlug) => {
               const currentQty = selectedProducts[drinkSlug] || 0;
+              const drink = drinksData[drinkSlug];
+
               return (
-                <div key={drinkSlug} className="flex items-center justify-between mt-2">
-                  <a href={`/drinks/${drinkSlug}`} className="flex items-center">
+                <div
+                  key={drinkSlug}
+                  className="flex items-center justify-between mt-2"
+                >
+                  <div className="flex items-center">
                     <div className="w-12 aspect-[463/775] relative mr-4">
-                      {drinksData[drinkSlug]?.image && (
+                      {drink?.image && (
                         <Image
-                          src={drinksData[drinkSlug].image}
-                          alt={drinksData[drinkSlug].name || drinkSlug}
-                          layout="fill"
+                          // **Again, prepend SUPABASE_URL**
+                          src={`${SUPABASE_URL}${drink.image}`}
+                          alt={drink.name || drinkSlug}
+                          fill
                           className="object-cover rounded-lg"
                         />
                       )}
                     </div>
-                    <span>{drinksData[drinkSlug]?.name || drinkSlug}</span>
-                  </a>
+                    <span>{drink?.name || drinkSlug}</span>
+                  </div>
+
                   <div className="flex items-center">
                     <button
                       onClick={() => handleProductQuantityChange(drinkSlug, 'decrement')}
@@ -341,7 +339,9 @@ const BlandSelvMixProduct: React.FC = () => {
                     >
                       -
                     </button>
-                    <span className="px-4 py-2 bg-gray-100">{currentQty}</span>
+                    <span className="px-4 py-2 bg-gray-100">
+                      {currentQty}
+                    </span>
                     <button
                       onClick={() => handleProductQuantityChange(drinkSlug, 'increment')}
                       className="px-2 py-1 bg-gray-200 rounded-r"
@@ -353,6 +353,7 @@ const BlandSelvMixProduct: React.FC = () => {
                 </div>
               );
             })}
+
             <p className="mt-2 text-red-600">
               You have selected {getTotalSelected()} out of {maxProducts} drinks.
             </p>
@@ -370,9 +371,12 @@ const BlandSelvMixProduct: React.FC = () => {
         </div>
       </div>
 
-      {/* Render Confetti */}
+      {/* Confetti */}
       {showConfetti && (
-        <ConfettiAnimation onAnimationEnd={handleConfettiEnd} buttonRef={addToCartButtonRef} />
+        <ConfettiAnimation
+          onAnimationEnd={handleConfettiEnd}
+          buttonRef={addToCartButtonRef}
+        />
       )}
     </div>
   );

@@ -3,9 +3,6 @@
 import { supabaseAdmin } from '../supabaseAdmin';
 import { calculatePrice } from '../priceCalculations';
 
-/** -----------------------------
- *  INTERFACES (inline)
- * ----------------------------- */
 export interface SessionRow {
   session_id: string;
   basket_details?: BasketDetails;
@@ -42,28 +39,30 @@ export interface CustomerDetails {
 }
 
 export interface DeliveryDetails {
-  provider?: string;
+  provider?: string;            // e.g. 'postnord', 'gls'
   trackingNumber?: string | null;
   estimatedDeliveryDate?: string | null;
-  deliveryType?: string;  // e.g. 'homeDelivery' / 'pickupPoint'
-  deliveryFee?: number;   // in øre
+  deliveryType?: string;        // e.g. 'homeDelivery', 'pickupPoint'
+  deliveryFee?: number;         // in øre
   currency?: string;
-  deliveryAddress?: any;  // your address structure
-  providerDetails?: any;  // e.g. {postnord:{...}, gls:{...}}
+  deliveryAddress?: any;        // your address structure
+  providerDetails?: any;        // e.g. {postnord:{...}, gls:{...}}
   createdAt?: string;
 }
 
 /**
  * updateSession
- * - Fetches the session row from Supabase
- * - Updates basket_details based on the "action"
- * - Possible actions: addItem, removeItem, updateQuantity, updateDeliveryDetails, updateCustomerDetails
+ *  - Named parameters for clarity
  */
-export async function updateSession(
-  action: string,
-  sessionId: string,
-  body: any,
-) {
+export async function updateSession({
+  action,
+  sessionId,
+  data,
+}: {
+  action: string;
+  sessionId: string;
+  data?: any;
+}) {
   // 1) Fetch the session row
   const { data: sessionRow, error: sessionError } = await supabaseAdmin
     .from('sessions')
@@ -84,18 +83,18 @@ export async function updateSession(
 
   // 3) Handle the requested action
   switch (action) {
-    /** ---------------
-     *  updateDeliveryDetails
-     * --------------- */
+    /**
+     * updateDeliveryDetails
+     */
     case 'updateDeliveryDetails': {
-      const { deliveryOption, deliveryAddress, providerDetails } = body;
-      if (!deliveryOption || !deliveryAddress || !providerDetails) {
-        throw new Error('[updateSession] Missing delivery details');
+      const { deliveryOption, deliveryAddress, providerDetails, provider } = data;
+      if (!provider || !deliveryOption || !deliveryAddress || !providerDetails) {
+        throw new Error('[updateSession] Missing delivery details (provider, deliveryOption, etc.)');
       }
 
       // 1) Update or create DeliveryDetails
       const deliveryDetails: DeliveryDetails = {
-        provider: 'postnord',
+        provider,               // e.g. 'postnord' or 'gls'
         trackingNumber: null,
         estimatedDeliveryDate: null,
         deliveryType: deliveryOption, // e.g. 'homeDelivery' or 'pickupPoint'
@@ -120,11 +119,11 @@ export async function updateSession(
       };
     }
 
-    /** ---------------
-     *  addItem
-     * --------------- */
+    /**
+     * addItem
+     */
     case 'addItem': {
-      const { selectionId, quantity } = body;
+      const { selectionId, quantity } = data;
       if (!selectionId) {
         throw new Error('[updateSession] Missing selectionId');
       }
@@ -142,30 +141,66 @@ export async function updateSession(
       // 2) Extract data from selection
       const { selectedProducts, sugarPreference, selectedSize, packageSlug } = selection;
 
-      // 3) Fetch package from DB
-      const { data: pkgRow, error: pkgError } = await supabaseAdmin
+      // 3) Fetch the FULL package row, including package_sizes + package_drinks
+      const { data: fullPackage, error: pkgErr } = await supabaseAdmin
         .from('packages')
-        .select('*')
+        .select(`
+          *,
+          package_sizes (size, discount, round_up_or_down),
+          package_drinks ( drink_id )
+        `)
         .eq('slug', packageSlug)
         .single();
 
-      if (pkgError) {
-        throw new Error(`[updateSession] Error fetching package: ${pkgError.message}`);
+      if (pkgErr) {
+        throw new Error(`[updateSession] Error fetching package: ${pkgErr.message}`);
       }
-      if (!pkgRow) {
+      if (!fullPackage) {
         throw new Error('[updateSession] Invalid package slug');
       }
 
-      // 4) Calculate price & recycling fee for one package
+      // Now we also fetch the actual drinks for this package
+      const drinkIds = fullPackage.package_drinks.map((pd: any) => pd.drink_id);
+      const { data: drinkRows, error: drErr } = await supabaseAdmin
+        .from('drinks')
+        .select('slug, sale_price, recycling_fee, is_sugar_free, size')
+        .in('id', drinkIds);
+
+      if (drErr) {
+        throw new Error(`[updateSession] Error fetching package drinks: ${drErr.message}`);
+      }
+      if (!drinkRows || drinkRows.length === 0) {
+        throw new Error('[updateSession] No drinks found for this package');
+      }
+
+      // 4) Build a "drinksData" object for calculatePrice
+      const drinksData: Record<string, any> = {};
+      for (const d of drinkRows) {
+        // for calculatePrice, we at least need sale_price + recycling_fee
+        drinksData[d.slug] = {
+          sale_price: d.sale_price,
+          recycling_fee: d.recycling_fee,
+          is_sugar_free: d.is_sugar_free,
+          size: d.size,
+        };
+      }
+
+      // 5) Calculate price & recycling fee for one package
       const { pricePerPackage, recyclingFeePerPackage } = await calculatePrice({
-        packageData: pkgRow,
+        packageData: {
+          ...fullPackage,
+          // rename "package_sizes" array to "packages" for calculatePrice
+          packages: fullPackage.package_sizes ?? [],
+        },
         selectedSize,
         selectedProducts,
+        drinksData, // <-- now we pass it in
       });
+
       const totalPrice = pricePerPackage * quantity;
       const totalRecyclingFee = recyclingFeePerPackage * quantity;
 
-      // 5) Check if the same item already exists
+      // 6) Check if the same item already exists in basket
       let itemFound = false;
       for (const item of items) {
         const sameSlug = item.slug === packageSlug;
@@ -198,10 +233,10 @@ export async function updateSession(
 
       basketDetails.items = items;
 
-      // 6) Recalc shipping fee if a delivery method is set
+      // 7) Recalc shipping fee if a delivery method is set
       await recalcDeliveryFee(basketDetails);
 
-      // 7) Update DB
+      // 8) Update DB
       await updateBasketDetails(sessionId, basketDetails);
 
       return {
@@ -211,11 +246,11 @@ export async function updateSession(
       };
     }
 
-    /** ---------------
-     *  removeItem
-     * --------------- */
+    /**
+     * removeItem
+     */
     case 'removeItem': {
-      const { itemIndex } = body;
+      const { itemIndex } = data;
       if (itemIndex === undefined || itemIndex < 0 || itemIndex >= items.length) {
         throw new Error('[updateSession] Invalid item index');
       }
@@ -234,11 +269,11 @@ export async function updateSession(
       };
     }
 
-    /** ---------------
-     *  updateQuantity
-     * --------------- */
+    /**
+     * updateQuantity
+     */
     case 'updateQuantity': {
-      const { itemIndex, quantity } = body;
+      const { itemIndex, quantity } = data;
       if (itemIndex === undefined || itemIndex < 0 || itemIndex >= items.length) {
         throw new Error('[updateSession] Invalid item index');
       }
@@ -264,17 +299,17 @@ export async function updateSession(
       };
     }
 
-    /** ---------------
-     *  updateCustomerDetails
-     * --------------- */
+    /**
+     * updateCustomerDetails
+     */
     case 'updateCustomerDetails': {
-      const { customerDetails } = body;
+      const { customerDetails } = data;
       if (!customerDetails || typeof customerDetails !== 'object') {
         throw new Error('[updateSession] Invalid customerDetails object');
       }
 
-      // Optional validations
-      const allowedFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
+      // Example validation
+      const allowedFields = ['fullName','mobileNumber','email','address','postalCode','city'];
       const errors: Record<string, string> = {};
       const updatedCustomerDetails: Record<string, string | null> = {};
 
@@ -328,9 +363,6 @@ export async function updateSession(
       };
     }
 
-    /** ---------------
-     *  Default
-     * --------------- */
     default:
       throw new Error('[updateSession] Invalid action');
   }
@@ -351,14 +383,17 @@ async function updateBasketDetails(sessionId: string, newBasketDetails: BasketDe
 }
 
 /**
- * If `deliveryType` is set, recalc the shipping fee
+ * If `deliveryType` is set, recalc the shipping fee from DB
  */
 async function recalcDeliveryFee(basketDetails: BasketDetails) {
-  if (!basketDetails.deliveryDetails?.deliveryType) {
+  if (!basketDetails.deliveryDetails?.deliveryType || !basketDetails.deliveryDetails.provider) {
     return;
   }
+  const provider = basketDetails.deliveryDetails.provider;
+  const deliveryOption = basketDetails.deliveryDetails.deliveryType; // e.g. 'homeDelivery'
   const weight = await calculateTotalBasketWeight(basketDetails.items ?? []);
-  const fee = getDeliveryFee(weight, basketDetails.deliveryDetails.deliveryType);
+
+  const fee = await getDbDeliveryFee(provider, deliveryOption, weight);
   basketDetails.deliveryDetails.deliveryFee = fee;
 }
 
@@ -388,7 +423,7 @@ function approximateWeightFromSize(sizeString: string): number {
   // ~1 liter ~1 kg
   let weight = volumeLiters;
 
-  // Add packaging (example logic)
+  // Example packaging add
   if (volumeLiters === 0.5) {
     weight += 0.02;
   } else if (volumeLiters === 0.25) {
@@ -400,12 +435,12 @@ function approximateWeightFromSize(sizeString: string): number {
 }
 
 /**
- * Calculate the total basket weight by fetching each drink's size from DB
+ * Calculate total basket weight by fetching each drink's 'size' from DB
  */
 async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> {
   let totalWeight = 0;
 
-  // 1) Summation of how many of each drink
+  // sum how many of each slug
   const slugCountMap: Record<string, number> = {};
   for (const item of items) {
     if (!item.selectedDrinks) continue;
@@ -417,7 +452,7 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
   const allSlugs = Object.keys(slugCountMap);
   if (!allSlugs.length) return 0;
 
-  // 2) Fetch the drinks from Supabase to get their "size"
+  // fetch them from DB
   const { data: drinkRows, error } = await supabaseAdmin
     .from('drinks')
     .select('slug, size')
@@ -427,7 +462,6 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
     throw new Error(`[updateSession] Error fetching drinks: ${error.message}`);
   }
 
-  // 3) Sum up the weight
   for (const row of drinkRows ?? []) {
     const count = slugCountMap[row.slug] || 0;
     const weightPerUnit = approximateWeightFromSize(row.size || '');
@@ -438,36 +472,37 @@ async function calculateTotalBasketWeight(items: BasketItem[]): Promise<number> 
 }
 
 /**
- * Return the shipping fee in øre (e.g. 8300 = 83.00 DKK)
+ * Query the DB for the appropriate shipping fee bracket
  */
-function getDeliveryFee(weight: number, deliveryOption: string): number {
-  const pickupPointFees = [
-    { maxWeight: 1, fee: 3200 },
-    { maxWeight: 2, fee: 3900 },
-    { maxWeight: 5, fee: 5500 },
-    { maxWeight: 10, fee: 7500 },
-    { maxWeight: 15, fee: 8500 },
-    { maxWeight: 20, fee: 8900 },
-    { maxWeight: 25, fee: 11000 },
-    { maxWeight: 30, fee: 12500 },
-    { maxWeight: 35, fee: 13500 },
-  ];
+async function getDbDeliveryFee(
+  provider: string,          // e.g. 'postnord' / 'gls'
+  deliveryType: string,      // e.g. 'homeDelivery' / 'pickupPoint'
+  weightKg: number
+): Promise<number> {
+  // 1) We want to find the row(s) in postal_service for that provider + type,
+  // ordered by max_weight ascending
+  const { data: rows, error } = await supabaseAdmin
+    .from('postal_service')
+    .select('max_weight, fee')
+    .eq('provider', provider)
+    .eq('delivery_type', deliveryType)
+    .order('max_weight', { ascending: true });
 
-  const homeDeliveryFees = [
-    { maxWeight: 1, fee: 4300 },
-    { maxWeight: 2, fee: 5000 },
-    { maxWeight: 5, fee: 6500 },
-    { maxWeight: 10, fee: 8300 },
-    { maxWeight: 15, fee: 10000 },
-    { maxWeight: 20, fee: 11000 },
-    { maxWeight: 25, fee: 12000 },
-    { maxWeight: 30, fee: 12500 },
-    { maxWeight: 35, fee: 13500 },
-  ];
+  if (error) {
+    throw new Error(`[updateSession] Error fetching postal_service: ${error.message}`);
+  }
+  if (!rows || rows.length === 0) {
+    // fallback or throw
+    throw new Error(`[updateSession] No postal_service rows found for provider=${provider}, type=${deliveryType}`);
+  }
 
-  const feeTable = deliveryOption === 'pickupPoint' ? pickupPointFees : homeDeliveryFees;
-  const bracket = feeTable.find((b) => weight <= b.maxWeight);
-
-  // If weight is above the highest bracket, use the last fee
-  return bracket ? bracket.fee : feeTable[feeTable.length - 1].fee;
+  // 2) find the bracket
+  let chosenFee = rows[rows.length - 1].fee; // default to largest bracket
+  for (const r of rows) {
+    if (weightKg <= Number(r.max_weight)) {
+      chosenFee = r.fee;
+      break;
+    }
+  }
+  return chosenFee;
 }

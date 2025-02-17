@@ -1,3 +1,4 @@
+// api/supabase/3-getDrinksBySlugs.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 import { filterData } from '../../../lib/filterData'; // your own function

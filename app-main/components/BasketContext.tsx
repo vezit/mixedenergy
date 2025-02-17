@@ -1,3 +1,5 @@
+
+// BasketContext.tsx
 import React, {
   createContext,
   useContext,
@@ -6,7 +8,7 @@ import React, {
   ReactNode,
   FC,
 } from 'react';
-import { useSessionContext } from '../contexts/SessionContext'; // <-- new import
+import { useSessionContext } from '../contexts/SessionContext';
 import { getCookie } from '../lib/cookies';
 import { ICustomerDetails } from '../types/ICustomerDetails';
 
@@ -41,6 +43,8 @@ const BasketContext = createContext<BasketContextValue | undefined>(undefined);
 export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [basketItems, setBasketItems] = useState<IBasketItem[]>([]);
   const [isBasketLoaded, setIsBasketLoaded] = useState(false);
+
+  // Default/initial customer details
   const [customerDetails, setCustomerDetails] = useState<ICustomerDetails>({
     customerType: 'Privat',
     fullName: '',
@@ -53,12 +57,12 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     country: 'Danmark',
   });
 
-  // Access the session + updateSession from our SessionProvider
+  // Pull from SessionContext, which has updateSession in named-param style
   const { session, loading, updateSession } = useSessionContext();
 
   /**
-   * On mount (and whenever session changes):
-   * - If session is loaded, read basket details into local state
+   * Whenever the session changes (and is not loading),
+   * read the basket_details from session into local state
    */
   useEffect(() => {
     if (!loading && session?.session?.basket_details) {
@@ -79,14 +83,16 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
    */
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
-      // fallback if cookie is blocked
-      const sessionId = getCookie('session_id') ?? undefined;
-      const response = await updateSession(
-        'addItem',
-        { selectionId, quantity },
-        sessionId
-      );
-      // If server responds with updated items
+      // fallback session ID if cookie is blocked
+      const fallbackSessionId = getCookie('session_id') ?? undefined;
+
+      // Call updateSession in *named param* style
+      const response = await updateSession({
+        action: 'addItem',
+        data: { selectionId, quantity },
+        sessionId: fallbackSessionId,
+      });
+
       if (response?.success && response.items) {
         setBasketItems(response.items);
       }
@@ -100,12 +106,14 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
    */
   const removeItemFromBasket = async (index: number) => {
     try {
-      const sessionId = getCookie('session_id') ?? undefined;
-      const response = await updateSession(
-        'removeItem',
-        { itemIndex: index },
-        sessionId
-      );
+      const fallbackSessionId = getCookie('session_id') ?? undefined;
+
+      const response = await updateSession({
+        action: 'removeItem',
+        data: { itemIndex: index },
+        sessionId: fallbackSessionId,
+      });
+
       if (response?.success && response.items) {
         setBasketItems(response.items);
       }
@@ -119,12 +127,14 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
    */
   const updateItemQuantity = async (index: number, newQuantity: number) => {
     try {
-      const sessionId = getCookie('session_id') ?? undefined;
-      const response = await updateSession(
-        'updateQuantity',
-        { itemIndex: index, newQuantity },
-        sessionId
-      );
+      const fallbackSessionId = getCookie('session_id') ?? undefined;
+
+      const response = await updateSession({
+        action: 'updateQuantity',
+        data: { itemIndex: index, quantity: newQuantity },
+        sessionId: fallbackSessionId,
+      });
+
       if (response?.success && response.items) {
         setBasketItems(response.items);
       }
@@ -136,19 +146,19 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
   /**
    * 4) updateCustomerDetails
    */
-  const updateCustomerDetails = async (
-    updatedDetails: Partial<ICustomerDetails>
-  ) => {
-    // optimistic update
+  const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
+    // Optimistic update
     setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
 
     try {
-      const sessionId = getCookie('session_id') ?? undefined;
-      const response = await updateSession(
-        'updateCustomerDetails',
-        { customerDetails: updatedDetails },
-        sessionId
-      );
+      const fallbackSessionId = getCookie('session_id') ?? undefined;
+
+      const response = await updateSession({
+        action: 'updateCustomerDetails',
+        data: { customerDetails: updatedDetails },
+        sessionId: fallbackSessionId,
+      });
+
       if (!response?.success) {
         console.warn('Warning updating customer details:', response);
       }

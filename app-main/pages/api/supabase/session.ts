@@ -1,5 +1,4 @@
 // pages/api/supabase/session.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { parse, serialize } from 'cookie';
 import {
@@ -7,7 +6,7 @@ import {
   deleteSession,
   acceptCookies,
   getBasket,
-  updateSession, // <-- Use updateSession instead of updateBasket
+  updateSession, // Named-params version
 } from '../../../lib/api/session/session';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -21,19 +20,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // If newly created, set a "session_id" cookie
       if (newlyCreated) {
-        res.setHeader('Set-Cookie', serialize('session_id', sessionId, {
-          httpOnly: false,
-          maxAge: 365 * 24 * 60 * 60, // e.g. 1 year
-          path: '/',
-          sameSite: 'strict',
-          secure: process.env.NODE_ENV === 'production',
-        }));
+        res.setHeader(
+          'Set-Cookie',
+          serialize('session_id', sessionId, {
+            httpOnly: false,
+            maxAge: 365 * 24 * 60 * 60, // e.g. 1 year
+            path: '/',
+            sameSite: 'strict',
+            secure: process.env.NODE_ENV === 'production',
+          })
+        );
       }
 
       return res.status(200).json({ newlyCreated, session });
-    }
-
-    else if (req.method === 'POST') {
+    } else if (req.method === 'POST') {
+      // We might have a session_id cookie or a fallback in body
       const cookiesHeader = req.headers.cookie || '';
       const parsedCookies = parse(cookiesHeader);
       const sessionId = parsedCookies['session_id'] || req.body.sessionId;
@@ -42,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'No session ID provided' });
       }
 
-      const { action } = req.body;
+      const { action, ...rest } = req.body; // extract `action` plus everything else as `rest`
       if (!action) {
         return res.status(400).json({ error: 'Missing action in request body' });
       }
@@ -66,9 +67,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // ACTION: addItem, removeItem, updateQuantity, updateCustomerDetails
-      else if (['addItem','removeItem','updateQuantity','updateCustomerDetails'].includes(action)) {
-        // Use updateSession instead of updateBasket
-        const updateResult = await updateSession(action, sessionId, req.body);
+      else if (
+        ['addItem', 'removeItem', 'updateQuantity', 'updateCustomerDetails'].includes(action)
+      ) {
+        // Named-params style
+        const updateResult = await updateSession({
+          action,
+          sessionId,
+          data: rest, // pass the rest of body as `data`
+        });
         return res.status(200).json(updateResult);
       }
 

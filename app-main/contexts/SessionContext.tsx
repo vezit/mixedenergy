@@ -8,57 +8,50 @@ import {
   updateSession as updateSessionAPI,
 } from '../lib/session';
 
-// 1) Type of the "session" data from server
 interface SessionData {
   newlyCreated?: boolean;
-  // The "session" object is often an object with fields like "id", "allow_cookies", "basket_details", etc.
-  // For best TS, define these fields precisely.
   session?: {
     id?: string;
     allow_cookies?: boolean;
     basket_details?: any;
-    // ...
   };
 }
 
-// 2) The shape of everything we provide in the context
 interface ISessionContext {
-  // State
-  session: SessionData | null; // the actual session data from DB
+  session: SessionData | null;
   loading: boolean;
   error: any;
 
-  // Actions
+  // Named param approach or signature approach
   fetchSession: (noBasket?: boolean) => Promise<void>;
-  acceptCookies: (sessionId?: string | null) => Promise<void>;
+  acceptCookies: (sessionId?: string) => Promise<void>;
   deleteSession: (sessionId?: string) => Promise<void>;
   getBasket: (sessionId?: string) => Promise<any>;
   updateSession: (
-    action: 'addItem' | 'removeItem' | 'updateQuantity' | 'updateCustomerDetails',
-    data?: any,
-    sessionId?: string
+    params: {
+      action: 'addItem' | 'removeItem' | 'updateQuantity' | 'updateCustomerDetails';
+      data?: any;
+      sessionId?: string;
+    }
   ) => Promise<any>;
 }
 
 const SessionContext = createContext<ISessionContext | undefined>(undefined);
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  // 3) Local state for the session, loading, and errors
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
 
-  // 4) On mount, fetch or create the session
   useEffect(() => {
     void fetchSession(false);
   }, []);
 
-  // 5) fetchSession function
   async function fetchSession(noBasket = false) {
     setLoading(true);
     try {
       const res = await getSession(noBasket);
-      setSession(res); // { newlyCreated, session: {...} }
+      setSession(res);
       setError(null);
     } catch (err) {
       console.error('Error fetching session in SessionProvider:', err);
@@ -68,11 +61,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // 6) acceptCookies
-  async function acceptCookies(sessionId?: string | null) {
+  async function acceptCookies(sessionId?: string) {
     try {
       const result = await acceptCookiesAPI(sessionId);
-      // If success => update local state so allow_cookies = true
       if (result.success) {
         setSession((prev) =>
           prev
@@ -92,11 +83,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // 7) deleteSession
   async function deleteSession(sessionId?: string) {
     try {
       await deleteSessionAPI(sessionId);
-      // Clear local session state (or refetch if you want to confirm)
       setSession(null);
     } catch (err) {
       console.error('Error deleting session:', err);
@@ -104,7 +93,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // 8) getBasket
   async function getBasket(sessionId?: string) {
     try {
       const basket = await getBasketAPI(sessionId);
@@ -116,18 +104,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // 9) updateSession
-  async function updateSession(
-    action: 'addItem' | 'removeItem' | 'updateQuantity' | 'updateCustomerDetails',
-    data: any = {},
-    sessionId?: string
-  ) {
+  /**
+   * updateSession - new signature using named params
+   */
+  async function updateSession({
+    action,
+    data = {},
+    sessionId,
+  }: {
+    action: 'addItem' | 'removeItem' | 'updateQuantity' | 'updateCustomerDetails';
+    data?: any;
+    sessionId?: string;
+  }) {
     try {
-      const response = await updateSessionAPI(action, data, sessionId);
+      const response = await updateSessionAPI({ action, data, sessionId });
 
-      // Possibly update local session data. For example, if it returns updated items:
+      // If server returns updated items in response.items:
       if (response?.success && response.items) {
-        // Let's assume your server returns updated basket details in `response.items`
         setSession((prev) =>
           prev
             ? {
@@ -143,8 +136,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             : prev
         );
       }
-
-      // If it updates other parts of the session, merge them here
       return response;
     } catch (err) {
       console.error(`Error with updateSession (${action}):`, err);
@@ -153,13 +144,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // 10) Put all in a value object
   const value: ISessionContext = {
     session,
     loading,
     error,
-
-    // methods
     fetchSession,
     acceptCookies,
     deleteSession,
@@ -167,14 +155,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     updateSession,
   };
 
-  return (
-    <SessionContext.Provider value={value}>
-      {children}
-    </SessionContext.Provider>
-  );
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
-// 11) A custom hook for easy usage
 export function useSessionContext() {
   const context = useContext(SessionContext);
   if (!context) {

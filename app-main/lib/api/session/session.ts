@@ -1,7 +1,6 @@
 // lib/api/session/session.ts
-
 import { supabaseAdmin } from '../supabaseAdmin';
-import type { SessionRow } from './getOrCreateSession'; // if you want the interface from getOrCreateSession
+import type { SessionRow } from './getOrCreateSession';
 import { deleteSession } from './deleteSession';
 import { acceptCookies } from './acceptCookies';
 import { updateSession } from './updateSession';
@@ -31,8 +30,8 @@ export async function getBasket(sessionId: string) {
  * Re-export the other session-related utilities
  */
 export {
-  getOrCreateSession,   // from getOrCreateSession.ts
-  deleteSession,   // from deleteSession.ts
-  acceptCookies,   // from acceptCookies.ts
-  updateSession,   // from updateSession.ts
+  getOrCreateSession,
+  deleteSession,
+  acceptCookies,
+  updateSession,
 };

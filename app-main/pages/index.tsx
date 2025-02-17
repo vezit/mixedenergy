@@ -27,7 +27,7 @@ export default function Home(): JSX.Element {
     const fetchProducts = async () => {
       try {
         // NEW: /api/supabase/getPackages
-        const response = await axios.get('/api/supabase/2-getPackages');
+        const response = await axios.get('/api/supabase/getPackages');
         const packagesData = response.data.packages as Product[];
   
         const blandSelvMix = packagesData.filter(
