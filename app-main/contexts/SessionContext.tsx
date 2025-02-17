@@ -1,167 +1,201 @@
 // contexts/SessionContext.tsx
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import {
-  getSession,
-  acceptCookies as acceptCookiesAPI,
-  deleteSession as deleteSessionAPI,
-  getBasket as getBasketAPI,
-  updateSession as updateSessionAPI,
-} from '../lib/session';
 
-interface SessionData {
-  newlyCreated?: boolean;
-  session?: {
-    id?: string;
-    allow_cookies?: boolean;
-    basket_details?: any;
-  };
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from 'react';
+import axios from 'axios';
+
+// Minimal shape for your "session"
+interface SessionRow {
+  session_id: string;
+  basket_details?: any; // expand with your actual basket type
+  allow_cookies?: boolean;
+  temporary_selections?: Record<string, any>;
+  [key: string]: any;
 }
 
 interface ISessionContext {
-  session: SessionData | null;
+  session: SessionRow | null;
   loading: boolean;
-  error: any;
+  error: string | null;
 
-  // Named param approach or signature approach
+  /** GET /api/supabase/session => fetch or create a session in DB */
   fetchSession: (noBasket?: boolean) => Promise<void>;
-  acceptCookies: (sessionId?: string) => Promise<void>;
-  deleteSession: (sessionId?: string) => Promise<void>;
-  getBasket: (sessionId?: string) => Promise<any>;
-  updateSession: (
-    params: {
-      action: 'addItem' | 'removeItem' | 'updateQuantity' | 'updateCustomerDetails';
-      data?: any;
-      sessionId?: string;
-    }
-  ) => Promise<any>;
+
+  /**
+   * POST /api/supabase/session => update session with {action,...}
+   *  - we store any returned `session` in state
+   */
+  updateSession: (action: string, body?: Record<string, any>) => Promise<any>;
+
+  /**
+   * Return session.temporary_selections from in-memory state (or {} if not present)
+   */
+  getTemporarySelections: () => Record<string, any>;
+
+  /**
+   * Create or update a selection in DB's temporary_selections
+   * (calls "createTemporarySelection" server-side).
+   */
+  createOrUpdateTemporarySelection: (params: CreateTempSelectionParams) => Promise<any>;
+
+  // You can still keep your other specialized methods:
+  generateRandomSelection: (params: GenerateRandomSelectionParams) => Promise<any>;
+  getCalculatedPackagePrice: (params: GetCalcPriceParams) => Promise<any>;
 }
 
-const SessionContext = createContext<ISessionContext | undefined>(undefined);
+/** Define param interfaces for clarity */
+interface CreateTempSelectionParams {
+  sessionId: string;
+  selectedProducts: Record<string, number>;
+  selectedSize: number;
+  packageSlug: string;
+  isMysteryBox?: boolean;
+  sugarPreference?: string;
+}
 
-export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<SessionData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
+interface GenerateRandomSelectionParams {
+  sessionId: string;
+  slug: string;
+  selectedSize: number;
+  sugarPreference?: 'alle' | 'med_sukker' | 'uden_sukker';
+  isCustomSelection?: boolean;
+  selectedProducts?: Record<string, number>;
+}
 
-  useEffect(() => {
-    void fetchSession(false);
+interface GetCalcPriceParams {
+  slug: string;
+  selectedSize: number;
+  selectedProducts?: Record<string, number>;
+  isMysteryBox?: boolean;
+  sugarPreference?: 'alle' | 'med_sukker' | 'uden_sukker';
+}
+
+const SessionContext = createContext<ISessionContext>({
+  session: null,
+  loading: false,
+  error: null,
+
+  fetchSession: async () => undefined,
+  updateSession: async () => undefined,
+
+  getTemporarySelections: () => ({}),
+  createOrUpdateTemporarySelection: async () => ({}),
+
+  generateRandomSelection: async () => ({}),
+  getCalculatedPackagePrice: async () => ({}),
+});
+
+export function SessionProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<SessionRow | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /**
+   * fetchSession => GET /api/supabase/session
+   *   - updates local `session` state
+   */
+  const fetchSession = useCallback(async (noBasket?: boolean) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const query = noBasket ? '?noBasket=1' : '';
+      const resp = await axios.get('/api/supabase/session' + query);
+      // Usually returns { newlyCreated, session }
+      setSession(resp.data.session || null);
+    } catch (err: any) {
+      setError(err.message);
+      setSession(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  async function fetchSession(noBasket = false) {
-    setLoading(true);
+  // On mount, try to fetch/create session automatically
+  useEffect(() => {
+    void fetchSession();
+  }, [fetchSession]);
+
+  /**
+   * updateSession => POST /api/supabase/session, pass {action, ...body}
+   *   - If server returns a session, we store it
+   */
+  async function updateSession(action: string, body: Record<string, any> = {}) {
     try {
-      const res = await getSession(noBasket);
-      setSession(res);
+      setLoading(true);
       setError(null);
-    } catch (err) {
-      console.error('Error fetching session in SessionProvider:', err);
-      setError(err);
+
+      const resp = await axios.post('/api/supabase/session', {
+        action,
+        ...body,
+      });
+
+      // If the response includes a "session" object, store it in state
+      if (resp.data?.session) {
+        setSession(resp.data.session);
+      }
+
+      return resp.data;
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
   }
 
-  async function acceptCookies(sessionId?: string) {
-    try {
-      const result = await acceptCookiesAPI(sessionId);
-      if (result.success) {
-        setSession((prev) =>
-          prev
-            ? {
-                ...prev,
-                session: {
-                  ...(prev.session || {}),
-                  allow_cookies: true,
-                },
-              }
-            : prev
-        );
-      }
-    } catch (err) {
-      console.error('Error accepting cookies:', err);
-      setError(err);
-    }
-  }
-
-  async function deleteSession(sessionId?: string) {
-    try {
-      await deleteSessionAPI(sessionId);
-      setSession(null);
-    } catch (err) {
-      console.error('Error deleting session:', err);
-      setError(err);
-    }
-  }
-
-  async function getBasket(sessionId?: string) {
-    try {
-      const basket = await getBasketAPI(sessionId);
-      return basket;
-    } catch (err) {
-      console.error('Error fetching basket:', err);
-      setError(err);
-      throw err;
-    }
+  /**
+   * 1) getTemporarySelections => in-memory from session.temporary_selections
+   */
+  function getTemporarySelections(): Record<string, any> {
+    return session?.temporary_selections || {};
   }
 
   /**
-   * updateSession - new signature using named params
+   * 2) createOrUpdateTemporarySelection => calls action="createTemporarySelection"
+   *    This merges or replaces a selection in the DB's session.temporary_selections
    */
-  async function updateSession({
-    action,
-    data = {},
-    sessionId,
-  }: {
-    action: 'addItem' | 'removeItem' | 'updateQuantity' | 'updateCustomerDetails';
-    data?: any;
-    sessionId?: string;
-  }) {
-    try {
-      const response = await updateSessionAPI({ action, data, sessionId });
-
-      // If server returns updated items in response.items:
-      if (response?.success && response.items) {
-        setSession((prev) =>
-          prev
-            ? {
-                ...prev,
-                session: {
-                  ...(prev.session || {}),
-                  basket_details: {
-                    ...((prev.session || {}).basket_details || {}),
-                    items: response.items,
-                  },
-                },
-              }
-            : prev
-        );
-      }
-      return response;
-    } catch (err) {
-      console.error(`Error with updateSession (${action}):`, err);
-      setError(err);
-      throw err;
-    }
+  async function createOrUpdateTemporarySelection(params: CreateTempSelectionParams) {
+    // This calls our single route => calls createTemporarySelection server-side
+    return updateSession('createTemporarySelection', params);
   }
 
+  /**
+   * Additional specialized methods if you wish
+   */
+  async function generateRandomSelection(params: GenerateRandomSelectionParams) {
+    return updateSession('generateRandomSelection', params);
+  }
+
+  async function getCalculatedPackagePrice(params: GetCalcPriceParams) {
+    return updateSession('getCalculatedPackagePrice', params);
+  }
+
+  // Provide everything in the context
   const value: ISessionContext = {
     session,
     loading,
     error,
+
     fetchSession,
-    acceptCookies,
-    deleteSession,
-    getBasket,
     updateSession,
+
+    getTemporarySelections,
+    createOrUpdateTemporarySelection,
+
+    generateRandomSelection,
+    getCalculatedPackagePrice,
   };
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
 export function useSessionContext() {
-  const context = useContext(SessionContext);
-  if (!context) {
-    throw new Error('useSessionContext must be used within a SessionProvider.');
-  }
-  return context;
+  return useContext(SessionContext);
 }

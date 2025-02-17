@@ -10,9 +10,11 @@ import Loading from '../../../components/Loading';
 import LoadingButton from '../../../components/LoadingButton';
 import LoadingConfettiButton from '../../../components/LoadingConfettiButton';
 import ConfettiAnimation from '../../../components/ConfettiAnimation';
-
 import { getCookie } from '../../../lib/cookies';
 
+/**
+ * Types for product & drinks
+ */
 interface ProductPackage {
   size: number;
   discount?: number;
@@ -25,335 +27,337 @@ interface ProductType {
   image: string;
   description: string;
   category: string;
-  packages?: ProductPackage[];       // from Supabase "package_sizes"
-  collectionsDrinks?: string[];      // from joined drinks
+  packages?: ProductPackage[]; // from "package_sizes"
+  collectionsDrinks?: string[]; // from joined drinks
 }
 
-type DrinksDataType = Record<string, {
-  name: string;
-  image: string;
-}>;
+type DrinksDataType = Record<
+  string,
+  {
+    name: string;
+    image: string;
+  }
+>;
 
 type RandomSelectionType = Record<string, number>;
 
-interface SelectionInfo {
-  selectedProducts: RandomSelectionType;
-  selectionId: string;
+interface TemporarySelections {
+  [key: string]: {
+    selectedProducts: RandomSelectionType;
+    selectedSize: number;
+    packageSlug: string;
+    sugarPreference?: string;
+    isMysteryBox?: boolean;
+    createdAt: string;
+  };
 }
 
 /**
- * We'll store multiple 'selection' objects for each slug in localStorage.
- * Something like localStorage["slugViBlander"] = {
- *   "mixed-monsters": {
- *     "8_alle": { selectionId: "...", selectedProducts: {...} },
- *     "8_uden_sukker": {...},
- *   },
- *   "mixed-boosters": {
- *     ...
- *   }
- * }
+ * The main component for '/vi-blander-for-dig/[slug]'
  */
-type SelectionsType = Record<string, SelectionInfo>;
-
 const ViBlanderForDigProduct: React.FC = () => {
   const router = useRouter();
-  const slug = router.query.slug as string; // dynamic route
+  const slug = router.query.slug as string;
 
   const { addItemToBasket } = useBasket();
 
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [product, setProduct] = useState<ProductType | null>(null);
-  const [drinksData, setDrinksData] = useState<DrinksDataType>({});
+  // Basic UI states
   const [loading, setLoading] = useState<boolean>(true);
-
-  // For the random selection in memory:
-  const [selections, setSelections] = useState<SelectionsType>({});
-  const [randomSelection, setRandomSelection] = useState<RandomSelectionType>({});
-  const [selectionId, setSelectionId] = useState<string | null>(null);
-
-  const [price, setPrice] = useState<number>(0);
-  const [originalPrice, setOriginalPrice] = useState<number>(0);
-  const [selectedSize, setSelectedSize] = useState<number | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [sugarPreference, setSugarPreference] = useState<'alle' | 'med_sukker' | 'uden_sukker'>('alle');
-
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
 
+  // The session_id read from cookie
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  // The fetched product
+  const [product, setProduct] = useState<ProductType | null>(null);
+
+  // For showing user’s random selection
+  const [randomSelection, setRandomSelection] = useState<RandomSelectionType>({});
+  const [selectionId, setSelectionId] = useState<string | null>(null);
+
+  // Pricing
+  const [price, setPrice] = useState<number>(0);
+  const [originalPrice, setOriginalPrice] = useState<number>(0);
+
+  // User choices
+  const [selectedSize, setSelectedSize] = useState<number | null>(null);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [sugarPreference, setSugarPreference] = useState<'alle' | 'med_sukker' | 'uden_sukker'>(
+    'alle'
+  );
+
+  // For displaying drink data (images, names)
+  const [drinksData, setDrinksData] = useState<DrinksDataType>({});
+
+  // For the confetti effect
   const addToCartButtonRef = useRef<HTMLButtonElement | null>(null);
 
+  // If you need to build a Supabase image URL, use this
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
-  // 1) Load session ID from cookie
+  /**
+   * 1) Read the session_id cookie on mount
+   */
   useEffect(() => {
     try {
       const sid = getCookie('session_id');
-      console.debug('[useEffect] Cookie session_id =', sid);
-      if (sid) setSessionId(sid);
+      if (sid) {
+        console.debug('[ViBlanderForDigProduct] session_id cookie =', sid);
+        setSessionId(sid);
+      } else {
+        console.warn('No session_id cookie found.');
+      }
     } catch (err) {
-      console.error('[useEffect - session_id] Error reading cookie:', err);
+      console.error('Error reading cookie:', err);
     }
   }, []);
 
-  // 2) Whenever slug changes, load localStorage
-  useEffect(() => {
-    if (!slug) {
-      console.debug('[useEffect - slug change] No slug yet. Returning.');
-      return;
-    }
-
-    console.debug(`[useEffect - slug change] slug="${slug}". Attempting to load from localStorage "slugViBlander".`);
-    try {
-      const stored = localStorage.getItem('slugViBlander');
-      if (!stored) {
-        console.debug('[useEffect - slug change] No localStorage key "slugViBlander" found. Nothing loaded.');
-        return;
-      }
-      const allSlugsData = JSON.parse(stored) as Record<string, SelectionsType>;
-      if (allSlugsData[slug]) {
-        console.debug(`[useEffect - slug change] Found data for slug="${slug}":`, allSlugsData[slug]);
-        setSelections(allSlugsData[slug]);
-      } else {
-        console.debug(`[useEffect - slug change] No data found for slug="${slug}" in localStorage object. Only have:`, allSlugsData);
-      }
-    } catch (err) {
-      console.error('[useEffect - slug change] Error parsing localStorage:', err);
-    }
-  }, [slug]);
-
-  // 3) Fetch product + drinks
+  /**
+   * 2) Fetch product details from /api/supabase/packages/[slug]
+   */
   useEffect(() => {
     if (!slug) return;
-    console.debug('[fetchData] Starting fetch for slug=', slug);
+    console.debug('[ViBlanderForDigProduct] Slug changed =>', slug);
     setLoading(true);
 
-    const fetchData = async () => {
+    (async () => {
       try {
-        // 1) GET the package
-        console.debug('[fetchData] GET /api/supabase/packages/', slug);
         const { data } = await axios.get(`/api/supabase/packages/${slug}`);
-        console.debug('[fetchData] packages/:slug => data=', data);
-
         if (!data?.package) {
-          console.debug('[fetchData] No "package" key found in response. Setting product to null.');
+          console.warn('No "package" found for slug=', slug);
           setProduct(null);
           return;
         }
 
         const pkg: ProductType = data.package;
         setProduct(pkg);
-        console.debug('[fetchData] Product set:', pkg);
 
-        // 2) If packageSizes exist, set default size
+        // If we have package sizes, default to the first
         if (pkg.packages && pkg.packages.length > 0) {
-          console.debug('[fetchData] Setting selectedSize to first packageSize =', pkg.packages[0].size);
           setSelectedSize(pkg.packages[0].size);
         }
 
-        // 3) If we have collectionsDrinks, fetch them
+        // If product has 'collectionsDrinks', fetch their data
         if (pkg.collectionsDrinks && pkg.collectionsDrinks.length > 0) {
-          console.debug('[fetchData] POST /api/supabase/3-getDrinksBySlugs with slugs=', pkg.collectionsDrinks);
           const resp = await axios.post('/api/supabase/3-getDrinksBySlugs', {
             slugs: pkg.collectionsDrinks,
           });
-          console.debug('[fetchData] 3-getDrinksBySlugs =>', resp.data);
-
-          if (resp.data?.drinks) {
-            setDrinksData(resp.data.drinks);
-          } else {
-            console.debug('[fetchData] resp.data.drinks is empty or undefined. Setting drinksData = {}');
-            setDrinksData({});
-          }
+          setDrinksData(resp.data?.drinks || {});
         } else {
-          console.debug('[fetchData] No collectionsDrinks found. Setting drinksData = {}');
           setDrinksData({});
         }
       } catch (err) {
-        console.error('[fetchData] Caught error:', err);
+        console.error('[fetchProduct] Error =>', err);
         setProduct(null);
       } finally {
         setLoading(false);
       }
-    };
-
-    void fetchData();
+    })();
   }, [slug]);
 
-  // 4) If selectedSize or sugarPreference changes => check if we have a selection in memory
+  /**
+   * 3) Whenever selectedSize or sugarPreference changes => check if there's already a
+   *    temporary selection for "<slug>-<selectedSize>-<sugarPreference>" in DB.
+   *    If not found => create a new selection (with isMysteryBox = true).
+   */
   useEffect(() => {
-    console.debug('[useEffect - selection change] product=', product, ' selectedSize=', selectedSize, ' sugarPref=', sugarPreference);
-    if (!product || !selectedSize) {
-      console.debug('[useEffect - selection change] No product or selectedSize yet. Stopping.');
+    if (!sessionId || !product || !selectedSize) {
+      console.debug('[checkExistingSelection] Missing sessionId/product/selectedSize => skipping');
       return;
     }
+    const selectionKey = getSelectionKey();
 
-    const key = getSelectionKey();
-    console.debug('[useEffect - selection change] key=', key, ' selections=', selections);
+    (async () => {
+      setLoading(true);
+      try {
+        // 1) Fetch the current session from server
+        const resp = await axios.get('/api/supabase/session');
+        const currentSession = resp.data?.session;
+        if (!currentSession?.temporary_selections) {
+          // No existing selections => create new
+          console.debug('[checkExistingSelection] No temporary_selections => create new');
+          await createSelectionInSupabase(true);
+          return;
+        }
 
-    if (selections[key]) {
-      console.debug('[useEffect - selection change] Found existing selection in memory =>', selections[key]);
-      setRandomSelection(selections[key].selectedProducts);
-      setSelectionId(selections[key].selectionId);
+        // 2) See if selectionKey is in session.temporary_selections
+        const temp = currentSession.temporary_selections as TemporarySelections;
+        if (temp[selectionKey]) {
+          console.debug('[checkExistingSelection] Found existing =>', selectionKey);
+          const existing = temp[selectionKey];
+          setRandomSelection(existing.selectedProducts);
+          setSelectionId(selectionKey);
 
-      console.debug('[useEffect - selection change] Now calling fetchPrice() with the existing random selection...');
-      void fetchPrice(selections[key].selectedProducts);
-    } else {
-      console.debug('[useEffect - selection change] No selection found. Will call generateRandomPackage...');
-      void generateRandomPackage();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product, selectedSize, sugarPreference]);
+          // fetch price
+          await fetchPrice(existing.selectedProducts);
+        } else {
+          console.debug('[checkExistingSelection] Not found => create new');
+          await createSelectionInSupabase(true);
+        }
+      } catch (err) {
+        console.error('Error checking existing selection =>', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, product, selectedSize, sugarPreference]);
 
-  // Helper to create a key "8_alle" or "12_uden_sukker"
+  /**
+   * A unique key: "<slug>-<selectedSize>-<sugarPreference>"
+   */
   const getSelectionKey = useCallback(() => {
-    return `${selectedSize}_${sugarPreference}`;
-  }, [selectedSize, sugarPreference]);
+    const pref = sugarPreference || 'alle';
+    return `${slug}-${selectedSize}-${pref}`;
+  }, [slug, selectedSize, sugarPreference]);
 
-  // Generate random package from server
-  const generateRandomPackage = async () => {
-    if (!sessionId) {
-      console.error('[generateRandomPackage] No sessionId. Check cookie or session logic.');
-      alert('No session ID found. Please ensure your cookies are set.');
-      return;
-    }
-    if (!selectedSize) {
-      alert('Please select a size first.');
-      return;
-    }
+  /**
+   * createSelectionInSupabase
+   *   Calls your single route with action="createTemporarySelection"
+   *   and { isMysteryBox: true } so the server picks random drinks
+   *   or merges a custom selection if you prefer.
+   */
+  async function createSelectionInSupabase(isMysteryBox: boolean) {
+    if (!sessionId || !slug || !selectedSize) return;
+
     setIsGenerating(true);
-
     try {
       const body = {
         sessionId,
-        slug,
+        packageSlug: slug,
         selectedSize,
         sugarPreference,
+        isMysteryBox,
+        // If you want to pass a custom "selectedProducts", you can do so
+        // selectedProducts: {...} 
       };
-      console.debug('[generateRandomPackage] POST /api/supabase/4-generateRandomSelection =>', body);
+      console.debug('[createSelectionInSupabase] =>', body);
 
-      const resp = await axios.post('/api/supabase/4-generateRandomSelection', body);
-      console.debug('[generateRandomPackage] Response data =>', resp.data);
+      const resp = await axios.post('/api/supabase/session', {
+        action: 'createTemporarySelection',
+        ...body,
+      });
 
-      if (resp.data.success) {
-        const { selectedProducts, selectionId } = resp.data;
-        console.debug('[generateRandomPackage] Storing new random selection =>', selectedProducts, ' selectionId=', selectionId);
-
-        setRandomSelection(selectedProducts);
-        setSelectionId(selectionId);
-
-        // Update in-memory
-        const key = getSelectionKey();
-        const newSelectionInfo: SelectionInfo = { selectedProducts, selectionId };
-        const updatedSelections = { ...selections, [key]: newSelectionInfo };
-        setSelections(updatedSelections);
-
-        // Also update localStorage
-        console.debug('[generateRandomPackage] Updating localStorage for slugViBlander => slug=', slug, ' key=', key);
-        const stored = localStorage.getItem('slugViBlander');
-        let allSlugsData: Record<string, SelectionsType> = {};
-        if (stored) {
-          try {
-            allSlugsData = JSON.parse(stored);
-          } catch (parseErr) {
-            console.error('[generateRandomPackage] parse localStorage error:', parseErr);
-          }
-        }
-        allSlugsData[slug] = updatedSelections;
-        localStorage.setItem('slugViBlander', JSON.stringify(allSlugsData));
-
-        // fetch price
-        console.debug('[generateRandomPackage] Now calling fetchPrice with new random selection...');
-        await fetchPrice(selectedProducts);
-      } else {
-        console.error('[generateRandomPackage] The API returned success=false =>', resp.data.error);
-        alert(`Error generating random package: ${resp.data.error || 'Unknown error'}`);
+      if (!resp.data?.success) {
+        console.error('createTemporarySelection => success=false', resp.data.error);
+        alert(resp.data.error || 'Error creating temporary selection');
+        return;
       }
-    } catch (err: any) {
-      console.error('[generateRandomPackage] Caught error =>', err);
-      alert(`Error: ${err.message}`);
+
+      // e.g. { selectionId, pricePerPackage, recyclingFeePerPackage }
+      const { selectionId, pricePerPackage } = resp.data;
+      console.debug('Created new selection =>', selectionId);
+
+      setSelectionId(selectionId);
+
+      // The server also calculates pricePerPackage => but let's do a dedicated fetchPrice call
+      // if you want to show final price with recyclingFee. 
+      // Or you can do everything from the server response.
+      await fetchPriceFromServer(resp.data);
+
+    } catch (err) {
+      console.error('[createSelectionInSupabase] Error =>', err);
+      alert('Error creating selection');
     } finally {
       setIsGenerating(false);
     }
-  };
+  }
 
-  // fetchPrice => calls your /3-getCalculatedPackagePrice
-  const fetchPrice = async (selectedProducts: RandomSelectionType) => {
-    if (!selectedSize) {
-      console.debug('[fetchPrice] No selectedSize. Return.');
-      return;
+  /**
+   * If the server's createTemporarySelection returns a partial price,
+   * you can call this to display it. Alternatively, call fetchPrice if needed.
+   */
+  async function fetchPriceFromServer(serverResp: any) {
+    if (serverResp?.pricePerPackage) {
+      // store it in local state
+      setPrice(serverResp.pricePerPackage);
+      setOriginalPrice(serverResp.pricePerPackage);
     }
+  }
+
+  /**
+   * fetchPrice => calls action="getCalculatedPackagePrice"
+   *   if you want a separate server calculation
+   */
+  async function fetchPrice(selectedProducts: RandomSelectionType) {
+    if (!selectedSize || !slug) return;
     try {
       const payload = {
         selectedSize,
         slug,
         selectedProducts,
       };
-      console.debug('[fetchPrice] POST /api/supabase/3-getCalculatedPackagePrice =>', payload);
+      console.debug('[fetchPrice] =>', payload);
 
-      const resp = await axios.post('/api/supabase/3-getCalculatedPackagePrice', payload);
-      console.debug('[fetchPrice] Response =>', resp.data);
-
+      const resp = await axios.post('/api/supabase/session', {
+        action: 'getCalculatedPackagePrice',
+        ...payload,
+      });
       if (resp.data?.price) {
         setPrice(resp.data.price);
         setOriginalPrice(resp.data.originalPrice ?? resp.data.price);
-        console.debug('[fetchPrice] Setting price to:', resp.data.price, ' originalPrice=', resp.data.originalPrice);
-      } else {
-        console.debug('[fetchPrice] No "price" field in response =>', resp.data);
+        console.debug(
+          '[fetchPrice] set price =>',
+          resp.data.price,
+          ' original =>',
+          resp.data.originalPrice
+        );
       }
     } catch (err) {
       console.error('[fetchPrice] Error =>', err);
     }
-  };
+  }
 
-  // addToBasket => calls addItemToBasket from context
+  /**
+   * addToBasketAction => calls addItemToBasket from context
+   */
   const addToBasketAction = async () => {
     if (!selectionId) {
-      console.error('[addToBasket] No selectionId in state => randomSelection was never created?');
-      alert('No random selection ID found—please generate a package first.');
+      alert('No selection found—please create a selection first.');
       return;
     }
     setIsAddingToCart(true);
-
     try {
-      console.debug('[addToBasket] Attempting addItemToBasket => selectionId=', selectionId, ' quantity=', quantity);
       await addItemToBasket({
         selectionId,
         quantity: Number(quantity),
       });
-      console.debug('[addToBasket] Successfully added => showing confetti.');
       setShowConfetti(true);
     } catch (err) {
-      console.error('[addToBasket] Caught error =>', err);
+      console.error('[addToBasket] Error =>', err);
       alert('Error adding to basket. Please try again.');
     } finally {
       setIsAddingToCart(false);
     }
   };
 
-  const handleConfettiEnd = () => {
-    setShowConfetti(false);
+  /**
+   * Optionally let user click a "Regenerate" button to overwrite the existing selection
+   */
+  const handleRegenerate = async () => {
+    // Overwrite the selection in DB
+    await createSelectionInSupabase(true);
   };
 
-  // Render
+  /** Confetti callback */
+  const handleConfettiEnd = () => setShowConfetti(false);
+
+  // ----------- RENDER -----------
   if (loading) {
-    console.debug('[RENDER] loading=true => <Loading/>');
     return <Loading />;
   }
   if (!product) {
-    console.debug('[RENDER] product=null => "Product not found."');
     return <p>Product not found.</p>;
   }
-
-  console.debug('[RENDER] Final randomSelection =>', randomSelection);
-  console.debug('[RENDER] drinksData =>', drinksData);
 
   return (
     <div className="container mx-auto p-8">
       <h1 className="text-4xl font-bold text-center mb-8">{product.title}</h1>
 
       <div className="flex flex-col md:flex-row">
-        {/* Left: image + desc */}
+        {/* Left: image + description */}
         <div className="md:w-1/2 flex-1">
           {product.image && (
             <img
@@ -368,106 +372,105 @@ const ViBlanderForDigProduct: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: selection + actions */}
+        {/* Right: selection + user actions */}
         <div className="md:w-1/2 md:pl-8 flex-1 flex flex-col justify-between">
-          <div>
-            {/* Select package size */}
-            <div className="mt-4">
-              <p>Select Package Size:</p>
-              {product.packages && product.packages.length > 0 ? (
-                product.packages.map((pkg) => (
-                  <label key={pkg.size} className="mr-4">
-                    <input
-                      type="radio"
-                      name="size"
-                      value={pkg.size}
-                      checked={selectedSize === pkg.size}
-                      onChange={() => setSelectedSize(pkg.size)}
-                    />
-                    {pkg.size} pcs
-                  </label>
-                ))
-              ) : (
-                <p>No package sizes available.</p>
-              )}
-            </div>
-
-            {/* Sugar preference */}
-            <div className="mt-4">
-              <p>With or without sugar:</p>
-              <label className="mr-4">
-                <input
-                  type="radio"
-                  name="sugarPreference"
-                  value="uden_sukker"
-                  checked={sugarPreference === 'uden_sukker'}
-                  onChange={() => setSugarPreference('uden_sukker')}
-                />
-                Uden sukker
-              </label>
-              <label className="mr-4">
-                <input
-                  type="radio"
-                  name="sugarPreference"
-                  value="med_sukker"
-                  checked={sugarPreference === 'med_sukker'}
-                  onChange={() => setSugarPreference('med_sukker')}
-                />
-                Med sukker
-              </label>
-              <label className="mr-4">
-                <input
-                  type="radio"
-                  name="sugarPreference"
-                  value="alle"
-                  checked={sugarPreference === 'alle'}
-                  onChange={() => setSugarPreference('alle')}
-                />
-                Alle
-              </label>
-            </div>
-
-            {/* Random selection list */}
-            <div className="mt-4 pr-4 border border-gray-300 rounded">
-              <h2 className="text-xl font-bold text-center mt-4">
-                Your Random {product.title}
-              </h2>
-              <ul className="list-disc list-inside mt-4 px-4">
-                {Object.entries(randomSelection).map(([drinkSlug, qty]) => {
-                  const drinkName = drinksData[drinkSlug]?.name || drinkSlug;
-                  const drinkImage = drinksData[drinkSlug]?.image || '';
-                  return (
-                    <li key={drinkSlug} className="flex items-center mb-2">
-                      <Link href={`/drinks/${drinkSlug}`} className="flex items-center">
-                        <div className="w-12 aspect-[463/775] relative mr-4">
-                          {drinkImage && (
-                            <Image
-                              src={`${SUPABASE_URL}${drinkImage}`}
-                              alt={drinkName}
-                              fill
-                              className="object-cover rounded-lg"
-                            />
-                          )}
-                        </div>
-                        <span>
-                          {drinkName} (x{qty})
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+          {/* 1) Pick package size */}
+          <div className="mt-4">
+            <p>Select Package Size:</p>
+            {product.packages && product.packages.length > 0 ? (
+              product.packages.map((pkg) => (
+                <label key={pkg.size} className="mr-4">
+                  <input
+                    type="radio"
+                    name="size"
+                    value={pkg.size}
+                    checked={selectedSize === pkg.size}
+                    onChange={() => setSelectedSize(pkg.size)}
+                  />
+                  {pkg.size} pcs
+                </label>
+              ))
+            ) : (
+              <p>No package sizes available.</p>
+            )}
           </div>
 
-          {/* Price + Buttons */}
+          {/* 2) Sugar preference */}
+          <div className="mt-4">
+            <p>With or without sugar:</p>
+            <label className="mr-4">
+              <input
+                type="radio"
+                name="sugarPreference"
+                value="uden_sukker"
+                checked={sugarPreference === 'uden_sukker'}
+                onChange={() => setSugarPreference('uden_sukker')}
+              />
+              Uden sukker
+            </label>
+            <label className="mr-4">
+              <input
+                type="radio"
+                name="sugarPreference"
+                value="med_sukker"
+                checked={sugarPreference === 'med_sukker'}
+                onChange={() => setSugarPreference('med_sukker')}
+              />
+              Med sukker
+            </label>
+            <label className="mr-4">
+              <input
+                type="radio"
+                name="sugarPreference"
+                value="alle"
+                checked={sugarPreference === 'alle'}
+                onChange={() => setSugarPreference('alle')}
+              />
+              Alle
+            </label>
+          </div>
+
+          {/* 3) Random selection display */}
+          <div className="mt-4 pr-4 border border-gray-300 rounded">
+            <h2 className="text-xl font-bold text-center mt-4">
+              Your Random {product.title}
+            </h2>
+            <ul className="list-disc list-inside mt-4 px-4">
+              {/* The randomSelection is empty unless we have some from the DB */}
+              {Object.entries(randomSelection).map(([drinkSlug, qty]) => {
+                const drinkName = drinksData[drinkSlug]?.name || drinkSlug;
+                const drinkImage = drinksData[drinkSlug]?.image || '';
+                return (
+                  <li key={drinkSlug} className="flex items-center mb-2">
+                    <Link href={`/drinks/${drinkSlug}`} className="flex items-center">
+                      <div className="w-12 aspect-[463/775] relative mr-4">
+                        {drinkImage && (
+                          <Image
+                            src={`${SUPABASE_URL}${drinkImage}`}
+                            alt={drinkName}
+                            fill
+                            className="object-cover rounded-lg"
+                          />
+                        )}
+                      </div>
+                      <span>
+                        {drinkName} (x{qty})
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* 4) Buttons + Price */}
           <div className="mt-8">
             <LoadingButton
-              onClick={generateRandomPackage}
+              onClick={() => createSelectionInSupabase(true)} // Overwrite selection with new random
               loading={isGenerating}
               className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition w-full"
             >
-              Generate New Package
+              Regenerate Package
             </LoadingButton>
 
             <LoadingConfettiButton
@@ -495,6 +498,7 @@ const ViBlanderForDigProduct: React.FC = () => {
         </div>
       </div>
 
+      {/* Confetti effect */}
       {showConfetti && (
         <ConfettiAnimation
           onAnimationEnd={handleConfettiEnd}

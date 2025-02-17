@@ -1,6 +1,5 @@
 // lib/api/session/createTemporarySelection.ts
 
-import { v4 as uuidv4 } from 'uuid';
 import { supabaseAdmin } from '../supabaseAdmin';
 import { calculatePrice } from '../priceCalculations';
 
@@ -17,7 +16,13 @@ interface CreateTempSelectionParams {
 /** Return shape. */
 interface CreateTempSelectionResult {
   success: boolean;
+
+  /**
+   * The deterministic key used as the "selectionId" in your temporary_selections object.
+   * e.g. "mixed-boosters-12-alle"
+   */
   selectionId: string;
+
   pricePerPackage: number;
   recyclingFeePerPackage: number;
 }
@@ -28,6 +33,7 @@ interface CreateTempSelectionResult {
  *  - Fetches the package from DB
  *  - Calls `calculatePrice` to get the per-package + recycling fee
  *  - Stores this selection into session.temporary_selections
+ *    at a deterministic key: "packageSlug-selectedSize-sugarPreference"
  *  - Returns { success, selectionId, pricePerPackage, recyclingFeePerPackage }
  */
 export async function createTemporarySelection(
@@ -56,7 +62,7 @@ export async function createTemporarySelection(
     throw new Error('Selected products do not match the package size');
   }
 
-  // 2) Fetch package from DB
+  // 2) Fetch package from DB (to confirm existence & possibly get sizes/drinks)
   const { data: pkgRow, error: pkgError } = await supabaseAdmin
     .from('packages')
     .select('*')
@@ -71,9 +77,6 @@ export async function createTemporarySelection(
   }
 
   // 3) Calculate price + recycling fee
-  //    (calculatePrice typically requires { packageData, selectedSize, selectedProducts, drinksData? })
-  //    If your package row does not contain "package_sizes" or "package_drinks",
-  //    you may need a more complete DB fetch, like in getCalculatedPackagePrice.
   const { pricePerPackage, recyclingFeePerPackage } = await calculatePrice({
     packageData: pkgRow,
     selectedSize,
@@ -82,7 +85,7 @@ export async function createTemporarySelection(
     // you may need to provide them or fetch them separately.
   });
 
-  // 4) Retrieve the session row so we can merge the new selection
+  // 4) Retrieve the existing session row so we can merge the new selection
   const { data: sessionRow, error: sessionError } = await supabaseAdmin
     .from('sessions')
     .select('temporary_selections')
@@ -96,20 +99,24 @@ export async function createTemporarySelection(
     throw new Error('Session not found');
   }
 
-  // 5) Add a new selection entry
-  const selectionId = uuidv4();
-  const existingTempSelections = sessionRow.temporary_selections || {};
+  // 5) Build a deterministic key: "<packageSlug>-<selectedSize>-<sugarPreference>"
+  //    e.g. "mixed-boosters-12-alle"
+  //    If sugarPreference is undefined, default to something (e.g. "alle" or "unknown").
+  const normalizedSugarPref = sugarPreference || 'alle';
+  const selectionKey = `${packageSlug}-${selectedSize}-${normalizedSugarPref}`;
 
-  existingTempSelections[selectionId] = {
+  // 6) Insert/overwrite that key in the existing temporary_selections object
+  const existingTempSelections = sessionRow.temporary_selections || {};
+  existingTempSelections[selectionKey] = {
     selectedProducts,
     selectedSize,
     packageSlug,
     isMysteryBox,
-    sugarPreference,
+    sugarPreference: normalizedSugarPref,
     createdAt: new Date().toISOString(),
   };
 
-  // 6) Update DB
+  // 7) Update the DB
   const { error: updateError } = await supabaseAdmin
     .from('sessions')
     .update({ temporary_selections: existingTempSelections })
@@ -119,10 +126,10 @@ export async function createTemporarySelection(
     throw new Error(`Error updating session: ${updateError.message}`);
   }
 
-  // 7) Return result
+  // 8) Return the result, using `selectionKey` as "selectionId"
   return {
     success: true,
-    selectionId,
+    selectionId: selectionKey, // same as the new key
     pricePerPackage,
     recyclingFeePerPackage,
   };

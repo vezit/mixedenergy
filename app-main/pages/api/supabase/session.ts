@@ -6,16 +6,20 @@ import {
   deleteSession,
   acceptCookies,
   getBasket,
-  updateSession, // Named-params version
+  updateSession,
 } from '../../../lib/api/session/session';
+
+// NEW imports from your libraries:
+import { generateRandomSelection } from '../../../lib/api/session/generateRandomSelection';
+import { createTemporarySelection } from '../../../lib/api/session/createTemporarySelection';
+import { getCalculatedPackagePrice } from '../../../lib/api/session/getCalculatedPackagePrice';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method === 'GET') {
-      // GET => get or create session
+      // Handle GET => getOrCreateSession
       const noBasket = req.query.noBasket === '1';
       const cookieHeader = req.headers.cookie || '';
-
       const { newlyCreated, session, sessionId } = await getOrCreateSession(cookieHeader, noBasket);
 
       // If newly created, set a "session_id" cookie
@@ -24,68 +28,101 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           'Set-Cookie',
           serialize('session_id', sessionId, {
             httpOnly: false,
-            maxAge: 365 * 24 * 60 * 60, // e.g. 1 year
+            maxAge: 365 * 24 * 60 * 60, // 1 year
             path: '/',
             sameSite: 'strict',
             secure: process.env.NODE_ENV === 'production',
           })
         );
       }
-
       return res.status(200).json({ newlyCreated, session });
-    } else if (req.method === 'POST') {
-      // We might have a session_id cookie or a fallback in body
+    }
+
+    else if (req.method === 'POST') {
+      // Parse sessionId from cookies or body
       const cookiesHeader = req.headers.cookie || '';
       const parsedCookies = parse(cookiesHeader);
       const sessionId = parsedCookies['session_id'] || req.body.sessionId;
 
-      if (!sessionId) {
-        return res.status(400).json({ error: 'No session ID provided' });
-      }
-
-      const { action, ...rest } = req.body; // extract `action` plus everything else as `rest`
+      const { action, ...rest } = req.body;
       if (!action) {
         return res.status(400).json({ error: 'Missing action in request body' });
       }
 
-      // ACTION: deleteSession
+      // 1) DELETE SESSION
       if (action === 'deleteSession') {
+        if (!sessionId) {
+          return res.status(400).json({ error: 'No session ID provided' });
+        }
         await deleteSession(sessionId);
         return res.status(200).json({ success: true, message: 'Session deleted successfully' });
       }
 
-      // ACTION: acceptCookies
+      // 2) ACCEPT COOKIES
       else if (action === 'acceptCookies') {
+        if (!sessionId) {
+          return res.status(400).json({ error: 'No session ID provided' });
+        }
         const result = await acceptCookies(sessionId);
         return res.status(200).json(result);
       }
 
-      // ACTION: getBasket
+      // 3) GET BASKET
       else if (action === 'getBasket') {
+        if (!sessionId) {
+          return res.status(400).json({ error: 'No session ID provided' });
+        }
         const basket = await getBasket(sessionId);
         return res.status(200).json({ success: true, basket });
       }
 
-      // ACTION: addItem, removeItem, updateQuantity, updateCustomerDetails
-      else if (
-        ['addItem', 'removeItem', 'updateQuantity', 'updateCustomerDetails'].includes(action)
-      ) {
-        // Named-params style
+      // 4) BASKET ACTIONS (addItem, removeItem, etc.)
+      else if (['addItem', 'removeItem', 'updateQuantity', 'updateCustomerDetails'].includes(action)) {
+        if (!sessionId) {
+          return res.status(400).json({ error: 'No session ID provided' });
+        }
         const updateResult = await updateSession({
           action,
           sessionId,
-          data: rest, // pass the rest of body as `data`
+          data: rest,
         });
         return res.status(200).json(updateResult);
       }
 
-      // ACTION: unknown
+      // 5) NEW: GENERATE RANDOM SELECTION
+      else if (action === 'generateRandomSelection') {
+        // e.g. body includes { sessionId, slug, selectedSize, sugarPreference, isCustomSelection, selectedProducts }
+        const result = await generateRandomSelection({
+          sessionId,
+          ...rest, // spread rest of the fields from body
+        });
+        return res.status(200).json(result);
+      }
+
+      // 6) NEW: CREATE TEMPORARY SELECTION
+      else if (action === 'createTemporarySelection') {
+        // e.g. { sessionId, selectedProducts, selectedSize, packageSlug, isMysteryBox, sugarPreference }
+        const result = await createTemporarySelection({
+          sessionId,
+          ...rest,
+        });
+        return res.status(200).json(result);
+      }
+
+      // 7) NEW: GET CALCULATED PACKAGE PRICE
+      else if (action === 'getCalculatedPackagePrice') {
+        // e.g. { slug, selectedSize, selectedProducts, isMysteryBox, sugarPreference }
+        const result = await getCalculatedPackagePrice(rest);
+        return res.status(200).json(result);
+      }
+
+      // 8) UNKNOWN ACTION
       else {
         return res.status(400).json({ error: 'Invalid action' });
       }
     }
 
-    // If neither GET nor POST => 405
+    // If neither GET nor POST
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (err: any) {
     console.error('[session] catch error:', err);
