@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-// 1) Use the context that we fixed above
+// 1) Use the basket + session contexts
 import { useBasket } from '../components/BasketContext';
+import { useSessionContext } from '../contexts/SessionContext';
 
 // 2) Import other components as needed
 import Loading from '../components/Loading';
@@ -13,22 +14,38 @@ import OrderConfirmation, {
 } from '../components/OrderConfirmation';
 import BasketItems from '../components/BasketItems';
 import CustomerDetailsForm from '../components/CustomerDetailsForm'; // Example form
-import { getCookie } from '../lib/cookies';
 
 interface BasketProps {}
 
+/**
+ * Basket page refactored to use SessionContext & BasketContext (Supabase),
+ * removing old Firebase endpoints (5-getBasket, 4-updateBasket).
+ */
 const Basket: React.FC<BasketProps> = () => {
   const router = useRouter();
 
+  /**
+   * BASKET context values:
+   * - basketItems, removeItemFromBasket, updateItemQuantity, etc.
+   */
   const {
     basketItems,
     removeItemFromBasket,
-    updateItemQuantity, // <-- Now properly imported from context
+    updateItemQuantity,
     customerDetails,
     updateCustomerDetails,
     isBasketLoaded,
   } = useBasket();
 
+  /**
+   * SESSION context values:
+   * - session: includes session?.basket_details
+   * - updateSession(action, body)
+   * - fetchSession() if we need to re-pull the entire session from DB
+   */
+  const { session, updateSession, fetchSession } = useSessionContext();
+
+  // Local UI states
   const [packagesData, setPackagesData] = useState<Record<string, any>>({});
   const [explodedItems, setExplodedItems] = useState<Record<number, boolean>>({});
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
@@ -37,12 +54,21 @@ const Basket: React.FC<BasketProps> = () => {
   const [deliveryOption, setDeliveryOption] = useState<string>('pickupPoint');
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  /**
+   * Because we used to store a "basketSummary",
+   * we can store that from `session?.basket_details` or skip it entirely.
+   * Let's keep it for your `OrderConfirmation` component, if needed.
+   */
   const [basketSummary, setBasketSummary] = useState<IBasketSummary | null>(null);
 
+  // Form error states
   const [errors, setErrors] = useState<Record<string, any>>({});
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
-  /** Example summation logic */
+  /**
+   * Example total price logic
+   */
   const totalPrice = basketItems.reduce((acc, item: IBasketItem) => {
     const itemPrice = item.totalPrice ?? 0;
     return acc + itemPrice;
@@ -53,39 +79,49 @@ const Basket: React.FC<BasketProps> = () => {
     return acc + recyclingFee;
   }, 0);
 
-  /** Example function to update basket's delivery details in backend */
+  /**
+   * 1) "updateDeliveryDetailsInBackend" now uses `updateSession("updateDeliveryDetails")`.
+   *    Then we can do `fetchSession()` to refresh the local session if needed.
+   */
   const updateDeliveryDetailsInBackend = async (
     deliveryType: string,
     extras?: { selectedPickupPoint?: any }
   ): Promise<void> => {
     try {
+      // For example, if you have a provider, address, etc.
+      let provider = 'postnord'; // or 'gls', whichever logic you want
       let deliveryAddress = {};
       let providerDetails = {};
 
       if (deliveryType === 'pickupPoint' && extras?.selectedPickupPoint) {
-        // your logic ...
+        providerDetails = {
+          postnord: { servicePointId: extras.selectedPickupPoint },
+        };
+        deliveryAddress = {
+          // e.g. the address of the pickup point
+        };
       } else if (deliveryType === 'homeDelivery') {
         // your logic ...
       }
 
-      await fetch('/api/firebase/4-updateBasket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'updateDeliveryDetails',
-          deliveryOption: deliveryType,
-          deliveryAddress,
-          providerDetails,
-        }),
+      // Make the call to update session
+      await updateSession('updateDeliveryDetails', {
+        provider,
+        deliveryOption: deliveryType,
+        deliveryAddress,
+        providerDetails,
       });
 
-      await fetchBasketSummary();
+      // Optionally refresh session from DB
+      await fetchSession();
     } catch (error) {
       console.error('Error updating delivery details:', error);
     }
   };
 
-  /** Basic basket item manipulation */
+  /**
+   * 2) Basic basket item manipulation (already uses our BasketContext)
+   */
   const removeItem = (itemIndex: number) => {
     removeItemFromBasket(itemIndex);
   };
@@ -102,68 +138,58 @@ const Basket: React.FC<BasketProps> = () => {
     setExpandedItems((prev) => ({ ...prev, [index]: !prev[index] }));
   };
 
-  /** Example: fetch package data if needed */
+  /**
+   * 3) Keep an eye on session?.basket_details to populate local `basketSummary`,
+   *    or we can just pass session?.basket_details directly to <OrderConfirmation> if you prefer.
+   */
   useEffect(() => {
-    // ...
-  }, [basketItems]);
+    if (session?.basket_details) {
+      // Suppose your IBasketSummary = { items, customerDetails, deliveryDetails, etc. }
+      setBasketSummary(session.basket_details);
+      if (session.basket_details?.deliveryDetails?.deliveryType) {
+        setDeliveryOption(session.basket_details.deliveryDetails.deliveryType);
+      }
+      if (
+        session.basket_details?.deliveryDetails?.providerDetails?.postnord
+          ?.servicePointId
+      ) {
+        setSelectedPoint(
+          session.basket_details.deliveryDetails.providerDetails.postnord.servicePointId
+        );
+      }
+    } else {
+      setBasketSummary(null);
+    }
+  }, [session]);
 
-  /** If basket is empty after loaded, redirect home */
+  /**
+   * 4) If basket is empty after loaded, redirect home
+   */
   useEffect(() => {
     if (isBasketLoaded && basketItems.length === 0) {
       router.push('/');
     }
   }, [isBasketLoaded, basketItems, router]);
 
-  /** Example: fetch drinks data if needed */
+  /**
+   * 5) Example: fetch package data if needed
+   */
   useEffect(() => {
-    // ...
+    // ... your logic to load "packagesData"
   }, [basketItems]);
 
-  /** Fetch basket summary */
-  const fetchBasketSummary = async () => {
-    try {
-      const r = await fetch('/api/supabase/5-getBasket', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getCookie('session_id')}` // Assuming 'session_id' is the cookie you want to parse
-        },
-        credentials: 'include'
-      });
-      const data = await r.json();
-      setBasketSummary(data.basketDetails ?? null);
-
-      if (data.basketDetails?.deliveryDetails?.deliveryType) {
-        setDeliveryOption(data.basketDetails.deliveryDetails.deliveryType);
-      }
-      if (data.basketDetails?.deliveryDetails?.providerDetails?.postnord?.servicePointId) {
-        setSelectedPoint(data.basketDetails.deliveryDetails.providerDetails.postnord.servicePointId);
-      }
-    } catch (error) {
-      console.error('Error fetching basket summary:', error);
-    }
-  };
-
-  /** Re-fetch summary when certain fields change */
+  /**
+   * 6) Example: fetch drinks data if needed
+   */
   useEffect(() => {
-    fetchBasketSummary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerDetails, deliveryOption]);
-
-  /** If we have basket items + summary, do anything extra if needed */
-  useEffect(() => {
-    if (basketItems.length > 0 && basketSummary?.deliveryDetails) {
-      // ...
-    }
-  }, [basketItems, basketSummary, deliveryOption, customerDetails]);
-
-  if (!isBasketLoaded) {
-    return <Loading />;
-  }
+    // ... your logic to load "drinksData"
+  }, [basketItems]);
 
   return (
     <div className="p-8 w-full max-w-screen-lg mx-auto">
-      {basketItems.length === 0 ? (
+      {!isBasketLoaded ? (
+        <Loading />
+      ) : basketItems.length === 0 ? (
         <p>Din kurv er tom. Du bliver omdirigeret til forsiden...</p>
       ) : (
         <>
@@ -214,7 +240,7 @@ const Basket: React.FC<BasketProps> = () => {
             totalPrice={totalPrice}
             totalRecyclingFee={totalRecyclingFee}
             basketItems={basketItems}
-            basketSummary={basketSummary}
+            basketSummary={basketSummary} // from session.basket_details
             errors={errors}
             setErrors={setErrors}
             touchedFields={touchedFields}

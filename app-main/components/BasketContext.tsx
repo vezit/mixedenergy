@@ -1,4 +1,3 @@
-
 // BasketContext.tsx
 import React, {
   createContext,
@@ -57,7 +56,7 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     country: 'Danmark',
   });
 
-  // Pull from SessionContext, which has updateSession in named-param style
+  // Pull from SessionContext, which has updateSession
   const { session, loading, updateSession } = useSessionContext();
 
   /**
@@ -83,14 +82,13 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
    */
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
-      // fallback session ID if cookie is blocked
       const fallbackSessionId = getCookie('session_id') ?? undefined;
 
-      // Call updateSession in *named param* style
-      const response = await updateSession({
-        action: 'addItem',
-        data: { selectionId, quantity },
+      // IMPORTANT: Flatten the request body
+      const response = await updateSession('addItem', {
         sessionId: fallbackSessionId,
+        selectionId,
+        quantity,
       });
 
       if (response?.success && response.items) {
@@ -108,10 +106,9 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     try {
       const fallbackSessionId = getCookie('session_id') ?? undefined;
 
-      const response = await updateSession({
-        action: 'removeItem',
-        data: { itemIndex: index },
+      const response = await updateSession('removeItem', {
         sessionId: fallbackSessionId,
+        itemIndex: index,
       });
 
       if (response?.success && response.items) {
@@ -129,10 +126,10 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     try {
       const fallbackSessionId = getCookie('session_id') ?? undefined;
 
-      const response = await updateSession({
-        action: 'updateQuantity',
-        data: { itemIndex: index, quantity: newQuantity },
+      const response = await updateSession('updateQuantity', {
         sessionId: fallbackSessionId,
+        itemIndex: index,
+        quantity: newQuantity,
       });
 
       if (response?.success && response.items) {
@@ -153,10 +150,9 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     try {
       const fallbackSessionId = getCookie('session_id') ?? undefined;
 
-      const response = await updateSession({
-        action: 'updateCustomerDetails',
-        data: { customerDetails: updatedDetails },
+      const response = await updateSession('updateCustomerDetails', {
         sessionId: fallbackSessionId,
+        customerDetails: updatedDetails,
       });
 
       if (!response?.success) {

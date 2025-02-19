@@ -15,11 +15,16 @@ import { getCalculatedPackagePrice } from '../../../lib/api/session/getCalculate
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+
+
+    
     if (req.method === 'GET') {
       // Handle GET => getOrCreateSession
       const noBasket = req.query.noBasket === '1';
       const cookieHeader = req.headers.cookie || '';
       const { newlyCreated, session, sessionId } = await getOrCreateSession(cookieHeader, noBasket);
+
+      
 
       // If newly created, set a "session_id" cookie
       if (newlyCreated) {
@@ -47,6 +52,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!action) {
         return res.status(400).json({ error: 'Missing action in request body' });
       }
+
+      console.log('[POST /api/supabase/session] Received body:', req.body);
+      console.log('action =', action);
+      console.log('sessionId (from cookie or body) =', sessionId);
 
       // 1) DELETE SESSION
       if (action === 'deleteSession') {
@@ -77,6 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 4) BASKET ACTIONS (addItem, removeItem, etc.)
       else if (['addItem', 'removeItem', 'updateQuantity', 'updateCustomerDetails'].includes(action)) {
+
         if (!sessionId) {
           return res.status(400).json({ error: 'No session ID provided' });
         }
