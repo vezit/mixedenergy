@@ -1,4 +1,3 @@
-// pages/api/supabase/session.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { parse, serialize } from 'cookie';
 import {
@@ -15,19 +14,17 @@ import { getCalculatedPackagePrice } from '../../../lib/api/session/getCalculate
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    console.log('[session.ts] API handler called. Method:', req.method);
 
-
-    
     if (req.method === 'GET') {
-      // Handle GET => getOrCreateSession
+      console.log('[session.ts] GET => calling getOrCreateSession');
       const noBasket = req.query.noBasket === '1';
       const cookieHeader = req.headers.cookie || '';
       const { newlyCreated, session, sessionId } = await getOrCreateSession(cookieHeader, noBasket);
 
-      
-
       // If newly created, set a "session_id" cookie
       if (newlyCreated) {
+        console.log('[session.ts] Setting session_id cookie for new session:', sessionId);
         res.setHeader(
           'Set-Cookie',
           serialize('session_id', sessionId, {
@@ -43,6 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     else if (req.method === 'POST') {
+      console.log('[session.ts] POST => body:', req.body);
       // Parse sessionId from cookies or body
       const cookiesHeader = req.headers.cookie || '';
       const parsedCookies = parse(cookiesHeader);
@@ -53,9 +51,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Missing action in request body' });
       }
 
-      console.log('[POST /api/supabase/session] Received body:', req.body);
-      console.log('action =', action);
-      console.log('sessionId (from cookie or body) =', sessionId);
+      console.log('[session.ts] action =', action);
+      console.log('[session.ts] sessionId (from cookie or body) =', sessionId);
 
       // 1) DELETE SESSION
       if (action === 'deleteSession') {
@@ -86,7 +83,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 4) BASKET ACTIONS (addItem, removeItem, etc.)
       else if (['addItem', 'removeItem', 'updateQuantity', 'updateCustomerDetails'].includes(action)) {
-
         if (!sessionId) {
           return res.status(400).json({ error: 'No session ID provided' });
         }
@@ -98,10 +94,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json(updateResult);
       }
 
-
       // 5) NEW: CREATE TEMPORARY SELECTION
       else if (action === 'createTemporarySelection') {
-        // e.g. { sessionId, selectedProducts, selectedSize, packageSlug, isMysteryBox, sugarPreference }
         const result = await createTemporarySelection({
           sessionId,
           ...rest,
@@ -111,7 +105,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 6) NEW: GET CALCULATED PACKAGE PRICE
       else if (action === 'getCalculatedPackagePrice') {
-        // e.g. { slug, selectedSize, selectedProducts, isMysteryBox, sugarPreference }
         const result = await getCalculatedPackagePrice(rest);
         return res.status(200).json(result);
       }
@@ -125,7 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // If neither GET nor POST
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (err: any) {
-    console.error('[session] catch error:', err);
+    console.error('[session.ts] catch error:', err);
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }

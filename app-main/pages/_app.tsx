@@ -1,3 +1,4 @@
+// pages/_app.tsx
 import type { AppProps } from 'next/app';
 import '../styles/globals.css';
 import Header from '../components/Header';
@@ -58,8 +59,9 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
     };
   }, [router.events]);
 
+  // Here we pass pageProps.initialSession to the SessionProvider
   return (
-    <SessionProvider>
+    <SessionProvider initialSession={pageProps.initialSession}>
       <BasketProvider>
         <div className="flex flex-col min-h-screen">
           {/* Development Warning */}

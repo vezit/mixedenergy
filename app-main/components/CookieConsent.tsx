@@ -17,35 +17,37 @@ const CookieConsent: React.FC = () => {
     }
   }, [error]);
 
-  // show cookie consent if allow_cookies is false
+  // Whenever session or loading state changes, decide if we should show the bar.
   useEffect(() => {
-    if (!loading && session?.session && !session.session.allow_cookies) {
-      setShow(true);
+    if (!loading && session) {
+      // If allow_cookies is false, show the bar; otherwise hide it
+      setShow(!session.allow_cookies);
     }
   }, [loading, session]);
 
   const onAcceptCookies = async () => {
     try {
-      // get local session cookie if you want
-      const localSessionId = getCookie('session_id');
-      await acceptCookies(localSessionId);
-      setShow(false);
+      const localSessionId = getCookie('session_id');  // string | null
+      await acceptCookies(localSessionId || undefined);
+      // No need to manually setShow(false) if we rely on the effect above 
     } catch (err) {
       console.error('Error updating cookie consent:', err);
     }
   };
 
+  // If there's a cookie error, show a "please enable cookies" banner instead
   if (cookieError) {
     return (
       <div className="fixed top-0 left-0 right-0 p-4 bg-red-500 text-white text-center">
         <p>
-          For at kunne bruge denne hjemmeside, skal du tillade cookies. Venligst
-          slå cookies til i din browserindstillinger, før du fortsætter.
+          For at kunne bruge denne hjemmeside, skal du tillade cookies. 
+          Venligst slå cookies til i din browserindstillinger, før du fortsætter.
         </p>
       </div>
     );
   }
 
+  // If show=false, do not render the banner
   if (!show) return null;
 
   return (
