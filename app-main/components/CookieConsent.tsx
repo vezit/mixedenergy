@@ -6,8 +6,8 @@ const CookieConsent: React.FC = () => {
   const [show, setShow] = useState(false);
   const [cookieError, setCookieError] = useState(false);
 
-  // read from SessionContext
-  const { session, loading, error, acceptCookies } = useSessionContext();
+  // We destructure both acceptCookies and fetchSession:
+  const { session, loading, error, acceptCookies, fetchSession } = useSessionContext();
 
   // if we had an error from session fetch
   useEffect(() => {
@@ -17,19 +17,23 @@ const CookieConsent: React.FC = () => {
     }
   }, [error]);
 
-  // Whenever session or loading state changes, decide if we should show the bar.
+  // Decide if we should show the bar each time session/loading changes
   useEffect(() => {
     if (!loading && session) {
-      // If allow_cookies is false, show the bar; otherwise hide it
+      // If allow_cookies is false, show; otherwise hide
       setShow(!session.allow_cookies);
     }
   }, [loading, session]);
 
   const onAcceptCookies = async () => {
     try {
-      const localSessionId = getCookie('session_id');  // string | null
+      const localSessionId = getCookie('session_id'); // string | null
       await acceptCookies(localSessionId || undefined);
-      // No need to manually setShow(false) if we rely on the effect above 
+
+      // To ensure we have the very latest session (with allow_cookies=true):
+      await fetchSession();
+      // After that, the useEffect should see session.allow_cookies === true
+      // and call setShow(false).
     } catch (err) {
       console.error('Error updating cookie consent:', err);
     }
@@ -40,14 +44,14 @@ const CookieConsent: React.FC = () => {
     return (
       <div className="fixed top-0 left-0 right-0 p-4 bg-red-500 text-white text-center">
         <p>
-          For at kunne bruge denne hjemmeside, skal du tillade cookies. 
+          For at kunne bruge denne hjemmeside, skal du tillade cookies.
           Venligst slå cookies til i din browserindstillinger, før du fortsætter.
         </p>
       </div>
     );
   }
 
-  // If show=false, do not render the banner
+  // If show=false, do not render the banner at all
   if (!show) return null;
 
   return (
