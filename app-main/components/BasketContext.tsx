@@ -1,4 +1,3 @@
-// BasketContext.tsx
 import React, {
   createContext,
   useContext,
@@ -7,8 +6,9 @@ import React, {
   ReactNode,
   FC,
 } from 'react';
+
+// We rely on the SessionContext to fetch the session & update it
 import { useSessionContext } from '../contexts/SessionContext';
-import { getCookie } from '../lib/cookies';
 import { ICustomerDetails } from '../types/ICustomerDetails';
 
 export interface IBasketItem {
@@ -30,9 +30,11 @@ interface AddItemParams {
 export interface BasketContextValue {
   basketItems: IBasketItem[];
   isBasketLoaded: boolean;
+
   addItemToBasket: (params: AddItemParams) => Promise<void>;
   removeItemFromBasket: (index: number) => Promise<void>;
   updateItemQuantity: (index: number, newQuantity: number) => Promise<void>;
+
   customerDetails: ICustomerDetails;
   updateCustomerDetails: (updatedDetails: Partial<ICustomerDetails>) => Promise<void>;
 }
@@ -56,41 +58,54 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     country: 'Danmark',
   });
 
-  // Pull from SessionContext, which has updateSession
-  const { session, loading, updateSession } = useSessionContext();
+  // 1) Pull from SessionContext
+  const { session, loading: sessionLoading, fetchSession, updateSession } = useSessionContext();
 
   /**
-   * Whenever the session changes (and is not loading),
-   * read the basket_details from session into local state
+   * 2) On mount, ensure we fetch the session (if not already).
+   *    Then set basket items from session.basket_details (if present).
    */
   useEffect(() => {
-    if (!loading && session?.session?.basket_details) {
-      const { items, customerDetails: custDet } = session.session.basket_details;
-
-      if (items) {
-        setBasketItems(items);
-      }
-      if (custDet) {
-        setCustomerDetails(custDet);
-      }
-      setIsBasketLoaded(true);
+    // If the session isn't fetched yet, fetch it
+    if (!session && !sessionLoading) {
+      void fetchSession();
     }
-  }, [loading, session]);
+  }, [session, sessionLoading, fetchSession]);
 
   /**
-   * 1) addItemToBasket
+   * 3) Whenever `session` changes, update local basketItems + customerDetails
+   */
+  useEffect(() => {
+    if (session?.basket_details) {
+      const { items, customerDetails: custDet } = session.basket_details;
+
+      if (Array.isArray(items)) {
+        setBasketItems(items);
+      } else {
+        setBasketItems([]);
+      }
+
+      if (custDet) {
+        setCustomerDetails((prev) => ({ ...prev, ...custDet }));
+      }
+    }
+    // Once we've set them, consider the basket "loaded"
+    if (session) {
+      setIsBasketLoaded(true);
+    }
+  }, [session]);
+
+  /**
+   * 4) Add item to basket => calls updateSession('addItem')
    */
   const addItemToBasket = async ({ selectionId, quantity }: AddItemParams) => {
     try {
-      const fallbackSessionId = getCookie('session_id') ?? undefined;
-
-      // IMPORTANT: Flatten the request body
+      // Flatten the request to match your "addItem" in updateSession
       const response = await updateSession('addItem', {
-        sessionId: fallbackSessionId,
         selectionId,
         quantity,
       });
-
+      // If success, the server returns new "items" in response.items
       if (response?.success && response.items) {
         setBasketItems(response.items);
       }
@@ -100,17 +115,13 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   /**
-   * 2) removeItemFromBasket
+   * 5) removeItemFromBasket => calls updateSession('removeItem')
    */
   const removeItemFromBasket = async (index: number) => {
     try {
-      const fallbackSessionId = getCookie('session_id') ?? undefined;
-
       const response = await updateSession('removeItem', {
-        sessionId: fallbackSessionId,
         itemIndex: index,
       });
-
       if (response?.success && response.items) {
         setBasketItems(response.items);
       }
@@ -120,18 +131,18 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   /**
-   * 3) updateItemQuantity
+   * 6) updateItemQuantity => calls updateSession('updateQuantity')
    */
   const updateItemQuantity = async (index: number, newQuantity: number) => {
     try {
-      const fallbackSessionId = getCookie('session_id') ?? undefined;
-
+      if (newQuantity < 1) {
+        console.warn('Quantity must be >= 1');
+        return;
+      }
       const response = await updateSession('updateQuantity', {
-        sessionId: fallbackSessionId,
         itemIndex: index,
         quantity: newQuantity,
       });
-
       if (response?.success && response.items) {
         setBasketItems(response.items);
       }
@@ -141,20 +152,16 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   /**
-   * 4) updateCustomerDetails
+   * 7) updateCustomerDetails => calls updateSession('updateCustomerDetails')
    */
   const updateCustomerDetails = async (updatedDetails: Partial<ICustomerDetails>) => {
     // Optimistic update
     setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
 
     try {
-      const fallbackSessionId = getCookie('session_id') ?? undefined;
-
       const response = await updateSession('updateCustomerDetails', {
-        sessionId: fallbackSessionId,
         customerDetails: updatedDetails,
       });
-
       if (!response?.success) {
         console.warn('Warning updating customer details:', response);
       }

@@ -1,11 +1,9 @@
-// components/CustomerDetailsForm.tsx
-
 import React, { useCallback, useEffect, Dispatch, SetStateAction } from 'react';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 import { ICustomerDetails } from '../types/ICustomerDetails';
 
 /** 
- * Define a union of valid field keys using "keyof ICustomerDetails".
+ * Define a union of valid field keys using `keyof ICustomerDetails`.
  * This ensures we only use valid property names like 'fullName', 'email', etc.
  */
 type CustomerDetailsKey = keyof ICustomerDetails;
@@ -22,11 +20,17 @@ interface ITouchedFields {
 
 /**
  * Props for your customer details form.
- * Note the function signature for `updateCustomerDetails` → `(details: Partial<ICustomerDetails>) => void`
+ *
+ * @param customerDetails - The current customer details from your basket/session.
+ * @param updateCustomerDetails - A function that updates the customer details in Supabase (via your BasketContext).
+ * @param updateDeliveryDetailsInBackend - If you still want to trigger updates for e.g. homeDelivery, you can do so here.
+ * @param errors, setErrors - For tracking validation errors.
+ * @param touchedFields, setTouchedFields - Which fields have been interacted with.
+ * @param submitAttempted - Whether the user has attempted submission (to show errors).
  */
 interface CustomerDetailsFormProps {
   customerDetails: ICustomerDetails;
-  updateCustomerDetails: (details: Partial<ICustomerDetails>) => void;
+  updateCustomerDetails: (details: Partial<ICustomerDetails>) => Promise<void>;
   updateDeliveryDetailsInBackend: (option: string, data?: Record<string, any>) => void;
 
   errors: IErrors;
@@ -49,7 +53,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 }) => {
   /**
    * A simple debounce utility to delay updates 
-   * (helps avoid excessive writes to Firebase).
+   * (helps avoid excessive writes to the server).
    */
   const debounce = (func: (...args: any[]) => void, delay: number) => {
     let timeoutId: ReturnType<typeof setTimeout>;
@@ -62,33 +66,27 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   };
 
   /**
-   * Push partial customer details to the backend (Firebase).
+   * 1) Push partial customer details to Supabase (via parent's `updateCustomerDetails`).
+   *    Here, you can handle any server validation errors if `updateCustomerDetails` returns them.
    */
-  const updateCustomerDetailsInFirebase = async (
+  const updateCustomerDetailsInSupabase = async (
     updatedDetails: Partial<ICustomerDetails>
   ): Promise<void> => {
     try {
-      const response = await fetch('/api/firebase/4-updateBasket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'updateCustomerDetails',
-          customerDetails: updatedDetails,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrors(data.errors || {});
-        throw new Error(data.error || 'Error updating customer details');
-      }
+      const response = await updateCustomerDetails(updatedDetails);
+      // If your parent's update returns something like { success, errors },
+      // you could handle those here:
+      // if (!response?.success) {
+      //   setErrors(response.errors || {});
+      // }
     } catch (error) {
-      console.error('Error updating customer details in Firebase:', error);
+      console.error('Error updating customer details in Supabase:', error);
     }
   };
 
+  /** Debounce so we don't spam the server on every keystroke. */
   const debouncedUpdate = useCallback(
-    debounce(updateCustomerDetailsInFirebase, 800),
+    debounce(updateCustomerDetailsInSupabase, 800),
     []
   );
 
@@ -123,20 +121,15 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     // Cast name to a valid customer-details key:
     const fieldName = name as CustomerDetailsKey;
 
-    // Merge the updated field into existing customerDetails
-    const updatedDetails: ICustomerDetails = {
-      ...customerDetails,
-      [fieldName]: value,
-    };
-
-    // Update local (or global) state with partial details
-    updateCustomerDetails(updatedDetails);
+    // Immediately update local state in the parent
+    // (BasketContext) so the UI is responsive.
+    updateCustomerDetails({ [fieldName]: value });
 
     // Validate the field
     const errorMsg = validateField(fieldName, value);
     setErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
 
-    // Debounced push to backend
+    // Debounced push to Supabase
     debouncedUpdate({ [fieldName]: value });
   };
 
@@ -149,7 +142,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     const errorMsg = validateField(fieldName, value);
     setErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
 
-    // Example: if relevant to home delivery, update backend
+    // If relevant, you might also update delivery details:
     if (['address', 'postalCode', 'city'].includes(fieldName)) {
       updateDeliveryDetailsInBackend('homeDelivery', {});
     }
@@ -157,7 +150,6 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
   /** Check if all required fields are valid. */
   const allFieldsValid = () => {
-    // Restrict to known required keys
     const requiredFields: CustomerDetailsKey[] = [
       'fullName',
       'mobileNumber',

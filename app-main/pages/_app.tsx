@@ -1,22 +1,24 @@
-// pages/_app.tsx
 import type { AppProps } from 'next/app';
 import '../styles/globals.css';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import CookieConsent from '../components/CookieConsent';
-import { BasketProvider } from '../components/BasketContext';
+
+import { BasketProvider } from '../components/BasketContext'; 
+import { SessionProvider } from '../contexts/SessionContext';
+
 import React, { useState, useEffect, JSX } from 'react';
 import { useRouter } from 'next/router';
 import * as gtag from '../lib/gtag';
 
-// << import your new SessionProvider
-import { SessionProvider } from '../contexts/SessionContext';
-
+/**
+ * Main _app that wraps everything in SessionProvider & BasketProvider.
+ */
 export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   const router = useRouter();
   const [isStorageEnabled, setIsStorageEnabled] = useState(true);
 
-  // Check local storage and cookies
+  // 1) Check local storage and cookies
   useEffect(() => {
     let storageEnabled = true;
     try {
@@ -33,9 +35,8 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
       if (document.cookie.indexOf('testcookie=') === -1) {
         storageEnabled = false;
       } else {
-        // clean up
-        document.cookie =
-          'testcookie=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict';
+        // Clean up cookie
+        document.cookie = 'testcookie=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict';
       }
     } catch (e) {
       storageEnabled = false;
@@ -46,12 +47,11 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
     }
   }, []);
 
-  // Google Analytics page view
+  // 2) Google Analytics pageview
   useEffect(() => {
     const handleRouteChange = (url: string) => {
       gtag.pageview(url);
     };
-
     router.events.on('routeChangeComplete', handleRouteChange);
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange);
@@ -59,7 +59,7 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   }, [router.events]);
 
   return (
-    <SessionProvider> {/* Wrap in SessionProvider */}
+    <SessionProvider>
       <BasketProvider>
         <div className="flex flex-col min-h-screen">
           {/* Development Warning */}
@@ -70,9 +70,8 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
           {/* Cookie/Local Storage Warning */}
           {!isStorageEnabled && (
             <div className="bg-red-500 text-white text-center p-2">
-              Our website requires cookies and local storage to function
-              properly. Please enable cookies and local storage in your
-              browser settings.
+              Our website requires cookies and local storage to function properly.
+              Please enable cookies and local storage in your browser settings.
             </div>
           )}
 
