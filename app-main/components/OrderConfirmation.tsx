@@ -120,10 +120,10 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
         if (selectedPoint) {
           setDeliveryAddress({
             name: selectedPoint.name,
-            streetName: selectedPoint.visitingAddress.streetName,
-            streetNumber: selectedPoint.visitingAddress.streetNumber,
-            postalCode: selectedPoint.visitingAddress.postalCode,
-            city: selectedPoint.visitingAddress.city,
+            streetName: selectedPoint?.visitingAddress?.streetName || '',
+            streetNumber: selectedPoint?.visitingAddress?.streetNumber || '',
+            postalCode: selectedPoint?.visitingAddress?.postalCode || '',
+            city: selectedPoint?.visitingAddress?.city || '',
             country: 'Danmark',
           });
         } else {
