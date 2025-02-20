@@ -36,28 +36,40 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  /**
+   * Called when user changes the radio button.
+   * We no longer immediately call updateDeliveryDetailsInBackend.
+   */
   const handleDeliveryOptionChange = (option: string) => {
     setDeliveryOption(option);
+
     if (option === 'pickupPoint') {
       setLoading(true);
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
       }
+      // Give ourselves up to 5s to fetch the points or hide spinner
       loadingTimeoutRef.current = setTimeout(() => {
         if (pickupPoints.length > 0) {
           setLoading(false);
         }
       }, 5000);
 
+      // Attempt to fetch pickup points for the user’s address
       fetchPickupPoints(customerDetails);
     } else {
+      // user chose homeDelivery
       setLoading(false);
       setPickupPoints([]);
       setSelectedPoint(null);
-      updateDeliveryDetailsInBackend(option, {});
+      // In previous code, we called `updateDeliveryDetailsInBackend(option, {})` here.
+      // Now, we skip it, so no immediate session update on page load or radio switch.
     }
   };
 
+  /**
+   * Splits address into "streetName" + "streetNumber" if possible.
+   */
   const splitAddress = (address: string) => {
     const regex = /^(.*?)(\s+\d+\S*)$/;
     const match = address.match(regex);
@@ -74,6 +86,10 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     }
   };
 
+  /**
+   * fetchPickupPoints => tries to load from /api/postnord/servicepoints
+   * We do NOT call updateSession automatically here.
+   */
   const fetchPickupPoints = (updatedDetails: ICustomerDetails) => {
     const { streetName, streetNumber } = splitAddress(updatedDetails.address || '');
     if (updatedDetails.city && updatedDetails.postalCode) {
@@ -95,12 +111,10 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
             data.servicePointInformationResponse?.servicePoints || [];
 
           setPickupPoints(points);
-          if (points.length > 0) {
-            setSelectedPoint(points[0].servicePointId);
-            updateDeliveryDetailsInBackend('pickupPoint', {
-              selectedPickupPoint: points[0],
-            });
-          }
+
+          // In previous code, we automatically updated the session with the first point:
+          //   updateDeliveryDetailsInBackend('pickupPoint', { selectedPickupPoint: points[0] })
+          // We have removed that line to prevent automatic session updates on page load.
 
           if (loadingTimeoutRef.current) {
             clearTimeout(loadingTimeoutRef.current);
@@ -117,6 +131,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
           setLoading(false);
         });
     } else {
+      // If we don’t have city/postalCode, we can’t fetch pickup points
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
         loadingTimeoutRef.current = null;
@@ -125,16 +140,28 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     }
   };
 
+  /**
+   * Called when user selects a specific pickup point in the <select> or the map.
+   * Now we DO call updateDeliveryDetailsInBackend here so we only update session if user explicitly picks a point.
+   */
   const handleSelectedPointChange = (newSelectedPoint: string | null) => {
     setSelectedPoint(newSelectedPoint);
+
     if (deliveryOption === 'pickupPoint' && newSelectedPoint) {
       const selectedPickupPoint = pickupPoints.find(
         (point) => point.servicePointId === newSelectedPoint
       );
-      updateDeliveryDetailsInBackend('pickupPoint', { selectedPickupPoint });
+      if (selectedPickupPoint) {
+        // Now we do the session update, because user explicitly chose a point
+        updateDeliveryDetailsInBackend('pickupPoint', { selectedPickupPoint });
+      }
     }
   };
 
+  /**
+   * If user has 'pickupPoint' selected and they edit their postalCode,
+   * we re-fetch the points. But we do NOT update session automatically.
+   */
   useEffect(() => {
     if (deliveryOption === 'pickupPoint' && customerDetails.postalCode) {
       fetchPickupPoints(customerDetails);
@@ -161,7 +188,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     <div id="shipping-and-payment" className="mt-8">
       <h2 className="text-xl font-bold mb-4">Leveringsmuligheder</h2>
 
-      {/* Privatpakke Collect uden omdeling */}
+      {/* Pickup Point Option */}
       <div className="mb-4">
         <label className="flex items-center cursor-pointer">
           <input
@@ -177,7 +204,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
               Privatpakke Collect uden omdeling - Vælg selv udleveringssted
             </span>
             <img
-              src="/postnord-logo.png"
+              src="/images/postnord-logo.png"
               alt="postnord"
               className="inline-block ml-2 h-4"
               style={{ verticalAlign: 'middle' }}
@@ -217,7 +244,8 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                       <div className="flex flex-col md:flex-row md:space-x-4">
                         <div className="md:w-1/2 mb-4 md:mb-0">
                           <h3 className="text-sm font-bold">
-                            {selectedPickup.name} - {selectedPickup.visitingAddress.streetName}{' '}
+                            {selectedPickup.name} -{' '}
+                            {selectedPickup.visitingAddress.streetName}{' '}
                             {selectedPickup.visitingAddress.streetNumber}
                           </h3>
                           <p className="text-sm mb-2">
@@ -261,7 +289,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
         )}
       </div>
 
-      {/* Privatpakke Home med omdeling */}
+      {/* Home Delivery Option */}
       <div className="mb-4">
         <label className="flex items-center cursor-pointer">
           <input
@@ -275,7 +303,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
           <div className="flex items-center">
             <span className="text-sm font-semibold">Privatpakke Home med omdeling</span>
             <img
-              src="/postnord-logo.png"
+              src="/images/postnord-logo.png"
               alt="postnord"
               className="inline-block ml-2 h-4"
               style={{ verticalAlign: 'middle' }}

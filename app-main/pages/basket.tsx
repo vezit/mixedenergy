@@ -1,3 +1,4 @@
+// pages/basket.ts (or /components/Basket.tsx, depending on your folder structure)
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -18,8 +19,8 @@ import CustomerDetailsForm from '../components/CustomerDetailsForm'; // Example 
 interface BasketProps {}
 
 /**
- * Basket page refactored to use SessionContext & BasketContext (Supabase),
- * removing old Firebase endpoints (5-getBasket, 4-updateBasket).
+ * Basket page that uses SessionContext & BasketContext (Supabase),
+ * removing old Firebase endpoints.
  */
 const Basket: React.FC<BasketProps> = () => {
   const router = useRouter();
@@ -39,13 +40,13 @@ const Basket: React.FC<BasketProps> = () => {
 
   /**
    * SESSION context values:
-   * - session: includes session?.basket_details
+   * - session => includes session?.basket_details
    * - updateSession(action, body)
-   * - fetchSession() if we need to re-pull the entire session from DB
+   * - fetchSession() => re-pull entire session from DB
    */
   const { session, updateSession, fetchSession } = useSessionContext();
 
-  // Local UI states
+  // Local states for UI
   const [packagesData, setPackagesData] = useState<Record<string, any>>({});
   const [explodedItems, setExplodedItems] = useState<Record<number, boolean>>({});
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
@@ -55,11 +56,7 @@ const Basket: React.FC<BasketProps> = () => {
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  /**
-   * Because we used to store a "basketSummary",
-   * we can store that from `session?.basket_details` or skip it entirely.
-   * Let's keep it for your `OrderConfirmation` component, if needed.
-   */
+  // We'll store basket_details in a local "basketSummary" if needed
   const [basketSummary, setBasketSummary] = useState<IBasketSummary | null>(null);
 
   // Form error states
@@ -70,38 +67,35 @@ const Basket: React.FC<BasketProps> = () => {
    * Example total price logic
    */
   const totalPrice = basketItems.reduce((acc, item: IBasketItem) => {
-    const itemPrice = item.totalPrice ?? 0;
-    return acc + itemPrice;
+    return acc + (item.totalPrice ?? 0);
   }, 0);
 
   const totalRecyclingFee = basketItems.reduce((acc, item: IBasketItem) => {
-    const recyclingFee = item.totalRecyclingFee ?? 0;
-    return acc + recyclingFee;
+    return acc + (item.totalRecyclingFee ?? 0);
   }, 0);
 
   /**
-   * 1) "updateDeliveryDetailsInBackend" now uses `updateSession("updateDeliveryDetails")`.
-   *    Then we can do `fetchSession()` to refresh the local session if needed.
+   * 1) "updateDeliveryDetailsInBackend" => calls updateSession("updateDeliveryDetails").
    */
   const updateDeliveryDetailsInBackend = async (
     deliveryType: string,
     extras?: { selectedPickupPoint?: any }
   ): Promise<void> => {
     try {
-      // For example, if you have a provider, address, etc.
-      let provider = 'postnord'; // or 'gls', whichever logic you want
+      // Example data for the call:
+      let provider = 'postnord'; // or 'gls'
       let deliveryAddress = {};
       let providerDetails = {};
 
       if (deliveryType === 'pickupPoint' && extras?.selectedPickupPoint) {
+        // E.g. store the pickup point ID under providerDetails
         providerDetails = {
           postnord: { servicePointId: extras.selectedPickupPoint },
         };
-        deliveryAddress = {
-          // e.g. the address of the pickup point
-        };
+        // Possibly store address if you know it
+        deliveryAddress = {};
       } else if (deliveryType === 'homeDelivery') {
-        // your logic ...
+        // Put logic to build a home delivery address here
       }
 
       // Make the call to update session
@@ -112,7 +106,7 @@ const Basket: React.FC<BasketProps> = () => {
         providerDetails,
       });
 
-      // Optionally refresh session from DB
+      // Optionally re-fetch from the server to ensure we have the latest session
       await fetchSession();
     } catch (error) {
       console.error('Error updating delivery details:', error);
@@ -120,7 +114,7 @@ const Basket: React.FC<BasketProps> = () => {
   };
 
   /**
-   * 2) Basic basket item manipulation (already uses our BasketContext)
+   * 2) Basic item manipulation (BasketContext)
    */
   const removeItem = (itemIndex: number) => {
     removeItemFromBasket(itemIndex);
@@ -139,20 +133,16 @@ const Basket: React.FC<BasketProps> = () => {
   };
 
   /**
-   * 3) Keep an eye on session?.basket_details to populate local `basketSummary`,
-   *    or we can just pass session?.basket_details directly to <OrderConfirmation> if you prefer.
+   * 3) Whenever the session changes, set local basketSummary & update UI states
    */
   useEffect(() => {
     if (session?.basket_details) {
-      // Suppose your IBasketSummary = { items, customerDetails, deliveryDetails, etc. }
       setBasketSummary(session.basket_details);
-      if (session.basket_details?.deliveryDetails?.deliveryType) {
+
+      if (session.basket_details.deliveryDetails?.deliveryType) {
         setDeliveryOption(session.basket_details.deliveryDetails.deliveryType);
       }
-      if (
-        session.basket_details?.deliveryDetails?.providerDetails?.postnord
-          ?.servicePointId
-      ) {
+      if (session.basket_details.deliveryDetails?.providerDetails?.postnord?.servicePointId) {
         setSelectedPoint(
           session.basket_details.deliveryDetails.providerDetails.postnord.servicePointId
         );
@@ -163,7 +153,7 @@ const Basket: React.FC<BasketProps> = () => {
   }, [session]);
 
   /**
-   * 4) If basket is empty after loaded, redirect home
+   * 4) If basket is empty (after loaded), redirect home
    */
   useEffect(() => {
     if (isBasketLoaded && basketItems.length === 0) {
@@ -175,14 +165,14 @@ const Basket: React.FC<BasketProps> = () => {
    * 5) Example: fetch package data if needed
    */
   useEffect(() => {
-    // ... your logic to load "packagesData"
+    // ... logic to load packages data
   }, [basketItems]);
 
   /**
    * 6) Example: fetch drinks data if needed
    */
   useEffect(() => {
-    // ... your logic to load "drinksData"
+    // ... logic to load drinks data
   }, [basketItems]);
 
   return (
@@ -240,7 +230,7 @@ const Basket: React.FC<BasketProps> = () => {
             totalPrice={totalPrice}
             totalRecyclingFee={totalRecyclingFee}
             basketItems={basketItems}
-            basketSummary={basketSummary} // from session.basket_details
+            basketSummary={basketSummary}
             errors={errors}
             setErrors={setErrors}
             touchedFields={touchedFields}
