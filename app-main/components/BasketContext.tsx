@@ -159,8 +159,26 @@ export const BasketProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setCustomerDetails((prev) => ({ ...prev, ...updatedDetails }));
 
     try {
+
+      // get session
+      const latestSession = await fetchSession();
+      console.log('Just fetched the latest session:', latestSession);
+
+
+      // If no session or missing basket_details, bail out or handle it
+      if (!latestSession || !latestSession.basket_details) {
+        console.warn('No session or basket_details returned from fetchSession');
+        return;
+      }
+
+      
+      latestSession.basket_details.customerDetails = {
+        ...latestSession.basket_details.customerDetails,
+        ...updatedDetails,
+      };
+
       const response = await updateSession('updateCustomerDetails', {
-        customerDetails: updatedDetails,
+        customerDetails: latestSession.basket_details.customerDetails,
       });
       if (!response?.success) {
         console.warn('Warning updating customer details:', response);
