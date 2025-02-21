@@ -1,4 +1,9 @@
-import React, { useCallback, useEffect, Dispatch, SetStateAction } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  Dispatch,
+  SetStateAction,
+} from 'react';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 import { ICustomerDetails } from '../types/ICustomerDetails';
 
@@ -142,41 +147,32 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     const errorMsg = validateField(fieldName, value);
     setErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
 
-    // If relevant, you might also update delivery details:
-    if (['address', 'postalCode', 'city'].includes(fieldName)) {
-      updateDeliveryDetailsInBackend('homeDelivery', {});
-    }
+    // No direct calls to updateDeliveryDetailsInBackend here
   };
 
   /** Check if all required fields are valid. */
-  const allFieldsValid = () => {
-    const requiredFields: CustomerDetailsKey[] = [
-      'fullName',
-      'mobileNumber',
-      'email',
-      'address',
-      'postalCode',
-      'city',
-    ];
+  const requiredFields: CustomerDetailsKey[] = [
+    'fullName',
+    'mobileNumber',
+    'email',
+    'address',
+    'postalCode',
+    'city',
+  ];
 
-    return requiredFields.every(
+  const allFieldsValid = () => {
+    // 1) Every required field is filled
+    const allFilled = requiredFields.every(
       (field) =>
-        !errors[field] &&
-        customerDetails[field] &&
-        customerDetails[field]!.trim()
+        customerDetails[field] && customerDetails[field]!.trim() !== ''
     );
+    // 2) None of those fields have errors
+    const noErrors = requiredFields.every((field) => !errors[field]);
+    return allFilled && noErrors;
   };
 
   /** Validate once on mount. */
   useEffect(() => {
-    const requiredFields: CustomerDetailsKey[] = [
-      'fullName',
-      'mobileNumber',
-      'email',
-      'address',
-      'postalCode',
-      'city',
-    ];
     const newErrors: IErrors = { ...errors };
 
     requiredFields.forEach((field) => {
@@ -189,6 +185,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     setErrors(newErrors);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * Trigger updateDeliveryDetailsInBackend ONLY when
+   * all required fields are valid.
+   */
+  useEffect(() => {
+    if (allFieldsValid()) {
+      // updateDeliveryDetailsInBackend('homeDelivery', {});
+    }
+  }, [customerDetails, errors, updateDeliveryDetailsInBackend]);
 
   /** Renders an icon for valid/invalid fields. */
   const renderIcon = (fieldName: CustomerDetailsKey) => {
