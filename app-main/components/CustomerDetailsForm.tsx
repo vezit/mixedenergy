@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useState,
   Dispatch,
   SetStateAction,
 } from 'react';
@@ -8,8 +9,7 @@ import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/soli
 import { ICustomerDetails } from '../types/ICustomerDetails';
 
 /** 
- * Define a union of valid field keys using `keyof ICustomerDetails`.
- * This ensures we only use valid property names like 'fullName', 'email', etc.
+ * Valid keys of ICustomerDetails
  */
 type CustomerDetailsKey = keyof ICustomerDetails;
 
@@ -23,16 +23,6 @@ interface ITouchedFields {
   [field: string]: boolean;
 }
 
-/**
- * Props for your customer details form.
- *
- * @param customerDetails - The current customer details from your basket/session.
- * @param updateCustomerDetails - A function that updates the customer details in Supabase (via your BasketContext).
- * @param updateDeliveryDetailsInBackend - If you still want to trigger updates for e.g. homeDelivery, you can do so here.
- * @param errors, setErrors - For tracking validation errors.
- * @param touchedFields, setTouchedFields - Which fields have been interacted with.
- * @param submitAttempted - Whether the user has attempted submission (to show errors).
- */
 interface CustomerDetailsFormProps {
   customerDetails: ICustomerDetails;
   updateCustomerDetails: (details: Partial<ICustomerDetails>) => Promise<void>;
@@ -57,8 +47,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   submitAttempted,
 }) => {
   /**
-   * A simple debounce utility to delay updates 
-   * (helps avoid excessive writes to the server).
+   * A simple debounce utility to delay server writes.
    */
   const debounce = (func: (...args: any[]) => void, delay: number) => {
     let timeoutId: ReturnType<typeof setTimeout>;
@@ -71,37 +60,33 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   };
 
   /**
-   * 1) Push partial customer details to Supabase (via parent's `updateCustomerDetails`).
-   *    Here, you can handle any server validation errors if `updateCustomerDetails` returns them.
+   * Send partial updates to Supabase (via parent).
    */
   const updateCustomerDetailsInSupabase = async (
     updatedDetails: Partial<ICustomerDetails>
   ): Promise<void> => {
     try {
-      const response = await updateCustomerDetails(updatedDetails);
-      // If your parent's update returns something like { success, errors },
-      // you could handle those here:
-      // if (!response?.success) {
-      //   setErrors(response.errors || {});
-      // }
+      await updateCustomerDetails(updatedDetails);
     } catch (error) {
       console.error('Error updating customer details in Supabase:', error);
     }
   };
 
-  /** Debounce so we don't spam the server on every keystroke. */
+  /** Debounced version of the update function. */
   const debouncedUpdate = useCallback(
     debounce(updateCustomerDetailsInSupabase, 800),
     []
   );
 
-  /** Basic client-side validation for required fields. */
-  const validateField = (fieldName: CustomerDetailsKey, value: string | undefined) => {
+  /** Basic client-side validation. */
+  const validateField = (
+    fieldName: CustomerDetailsKey,
+    value: string | undefined
+  ) => {
     if (!value || !value.trim()) {
       return 'This field is required';
     }
     if (fieldName === 'mobileNumber') {
-      // e.g. 8-digit mobile number
       const mobileNumberRegex = /^\d{8}$/;
       if (!mobileNumberRegex.test(value.trim())) {
         return 'Please enter a valid 8-digit mobile number';
@@ -120,14 +105,12 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     return null;
   };
 
-  /** Called on every input change. */
+  /** Handle user typing in inputs. */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    // Cast name to a valid customer-details key:
     const fieldName = name as CustomerDetailsKey;
 
-    // Immediately update local state in the parent
-    // (BasketContext) so the UI is responsive.
+    // Immediately update local state in parent (so UI sees the change)
     updateCustomerDetails({ [fieldName]: value });
 
     // Validate the field
@@ -138,19 +121,15 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     debouncedUpdate({ [fieldName]: value });
   };
 
-  /** Called when an input loses focus. */
+  /** Mark field as touched and validate on blur. */
   const handleInputBlur = (fieldName: CustomerDetailsKey) => {
-    // Mark field as touched
     setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
-
     const value = customerDetails[fieldName];
     const errorMsg = validateField(fieldName, value);
     setErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
-
-    // No direct calls to updateDeliveryDetailsInBackend here
   };
 
-  /** Check if all required fields are valid. */
+  /** Required fields for "allFieldsValid" logic. */
   const requiredFields: CustomerDetailsKey[] = [
     'fullName',
     'mobileNumber',
@@ -160,21 +139,21 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     'city',
   ];
 
+  /** Checks if all required fields are valid. */
   const allFieldsValid = () => {
-    // 1) Every required field is filled
     const allFilled = requiredFields.every(
       (field) =>
         customerDetails[field] && customerDetails[field]!.trim() !== ''
     );
-    // 2) None of those fields have errors
     const noErrors = requiredFields.every((field) => !errors[field]);
     return allFilled && noErrors;
   };
 
-  /** Validate once on mount. */
+  /**
+   * Validate everything once on mount (for immediate feedback).
+   */
   useEffect(() => {
     const newErrors: IErrors = { ...errors };
-
     requiredFields.forEach((field) => {
       const value = customerDetails[field];
       const errorMsg = validateField(field, value);
@@ -187,14 +166,27 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   }, []);
 
   /**
-   * Trigger updateDeliveryDetailsInBackend ONLY when
-   * all required fields are valid.
+   * We only want to call `updateDeliveryDetailsInBackend` ONCE when
+   * all fields (esp. postalCode) become valid, AND again if the user
+   * changes postalCode to a new valid value.
    */
+  const [lastValidPostalCode, setLastValidPostalCode] = useState<string | null>(
+    null
+  );
+
   useEffect(() => {
-    if (allFieldsValid()) {
-      // updateDeliveryDetailsInBackend('homeDelivery', {});
+    if (!allFieldsValid()) return;
+
+    // If this is the first time or postal code changed
+    if (customerDetails.postalCode !== lastValidPostalCode) {
+      updateDeliveryDetailsInBackend('pickupPoint', {});
+      setLastValidPostalCode(customerDetails.postalCode || null);
     }
-  }, [customerDetails, errors, updateDeliveryDetailsInBackend]);
+    // We ONLY depend on postalCode validity and the "allFieldsValid" outcome.
+    // We do NOT put errors or other fields into the dependency array or it would
+    // keep triggering every time any field changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerDetails.postalCode, allFieldsValid()]);
 
   /** Renders an icon for valid/invalid fields. */
   const renderIcon = (fieldName: CustomerDetailsKey) => {
@@ -388,7 +380,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
           )}
         </div>
 
-        {/* Country */}
+        {/* Country (Read-Only) */}
         <div className="mb-9 relative">
           <input
             type="text"

@@ -82,7 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // 4) BASKET ACTIONS (addItem, removeItem, etc.)
-      else if (['addItem', 'removeItem', 'updateQuantity', 'updateCustomerDetails'].includes(action)) {
+      else if (['addItem', 'removeItem', 'updateQuantity', 'updateCustomerDetails', 'updateDeliveryDetails'].includes(action)) {
         if (!sessionId) {
           return res.status(400).json({ error: 'No session ID provided' });
         }
