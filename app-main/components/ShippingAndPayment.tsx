@@ -4,6 +4,7 @@ import LoadingSpinner from './LoadingSpinner';
 
 // 1) Import the session context so we can call fetchSession
 import { useSessionContext } from '../contexts/SessionContext';
+import { add } from 'date-fns';
 
 interface ICustomerDetails {
   address?: string;
@@ -69,7 +70,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
   /**
    * fetchPickupPoints => calls your /api/postnord/servicepoints endpoint
    */
-  const fetchPickupPoints = (details: ICustomerDetails) => {
+  const fetchPickupPoints = async (details: ICustomerDetails) => {
     const { address = '', city, postalCode } = details;
     const { streetName, streetNumber } = splitAddress(address);
 
@@ -79,32 +80,32 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
       return;
     }
 
-    let url = `/api/postnord/servicepoints?city=${encodeURIComponent(
-      city
-    )}&postalCode=${encodeURIComponent(postalCode)}`;
+    let url = `/api/postnord/servicepoints?city=${encodeURIComponent(city)}&postalCode=${encodeURIComponent(postalCode)}`;
 
     if (streetName) {
       url += `&streetName=${encodeURIComponent(streetName)}`;
     }
+
     if (streetNumber) {
       url += `&streetNumber=${encodeURIComponent(streetNumber)}`;
     }
 
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        const points: PickupPoint[] =
-          data.servicePointInformationResponse?.servicePoints || [];
-        setPickupPoints(points);
-        cleanupLoadingTimeout();
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching PostNord service points:', error);
-        cleanupLoadingTimeout();
-        setLoading(false);
-      });
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      const points: PickupPoint[] = data.servicePointInformationResponse?.servicePoints || [];
+     
+      // setPickupPoints(points);
+      return points
+
+    } catch (error) {
+      console.error('Error fetching PostNord service points:', error);
+    } finally {
+      cleanupLoadingTimeout();
+      setLoading(false);
+    }
   };
+
 
   const cleanupLoadingTimeout = () => {
     if (loadingTimeoutRef.current) {
@@ -129,16 +130,21 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
       }, 5000);
 
       // 1) Fetch possible pickup points
-      fetchPickupPoints(customerDetails);
+      const fetchedPickupPoints = await fetchPickupPoints(customerDetails);
+      if (!fetchedPickupPoints) {
+        throw new Error("fetchedPickupPoints is null or undefined");
+      }
+
 
       // 2) Immediately update session => "pickupPoint"
       //    But we won't specify the actual pickup point address yet
       //    because user hasn't chosen one. Just pass empty providerDetails
+      console.log(fetchedPickupPoints) // [] but should be full of pickup points
+
       await updateDeliveryDetailsInBackend('pickupPoint', {
         provider: 'postnord',
         // You might pass an empty deliveryAddress or skip it
-        deliveryAddress: {},
-        providerDetails: {},
+        selectedPickupPoint: fetchedPickupPoints[0]
       });
 
       // 3) Re-fetch session so local state sees updated basket_details
@@ -258,7 +264,6 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
               className="inline-block ml-2 h-4"
               style={{ verticalAlign: 'middle' }}
             />
-            <span className="text-sm font-normal ml-2">39 kr.</span>
           </div>
         </label>
 
@@ -361,7 +366,6 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
               className="inline-block ml-2 h-4"
               style={{ verticalAlign: 'middle' }}
             />
-            <span className="text-sm font-normal ml-2">49 kr.</span>
           </div>
         </label>
       </div>

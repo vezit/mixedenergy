@@ -1,8 +1,9 @@
-import React, { FC, useMemo, useState } from 'react';
+import React, { useState, useEffect, FC } from 'react';
 import LoadingButton from './LoadingButton';
 import { useRouter } from 'next/router';
 import { useBasket } from './BasketContext';
 
+/** Shared interfaces could be imported from a single place */
 export interface ICustomerDetails {
   fullName: string;
   mobileNumber: string;
@@ -64,11 +65,6 @@ interface OrderConfirmationProps {
   setSubmitAttempted: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-/**
- * OrderConfirmation
- * - Shows a live “Ordreoversigt” (delivery address, etc.)
- * - Lets user confirm and proceed to payment.
- */
 const OrderConfirmation: FC<OrderConfirmationProps> = ({
   customerDetails,
   deliveryOption,
@@ -92,10 +88,6 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
   const router = useRouter();
   const basketContext = useBasket();
 
-  /**
-   * Helper for splitting "Vinkelvej 12D, 3tv" into
-   * { streetName: 'Vinkelvej 12D,', streetNumber: '3tv' }
-   */
   const splitAddress = (address: string) => {
     const regex = /^(.*?)(\s+\d+\S*)$/;
     const match = address.match(regex);
@@ -104,83 +96,100 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
         streetName: match[1].trim(),
         streetNumber: match[2].trim(),
       };
+    } else {
+      return {
+        streetName: address,
+        streetNumber: '',
+      };
     }
-    return { streetName: address, streetNumber: '' };
   };
 
-  /**
-   * Compute the displayed deliveryAddress from local data so that
-   * the UI is always up to date.
-   */
-  const computedDeliveryAddress = useMemo(() => {
-    if (deliveryOption === 'pickupPoint' && selectedPoint) {
-      // If we store the full selectedPoint object, build an address from it
-      return {
-        name: selectedPoint.name || '',
-        streetName: selectedPoint?.visitingAddress?.streetName || '',
-        streetNumber: selectedPoint?.visitingAddress?.streetNumber || '',
-        postalCode: selectedPoint?.visitingAddress?.postalCode || '',
-        city: selectedPoint?.visitingAddress?.city || '',
-        country: 'Danmark',
-      };
-    } else if (deliveryOption === 'homeDelivery') {
-      const { streetName, streetNumber } = splitAddress(customerDetails.address || '');
-      return {
-        name: customerDetails.fullName || '',
-        streetName,
-        streetNumber,
-        postalCode: customerDetails.postalCode || '',
-        city: customerDetails.city || '',
-        country: 'Danmark',
-      };
-    } else {
-      // If no selection, or user hasn't picked a point
-      return {};
-    }
-  }, [deliveryOption, selectedPoint, customerDetails]);
+  const [deliveryAddress, setDeliveryAddress] = useState<IDeliveryAddress>({});
 
-  /**
-   * Handle "Betal" or "Gennemfør køb" logic
-   */
+  useEffect(() => {
+    if (
+      basketSummary &&
+      basketSummary.deliveryDetails &&
+      basketSummary.deliveryDetails.deliveryAddress
+    ) {
+      // Use the existing address from basketSummary
+      setDeliveryAddress(basketSummary.deliveryDetails.deliveryAddress);
+    } else {
+      // Otherwise, construct from current selection
+      if (deliveryOption === 'pickupPoint') {
+        if (selectedPoint) {
+          setDeliveryAddress({
+            name: selectedPoint.name,
+            streetName: selectedPoint?.visitingAddress?.streetName || '',
+            streetNumber: selectedPoint?.visitingAddress?.streetNumber || '',
+            postalCode: selectedPoint?.visitingAddress?.postalCode || '',
+            city: selectedPoint?.visitingAddress?.city || '',
+            country: 'Danmark',
+          });
+        } else {
+          setDeliveryAddress({
+            name: 'Valgt afhentningssted',
+            streetName: '',
+            streetNumber: '',
+            postalCode: '',
+            city: '',
+            country: 'Danmark',
+          });
+        }
+      } else if (deliveryOption === 'homeDelivery') {
+        const { streetName, streetNumber } = splitAddress(
+          customerDetails.address || ''
+        );
+        setDeliveryAddress({
+          name: customerDetails.fullName,
+          streetName,
+          streetNumber,
+          postalCode: customerDetails.postalCode,
+          city: customerDetails.city,
+          country: 'Danmark',
+        });
+      }
+    }
+  }, [basketSummary, customerDetails, deliveryOption, selectedPoint]);
+
   const handlePayment = async () => {
     setSubmitAttempted(true);
 
     // Validate required customer details
     const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
+    let customerDetailsValid = true;
+
     const newErrors: ErrorMap = { ...errors };
     const newTouchedFields: TouchedFieldsMap = { ...touchedFields };
 
-    let customerDetailsValid = true;
-    for (const field of requiredFields) {
+    requiredFields.forEach((field) => {
       // @ts-ignore
       if (!customerDetails[field] || !customerDetails[field].trim()) {
+        customerDetailsValid = false;
         newErrors[field] = 'Dette felt er påkrævet';
         newTouchedFields[field] = true;
-        customerDetailsValid = false;
       }
-    }
+    });
 
     setErrors(newErrors);
     setTouchedFields(newTouchedFields);
 
     if (!customerDetailsValid) {
+      // Scroll to the first invalid field
       document.getElementById('customer-details')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
 
-    // If pickupPoint is chosen but none is selected
     if (deliveryOption === 'pickupPoint' && !selectedPoint) {
       document.getElementById('shipping-and-payment')?.scrollIntoView({ behavior: 'smooth' });
       alert('Vælg venligst et afhentningssted.');
       return;
     }
 
-    // If homeDelivery, ensure we have valid address fields
     if (deliveryOption === 'homeDelivery') {
       const requiredDeliveryFields = ['name', 'streetName', 'postalCode', 'city', 'country'];
       const deliveryValid = requiredDeliveryFields.every((field) =>
-        // @ts-ignore
-        computedDeliveryAddress[field]?.toString().trim()
+        deliveryAddress[field]?.toString().trim()
       );
       if (!deliveryValid) {
         document.getElementById('customer-details')?.scrollIntoView({ behavior: 'smooth' });
@@ -191,7 +200,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
 
     // Check if basket is empty
     if (!basketItems || basketItems.length === 0) {
-      router.push('/');
+      window.location.href = '/';
       return;
     }
 
@@ -207,12 +216,12 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     // Proceed with payment
     setIsProcessingPayment(true);
     try {
-      // 1) Update the server's delivery details so basketSummary is synced
+      // 1) Ensure delivery details are updated in backend
       await updateDeliveryDetailsInBackend(deliveryOption, {
         selectedPickupPoint: selectedPoint,
       });
 
-      // 2) Create the Order and initiate payment
+      // 2) Create Order and initiate payment
       const response = await fetch('/api/firebase/6-createOrder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -237,46 +246,37 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     }
   };
 
-  // -- Render --
   return (
     <div id="order-confirmation">
       <h2 className="text-2xl font-bold mb-4">Bekræft Ordre</h2>
 
-      {/* Ordreoversigt */}
+      {/* Order Summary */}
       <div className="mb-8">
         <h3 className="text-xl font-bold mb-4">Ordreoversigt</h3>
-
         <div className="mb-4">
           <h4 className="font-bold">Leveringstype:</h4>
           <p>{deliveryOption === 'pickupPoint' ? 'Afhentningssted' : 'Hjemmelevering'}</p>
         </div>
-
         <div className="mb-4">
           <h4 className="font-bold">Leveringsadresse:</h4>
-          <p>{computedDeliveryAddress.name || ''}</p>
+          <p>{deliveryAddress.name || ''}</p>
           <p>
-            {computedDeliveryAddress.streetName || ''}{' '}
-            {computedDeliveryAddress.streetNumber || ''}
+            {deliveryAddress.streetName || ''} {deliveryAddress.streetNumber || ''}
           </p>
           <p>
-            {computedDeliveryAddress.postalCode || ''}{' '}
-            {computedDeliveryAddress.city || ''}
+            {deliveryAddress.postalCode || ''} {deliveryAddress.city || ''}
           </p>
-          <p>{computedDeliveryAddress.country || ''}</p>
+          <p>{deliveryAddress.country || ''}</p>
         </div>
-
         <div className="mb-4">
           <h4 className="font-bold">Kundeoplysninger:</h4>
           <p>Navn: {customerDetails.fullName}</p>
           <p>Email: {customerDetails.email}</p>
           <p>Telefon: {customerDetails.mobileNumber}</p>
         </div>
-
         <div className="mb-4">
           <h4 className="font-bold">Ordre Detaljer:</h4>
-          <p>
-            Antal pakker: {basketItems.reduce((acc, item) => acc + item.quantity, 0)}
-          </p>
+          <p>Antal pakker: {basketItems.reduce((acc, item) => acc + item.quantity, 0)}</p>
           <p>Total pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr</p>
           <p>Pant: {(totalRecyclingFee / 100).toFixed(2)} kr</p>
           <p>
@@ -292,9 +292,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
         <div className="text-lg font-semibold">I alt at betale inkl. moms</div>
         <h3 className="text-2xl font-bold">
           {(
-            (totalPrice +
-              totalRecyclingFee +
-              (basketSummary?.deliveryDetails?.deliveryFee || 0)) /
+            (totalPrice + totalRecyclingFee + (basketSummary?.deliveryDetails?.deliveryFee || 0)) /
             100
           ).toFixed(2)}{' '}
           kr.

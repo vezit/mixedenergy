@@ -18,10 +18,17 @@ import CustomerDetailsForm from '../components/CustomerDetailsForm'; // Example 
 
 interface BasketProps {}
 
+/**
+ * Basket page that uses SessionContext & BasketContext (Supabase),
+ * removing old Firebase endpoints.
+ */
 const Basket: React.FC<BasketProps> = () => {
   const router = useRouter();
 
-  // --- BASKET context values ---
+  /**
+   * BASKET context values:
+   * - basketItems, removeItemFromBasket, updateItemQuantity, etc.
+   */
   const {
     basketItems,
     removeItemFromBasket,
@@ -31,27 +38,30 @@ const Basket: React.FC<BasketProps> = () => {
     isBasketLoaded,
   } = useBasket();
 
-  // --- SESSION context values ---
+  /**
+   * SESSION context values:
+   * - session => includes session?.basket_details
+   * - updateSession(action, body)
+   * - fetchSession() => re-pull entire session from DB
+   */
   const { session, updateSession, fetchSession } = useSessionContext();
 
   // Local states for UI
   const [packagesData, setPackagesData] = useState<Record<string, any>>({});
+  const [explodedItems, setExplodedItems] = useState<Record<number, boolean>>({});
+  const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
   const [drinksData, setDrinksData] = useState<Record<string, any>>({});
 
-  // For expand/collapse of items
-  const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
-  // For any "exploded" animation logic
-  const [explodedItems, setExplodedItems] = useState<Record<number, boolean>>({});
-
-  // Delivery & Payment
   const [deliveryOption, setDeliveryOption] = useState<string>('pickupPoint');
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  // We'll store basket_details in a local "basketSummary" if needed
   const [basketSummary, setBasketSummary] = useState<IBasketSummary | null>(null);
 
-  // Validation states
+  // Form error states
   const [errors, setErrors] = useState<Record<string, any>>({});
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
-  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   /**
    * Example total price logic
@@ -65,8 +75,7 @@ const Basket: React.FC<BasketProps> = () => {
   }, 0);
 
   /**
-   * updateDeliveryDetailsInBackend => calls updateSession("updateDeliveryDetails").
-   * This ensures the server side (Supabase) also stores the current delivery data.
+   * 1) "updateDeliveryDetailsInBackend" => calls updateSession("updateDeliveryDetails").
    */
   const updateDeliveryDetailsInBackend = async (
     deliveryType: string,
@@ -74,37 +83,24 @@ const Basket: React.FC<BasketProps> = () => {
   ): Promise<void> => {
     try {
       // Example data for the call:
-      const provider = 'postnord'; // or 'gls'
+      let provider = 'postnord'; // or 'gls'
       let deliveryAddress = {};
       let providerDetails = {};
 
+
+
       if (deliveryType === 'pickupPoint' && extras?.selectedPickupPoint) {
-        // E.g. store the pickup point object or ID under providerDetails
+        // E.g. store the pickup point ID under providerDetails
         providerDetails = {
-          postnord: { servicePoint: extras.selectedPickupPoint
-           },
+          postnord: { servicePointId: extras.selectedPickupPoint },
         };
-        // Optionally also store some address
-        deliveryAddress = {
-          name: extras.selectedPickupPoint.name || '',
-          address: `${extras.selectedPickupPoint.visitingAddress.streetName}, ${extras.selectedPickupPoint.visitingAddress.streetNumber}` || '',
-          city: extras.selectedPickupPoint.visitingAddress.city || '',
-          postalCode: extras.selectedPickupPoint.visitingAddress.postalCode || '',
-        }
-
-
-
-
+        // Possibly store address if you know it
+        deliveryAddress = {};
       } else if (deliveryType === 'homeDelivery') {
-        // Build a home-delivery address from `customerDetails`
-        deliveryAddress = {
-          address: customerDetails.address || '',
-          city: customerDetails.city || '',
-          postalCode: customerDetails.postalCode || '',
-        };
+        // Put logic to build a home delivery address here
       }
 
-      // Make the call to update session in Supabase
+      // Make the call to update session
       await updateSession('updateDeliveryDetails', {
         provider,
         deliveryOption: deliveryType,
@@ -112,7 +108,7 @@ const Basket: React.FC<BasketProps> = () => {
         providerDetails,
       });
 
-      // Optionally re-fetch from the server so local `session` sees updated basket_summary
+      // Optionally re-fetch from the server to ensure we have the latest session
       await fetchSession();
     } catch (error) {
       console.error('Error updating delivery details:', error);
@@ -120,7 +116,7 @@ const Basket: React.FC<BasketProps> = () => {
   };
 
   /**
-   * Basic item manipulation (BasketContext)
+   * 2) Basic item manipulation (BasketContext)
    */
   const removeItem = (itemIndex: number) => {
     removeItemFromBasket(itemIndex);
@@ -134,23 +130,20 @@ const Basket: React.FC<BasketProps> = () => {
     setExplodedItems((prev) => ({ ...prev, [itemIndex]: true }));
   };
 
-  const toggleExpand = (itemIndex: number) => {
-    setExpandedItems((prev) => ({ ...prev, [itemIndex]: !prev[itemIndex] }));
+  const toggleExpand = (index: number) => {
+    setExpandedItems((prev) => ({ ...prev, [index]: !prev[index] }));
   };
 
   /**
-   * 3) Whenever the session changes, update local basketSummary and local states
+   * 3) Whenever the session changes, set local basketSummary & update UI states
    */
   useEffect(() => {
     if (session?.basket_details) {
       setBasketSummary(session.basket_details);
 
-      // If the server says the user last chose "homeDelivery," set that
       if (session.basket_details.deliveryDetails?.deliveryType) {
         setDeliveryOption(session.basket_details.deliveryDetails.deliveryType);
       }
-
-      // If there's a stored pickup point
       if (session.basket_details.deliveryDetails?.providerDetails?.postnord?.servicePointId) {
         setSelectedPoint(
           session.basket_details.deliveryDetails.providerDetails.postnord.servicePointId
@@ -174,14 +167,14 @@ const Basket: React.FC<BasketProps> = () => {
    * 5) Example: fetch package data if needed
    */
   useEffect(() => {
-    // ... optional logic to load packages data
+    // ... logic to load packages data
   }, [basketItems]);
 
   /**
    * 6) Example: fetch drinks data if needed
    */
   useEffect(() => {
-    // ... optional logic to load drinks data
+    // ... logic to load drinks data
   }, [basketItems]);
 
   return (
@@ -207,7 +200,7 @@ const Basket: React.FC<BasketProps> = () => {
             totalRecyclingFee={totalRecyclingFee}
           />
 
-          {/* Customer Details Form */}
+          {/* Customer Details Form (example) */}
           <CustomerDetailsForm
             customerDetails={customerDetails}
             updateCustomerDetails={updateCustomerDetails}

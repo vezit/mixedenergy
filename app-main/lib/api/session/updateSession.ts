@@ -131,7 +131,7 @@ export async function updateSession({
       } else if (deliveryOption === 'pickupPoint') {
         // Use data from providerDetails.postnord.servicePointId
         // (assuming you store the entire pickup point object there)
-        const pickupPoint = providerDetails?.postnord?.servicePointId;
+        const pickupPoint = providerDetails?.postnord?.servicePoint;
         if (!pickupPoint) {
           
 
