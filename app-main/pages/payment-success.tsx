@@ -1,64 +1,44 @@
 // pages/payment-success.tsx
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-// Adjust the import path below to match your project structure
-import Loading from '../components/Loading'; 
 
-interface IOrderData {
-  // Define the shape of the order data you expect
-  // For example:
-  // orderId: string;
-  // amount: number;
-  // items: Array<{ name: string; quantity: number }>;
-  // etc.
-  [key: string]: any; // fallback if structure is unknown
-}
-
-const PaymentSuccess: React.FC = () => {
+export default function PaymentSuccess() {
+  const [status, setStatus] = useState<'LOADING' | 'SUCCESS' | 'FAILED'>('LOADING');
   const router = useRouter();
-  const { orderId } = router.query;
-
-  const [orderData, setOrderData] = useState<IOrderData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { orderId } = router.query; // e.g., /payment-success?orderId=xyz
 
   useEffect(() => {
-    if (orderId) {
-      const fetchOrderData = async () => {
-        try {
-          const response = await fetch(`/api/getOrder?orderId=${orderId}`);
-          const data = await response.json();
+    // Only proceed if we actually have an orderId
+    if (!orderId) return;
 
-          if (response.ok) {
-            setOrderData(data);
-          } else {
-            setError(data.error || 'Failed to fetch order data');
-          }
-        } catch (err) {
-          console.error('Error fetching order data:', err);
-          setError('Failed to fetch order data');
-        } finally {
-          setLoading(false);
+    // We'll fetch from an API route that checks QuickPay
+    // For example: /api/quickpay/payment-status?orderId=xyz
+    const verifyPayment = async () => {
+      try {
+        const res = await fetch(`/api/quickpay/payment-status?orderId=${orderId}`);
+        if (!res.ok) throw new Error('Failed to verify payment');
+
+        const data = await res.json();
+        // Suppose data.accepted === true if QuickPay indicates success
+        if (data.accepted) {
+          setStatus('SUCCESS');
+        } else {
+          setStatus('FAILED');
         }
-      };
+      } catch (error) {
+        console.error('Error verifying payment:', error);
+        setStatus('FAILED');
+      }
+    };
 
-      fetchOrderData();
-    }
+    verifyPayment();
   }, [orderId]);
 
-  if (loading) return <Loading />;
-  if (error) return <p>{error}</p>;
+  // Render different states
+  if (status === 'LOADING') return <p>Tjekker betaling...</p>;
+  if (status === 'FAILED') return <p>Betalingen mislykkedes. Prøv igen.</p>;
 
-  return (
-    <div>
-      <h1>Payment Success</h1>
-      <h2>Order ID: {orderId}</h2>
-      {orderData && (
-        <pre>{JSON.stringify(orderData, null, 2)}</pre>
-      )}
-    </div>
-  );
-};
-
-export default PaymentSuccess;
+  // Default to success
+  return <p>Betaling gennemført! Tak for din bestilling.</p>;
+}

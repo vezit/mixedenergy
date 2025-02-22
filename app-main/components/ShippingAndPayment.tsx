@@ -1,10 +1,6 @@
-// components/ShippingAndPayment.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import MapComponent, { PickupPoint } from './MapComponent';
 import LoadingSpinner from './LoadingSpinner';
-
-// If you need session context directly here (for e.g. fetchSession), import it:
-// import { useSessionContext } from '../contexts/SessionContext';
 
 interface ICustomerDetails {
   address?: string;
@@ -27,8 +23,8 @@ interface ShippingAndPaymentProps {
     deliveryType: string,
     data: { [key: string]: any }
   ) => Promise<void>;
-  selectedPoint: string | null;
-  setSelectedPoint: (point: string | null) => void;
+  selectedPoint: PickupPoint | null;
+  setSelectedPoint: (point: PickupPoint | null) => void;
 }
 
 const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
@@ -60,7 +56,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
   };
 
   /**
-   * Fetch pickup points from /api/postnord/servicepoints, based on user’s city, postalCode, etc.
+   * Fetch pickup points from /api/postnord/servicepoints
    */
   const fetchPickupPoints = async (details: ICustomerDetails) => {
     const { address = '', city, postalCode } = details;
@@ -110,7 +106,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
       // Show the spinner for up to 5 seconds while we fetch points
       if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = setTimeout(() => {
-        // Stop spinner if points are loaded
+        // Stop spinner if it takes too long
         setLoading(false);
       }, 5000);
 
@@ -122,45 +118,33 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
       setSelectedPoint(null);
       setLoading(false);
 
-      // Optionally update session so it knows the user switched to homeDelivery.
-      // Usually you'd want to store the user’s home address in session here.
+      // Update session so it knows the user switched to homeDelivery
       await updateDeliveryDetailsInBackend('homeDelivery', {
-        // e.g. this might be "provider: 'postnord'" etc.
         provider: 'postnord',
-        deliveryAddress: {
-          address: customerDetails.address || '',
-          city: customerDetails.city || '',
-          postalCode: customerDetails.postalCode || '',
-        },
-        providerDetails: {},
       });
     }
   };
 
   /**
-   * Called when the user chooses a specific pickup point in the <select> or on the map.
-   * We then call updateDeliveryDetailsInBackend so session sees the chosen point.
+   * Called when the user chooses a specific pickup point
    */
-  const handleSelectedPointChange = async (newSelectedPoint: string | null) => {
-    setSelectedPoint(newSelectedPoint);
-    if (deliveryOption === 'pickupPoint' && newSelectedPoint) {
-      const selectedPickup = pickupPoints.find(
-        (p) => p.servicePointId === newSelectedPoint
-      );
-      if (selectedPickup) {
-        // Example session update, storing entire selectedPickup object
-        await updateDeliveryDetailsInBackend('pickupPoint', {
-          provider: 'postnord',
-          selectedPickupPoint: selectedPickup,
-        });
-      }
+  const handleSelectedPointChange = async (newSelectedPointId: string | null) => {
+    if (!newSelectedPointId) {
+      setSelectedPoint(null);
+      return;
+    }
+
+    const found = pickupPoints.find((p) => p.servicePointId === newSelectedPointId);
+    if (found) {
+      setSelectedPoint(found);
+      // Update the session with the selected point
+      await updateDeliveryDetailsInBackend('pickupPoint', {
+        provider: 'postnord',
+        selectedPickupPoint: found,
+      });
     }
   };
 
-  /**
-   * If user has "pickupPoint" selected and changes city or postalCode,
-   * re-fetch the points. (You could also check for address changes.)
-   */
   useEffect(() => {
     if (deliveryOption === 'pickupPoint' && customerDetails.postalCode) {
       fetchPickupPoints(customerDetails);
@@ -182,7 +166,9 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     return days[day] || day;
   };
 
-  const selectedPickup = pickupPoints.find((p) => p.servicePointId === selectedPoint);
+  const selectedPickup = selectedPoint
+    ? pickupPoints.find((p) => p.servicePointId === selectedPoint.servicePointId)
+    : null;
 
   return (
     <div id="shipping-and-payment" className="mt-8">
@@ -224,7 +210,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                 <div className="mt-4 border-t pt-4">
                   <div className="mb-4">
                     <select
-                      value={selectedPoint || ''}
+                      value={selectedPickup?.servicePointId || ''}
                       onChange={(e) => handleSelectedPointChange(e.target.value)}
                       className="border border-gray-300 rounded p-2 w-full mb-4 text-sm"
                     >
@@ -277,11 +263,13 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
 
                       {/* Map with markers */}
                       <div className="md:w-1/2">
-                        <MapComponent
+                        {/* <MapComponent
                           pickupPoints={pickupPoints}
-                          selectedPoint={selectedPoint}
+                          selectedPoint={
+                            selectedPickup ? selectedPickup.servicePointId : null
+                          }
                           setSelectedPoint={(spid) => handleSelectedPointChange(spid)}
-                        />
+                        /> */}
                       </div>
                     </div>
                   )}

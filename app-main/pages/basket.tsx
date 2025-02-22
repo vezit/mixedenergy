@@ -1,4 +1,3 @@
-// pages/basket.ts (or /components/Basket.tsx, depending on your folder structure)
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -81,26 +80,26 @@ const Basket: React.FC<BasketProps> = () => {
       if (deliveryType === 'pickupPoint' && extras?.selectedPickupPoint) {
         // E.g. store the pickup point object or ID under providerDetails
         providerDetails = {
-          postnord: { servicePoint: extras.selectedPickupPoint
-           },
+          postnord: {
+            servicePoint: extras.selectedPickupPoint, // entire object
+          },
         };
-        // Optionally also store some address
+        // Also store some address for the "Ordreoversigt"
         deliveryAddress = {
           name: extras.selectedPickupPoint.name || '',
           address: `${extras.selectedPickupPoint.visitingAddress.streetName}, ${extras.selectedPickupPoint.visitingAddress.streetNumber}` || '',
           city: extras.selectedPickupPoint.visitingAddress.city || '',
           postalCode: extras.selectedPickupPoint.visitingAddress.postalCode || '',
-        }
-
-
-
-
+          country: 'Danmark',
+        };
       } else if (deliveryType === 'homeDelivery') {
         // Build a home-delivery address from `customerDetails`
         deliveryAddress = {
+          name: customerDetails.fullName || '',
           address: customerDetails.address || '',
           city: customerDetails.city || '',
           postalCode: customerDetails.postalCode || '',
+          country: 'Danmark',
         };
       }
 
@@ -145,16 +144,16 @@ const Basket: React.FC<BasketProps> = () => {
     if (session?.basket_details) {
       setBasketSummary(session.basket_details);
 
-      // If the server says the user last chose "homeDelivery," set that
-      if (session.basket_details.deliveryDetails?.deliveryType) {
-        setDeliveryOption(session.basket_details.deliveryDetails.deliveryType);
+      const storedDeliveryOption = session.basket_details.deliveryDetails?.deliveryOption;
+      if (storedDeliveryOption) {
+        setDeliveryOption(storedDeliveryOption);
       }
 
-      // If there's a stored pickup point
-      if (session.basket_details.deliveryDetails?.providerDetails?.postnord?.servicePointId) {
-        setSelectedPoint(
-          session.basket_details.deliveryDetails.providerDetails.postnord.servicePointId
-        );
+      // If there's a stored pickup point in the DB, set local selectedPoint
+      const sp =
+        session.basket_details.deliveryDetails?.providerDetails?.postnord?.servicePoint;
+      if (sp?.servicePointId) {
+        setSelectedPoint(sp);
       }
     } else {
       setBasketSummary(null);
