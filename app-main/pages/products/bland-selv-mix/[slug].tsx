@@ -307,6 +307,7 @@ export default function BlandSelvMixProduct() {
                           src={`${SUPABASE_URL}${drink.image}`}
                           alt={drink.name}
                           fill
+                          sizes='48'
                           className="object-cover rounded-lg"
                         />
                       )}
@@ -339,15 +340,17 @@ export default function BlandSelvMixProduct() {
             </p>
           </div>
 
-          {/* Add to cart button */}
           <LoadingConfettiButton
             ref={addToCartButtonRef}
             onClick={addToBasket}
             loading={isAddingToCart}
-            className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full"
+            disabled={getTotalSelected() !== selectedSize || !selectedSize}
+            className="mt-4 bg-red-500 text-white px-6 py-2 rounded-full shadow 
+             hover:bg-red-600 transition w-full disabled:bg-gray-300"
           >
             Add Mixed Package to Cart
           </LoadingConfettiButton>
+
         </div>
       </div>
 
