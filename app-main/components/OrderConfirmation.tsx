@@ -95,8 +95,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
   const finalDeliveryAddress = basketSummary?.deliveryDetails?.deliveryAddress || {};
 
   // For clarity, read the server’s “deliveryOption” or fallback to local
-  const finalDeliveryOption =
-    basketSummary?.deliveryDetails?.deliveryOption || deliveryOption;
+  const finalDeliveryOption = basketSummary?.deliveryDetails?.deliveryOption || deliveryOption;
 
   /**
    * Handle "Betal" or "Gennemfør køb" logic
@@ -128,7 +127,6 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
 
     // If pickupPoint is chosen but none is selected
     if (finalDeliveryOption === 'pickupPoint') {
-      // If the user never chose a point
       if (!selectedPoint) {
         document.getElementById('shipping-and-payment')?.scrollIntoView({ behavior: 'smooth' });
         alert('Vælg venligst et afhentningssted.');
@@ -155,24 +153,38 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     setIsProcessingPayment(true);
     try {
       // 1) Update the server's delivery details so basketSummary is synced
-      // (Mostly relevant if user changed something last-minute)
       await updateDeliveryDetailsInBackend(finalDeliveryOption, {
         selectedPickupPoint: selectedPoint,
       });
 
-      // 2) Create the Order and get payment link
-      const response = await fetch('/api/firebase/6-createOrder', {
+      // 2) Create an order ID. In a production environment, you might generate or retrieve this from your database.
+      const orderId = 'ORDER-' + Date.now();
+
+      // 3) Calculate total amount in øre. Make sure to include any additional fees.
+      const deliveryFee = basketSummary?.deliveryDetails?.deliveryFee || 0;
+      const totalAmount = totalPrice + totalRecyclingFee + deliveryFee; // amount in øre
+
+      // 4) Create the PaymentLink via QuickPay
+      const response = await fetch('/api/quickpay/createPaymentLink', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          amount: totalAmount,
+          currency: 'DKK',
+          customerDetails,
+          items: basketItems,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create order');
+        throw new Error('Failed to create payment link');
       }
 
       const data = await response.json();
 
       if (data.paymentLink) {
+        // Redirect the user to the QuickPay payment terminal
         window.location.href = data.paymentLink;
       } else {
         throw new Error('Payment link not received');
@@ -200,12 +212,10 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
 
         <div className="mb-4">
           <h4 className="font-bold">Leveringsadresse:</h4>
-          {/* Show the address from the DB: */}
           <p>{finalDeliveryAddress.name || ''}</p>
           <p>{finalDeliveryAddress.address || ''}</p>
           <p>
-            {finalDeliveryAddress.postalCode || ''}{' '}
-            {finalDeliveryAddress.city || ''}
+            {finalDeliveryAddress.postalCode || ''} {finalDeliveryAddress.city || ''}
           </p>
           <p>{finalDeliveryAddress.country || ''}</p>
         </div>
