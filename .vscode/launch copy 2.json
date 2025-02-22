@@ -1,0 +1,68 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // 1) Launch Next.js dev with --inspect
+      "name": "Next.js: Full Stack",
+      "type": "node",
+      "request": "launch",
+      // We'll inject the debug flag. If you're on Windows, adjust accordingly.
+      // For cross-platform, you can do "cross-env" or set it manually:
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:debug"  // We'll define "dev:debug" in package.json below
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "sourceMaps": true,
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "cwd": "${workspaceFolder}/app-main",
+      "outFiles": [
+        "${workspaceFolder}/app-main/.next/**/*.js"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/app-main/.next/**/*.js",
+        "!**/node_modules/**"
+      ],
+    },
+    {
+      // 2) Attach to an existing Node.js process on 9229
+      "name": "Attach to Node.js",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "address": "127.0.0.1",
+      "localRoot": "${workspaceFolder}/app-main",
+      "remoteRoot": "/usr/src/project/app-main",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      // 3) Launch the browser at a specific URL
+      "name": "Browser: chromium",
+      "type": "msedge", // or "chrome" if your debugger is the Chrome devtools
+      "request": "launch",
+      // Update the runtimeExecutable path if your chromium or Edge is installed elsewhere:
+      "runtimeExecutable": "C:\\Program Files\\chrome-win\\chrome.exe",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/app-main",
+      "disableNetworkCache": true
+    }
+  ],
+  "compounds": [
+    {
+      // 4) Start All: run Next.js dev, attach Node, and open browser
+      "name": "Start All",
+      "configurations": [
+        "Next.js: Full Stack",
+        "Attach to Node.js",
+        "Browser: chromium"
+      ]
+    }
+  ]
+}

@@ -24,3 +24,4 @@ requirements.txt
 app-main/data
 app-main/.env.development
 app-main/.env.production
+.next/trace
