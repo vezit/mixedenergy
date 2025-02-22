@@ -84,89 +84,33 @@ export async function updateSession({
   // 3) Handle the requested action
   switch (action) {
     /**
- * updateDeliveryDetails
- */
+     * updateDeliveryDetails
+     */
     case 'updateDeliveryDetails': {
-      const { deliveryOption, providerDetails, provider } = data;
-      if (!provider || !deliveryOption || !providerDetails) {
-        throw new Error('[updateSession] Missing delivery details (provider, deliveryOption, providerDetails)');
+      const { deliveryOption, deliveryAddress, providerDetails, provider } = data;
+      if (!provider || !deliveryOption || !deliveryAddress || !providerDetails) {
+        throw new Error('[updateSession] Missing delivery details (provider, deliveryOption, etc.)');
       }
 
-      // Helper to parse streetName + streetNumber from a single address string
-      function splitAddress(fullAddr: string) {
-        const regex = /^(.*?)(\s+\d+\S*)$/;
-        const match = fullAddr.trim().match(regex);
-        if (match) {
-          return {
-            streetName: match[1].trim(),
-            streetNumber: match[2].trim(),
-          };
-        }
-        return {
-          streetName: fullAddr.trim(),
-          streetNumber: '',
-        };
-      }
-
-      // We'll build the final deliveryAddress object here
-      let finalDeliveryAddress: any = {
-        country: 'Danmark',
-        pickupPointInfo: {},
-        // more fields as needed
-      };
-
-      if (deliveryOption === 'homeDelivery') {
-        // Use data from basketDetails.customerDetails
-        const cust = basketDetails.customerDetails || {};
-        const addressString = cust.address || '';
-        const { streetName, streetNumber } = splitAddress(addressString);
-
-        finalDeliveryAddress.streetName = streetName;
-        finalDeliveryAddress.streetNumber = streetNumber;
-        finalDeliveryAddress.postalCode = cust.postalCode || '';
-        finalDeliveryAddress.city = cust.city || '';
-        // name if you like:
-        finalDeliveryAddress.name = cust.fullName || '';
-
-      } else if (deliveryOption === 'pickupPoint') {
-        // Use data from providerDetails.postnord.servicePointId
-        // (assuming you store the entire pickup point object there)
-        const pickupPoint = providerDetails?.postnord?.servicePointId;
-        if (!pickupPoint) {
-          
-
-          throw new Error('[updateSession] Missing providerDetails.postnord.servicePointId for pickupPoint');
-        }
-
-        finalDeliveryAddress.streetName = pickupPoint.visitingAddress?.streetName || '';
-        finalDeliveryAddress.streetNumber = pickupPoint.visitingAddress?.streetNumber || '';
-        finalDeliveryAddress.postalCode = pickupPoint.visitingAddress?.postalCode || '';
-        finalDeliveryAddress.city = pickupPoint.visitingAddress?.city || '';
-        finalDeliveryAddress.name = pickupPoint.name || '';
-
-        // Store the entire pickup point as well, if you want to reference it later
-        finalDeliveryAddress.pickupPointInfo = pickupPoint;
-      }
-
-      // Now build the actual DeliveryDetails object
+      // 1) Update or create DeliveryDetails
       const deliveryDetails: DeliveryDetails = {
-        provider,                       // e.g. 'postnord'
+        provider,               // e.g. 'postnord' or 'gls'
         trackingNumber: null,
         estimatedDeliveryDate: null,
-        deliveryType: deliveryOption,   // 'homeDelivery' or 'pickupPoint'
+        deliveryType: deliveryOption, // e.g. 'homeDelivery' or 'pickupPoint'
         deliveryFee: 0,
         currency: 'DKK',
-        deliveryAddress: finalDeliveryAddress,
+        deliveryAddress,
         providerDetails,
         createdAt: new Date().toISOString(),
       };
 
       basketDetails.deliveryDetails = deliveryDetails;
 
-      // Recalc shipping fee if needed
+      // 2) Recalc shipping fee if needed
       await recalcDeliveryFee(basketDetails);
 
-      // Save changes
+      // 3) Save changes
       await updateBasketDetails(sessionId, basketDetails);
 
       return {
@@ -365,7 +309,7 @@ export async function updateSession({
       }
 
       // Example validation
-      const allowedFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
+      const allowedFields = ['fullName','mobileNumber','email','address','postalCode','city'];
       const errors: Record<string, string> = {};
       const updatedCustomerDetails: Record<string, string | null> = {};
 

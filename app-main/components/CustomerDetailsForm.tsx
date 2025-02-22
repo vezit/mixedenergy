@@ -179,7 +179,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
     // If this is the first time or postal code changed
     if (customerDetails.postalCode !== lastValidPostalCode) {
-      updateDeliveryDetailsInBackend('pickupPoint', {});
+      updateDeliveryDetailsInBackend('homeDelivery', {});
       setLastValidPostalCode(customerDetails.postalCode || null);
     }
     // We ONLY depend on postalCode validity and the "allFieldsValid" outcome.

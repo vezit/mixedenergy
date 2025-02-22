@@ -87,6 +87,8 @@ const Basket: React.FC<BasketProps> = () => {
       let deliveryAddress = {};
       let providerDetails = {};
 
+      // extras?.selectedPickupPoint is empty then call 
+
       if (deliveryType === 'pickupPoint' && extras?.selectedPickupPoint) {
         // E.g. store the pickup point ID under providerDetails
         providerDetails = {
