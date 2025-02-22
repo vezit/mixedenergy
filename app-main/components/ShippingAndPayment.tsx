@@ -1,10 +1,10 @@
+// components/ShippingAndPayment.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import MapComponent, { PickupPoint } from './MapComponent';
 import LoadingSpinner from './LoadingSpinner';
 
-// 1) Import the session context so we can call fetchSession
-import { useSessionContext } from '../contexts/SessionContext';
-import { add } from 'date-fns';
+// If you need session context directly here (for e.g. fetchSession), import it:
+// import { useSessionContext } from '../contexts/SessionContext';
 
 interface ICustomerDetails {
   address?: string;
@@ -13,16 +13,15 @@ interface ICustomerDetails {
   fullName?: string;
   mobileNumber?: string;
   email?: string;
-  // Add other fields as needed
 }
 
 interface ShippingAndPaymentProps {
   deliveryOption: string;
   setDeliveryOption: (option: string) => void;
   customerDetails: ICustomerDetails;
-  /**  
-   * Must call "updateSession('updateDeliveryDetails', { provider, providerDetails, ... })"
-   * so that the server sets basketDetails.deliveryDetails accordingly.
+  /**
+   * Must call "updateSession('updateDeliveryDetails', ... )" behind the scenes,
+   * so the server can store the chosen pickup point or home-delivery address.
    */
   updateDeliveryDetailsInBackend: (
     deliveryType: string,
@@ -44,13 +43,9 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 2) Get fetchSession directly from the SessionContext
-  const { fetchSession } = useSessionContext();
-
   /**
-   * Splits an address string into streetName + streetNumber.
-   * e.g. "Vinkelvej 12D, 3tv" => { streetName: "Vinkelvej 12D,", streetNumber: "3tv" }
-   * Adjust as needed for your address format.
+   * Splits an address string into (streetName, streetNumber) if possible.
+   * e.g. "Vinkelvej 12B" => { streetName: "Vinkelvej", streetNumber: "12B" }
    */
   const splitAddress = (address: string) => {
     const regex = /^(.*?)(\s+\d+\S*)$/;
@@ -61,31 +56,27 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
         streetNumber: match[2].trim(),
       };
     }
-    return {
-      streetName: address,
-      streetNumber: '',
-    };
+    return { streetName: address, streetNumber: '' };
   };
 
   /**
-   * fetchPickupPoints => calls your /api/postnord/servicepoints endpoint
+   * Fetch pickup points from /api/postnord/servicepoints, based on user’s city, postalCode, etc.
    */
   const fetchPickupPoints = async (details: ICustomerDetails) => {
     const { address = '', city, postalCode } = details;
-    const { streetName, streetNumber } = splitAddress(address);
-
     if (!city || !postalCode) {
-      cleanupLoadingTimeout();
       setLoading(false);
       return;
     }
 
-    let url = `/api/postnord/servicepoints?city=${encodeURIComponent(city)}&postalCode=${encodeURIComponent(postalCode)}`;
+    const { streetName, streetNumber } = splitAddress(address);
+    let url = `/api/postnord/servicepoints?city=${encodeURIComponent(
+      city
+    )}&postalCode=${encodeURIComponent(postalCode)}`;
 
     if (streetName) {
       url += `&streetName=${encodeURIComponent(streetName)}`;
     }
-
     if (streetNumber) {
       url += `&streetNumber=${encodeURIComponent(streetNumber)}`;
     }
@@ -93,128 +84,82 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     try {
       const response = await fetch(url);
       const data = await response.json();
-      const points: PickupPoint[] = data.servicePointInformationResponse?.servicePoints || [];
-     
-      // setPickupPoints(points);
-      return points
-
+      const points: PickupPoint[] =
+        data.servicePointInformationResponse?.servicePoints || [];
+      setPickupPoints(points);
     } catch (error) {
       console.error('Error fetching PostNord service points:', error);
     } finally {
-      cleanupLoadingTimeout();
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
       setLoading(false);
     }
   };
 
-
-  const cleanupLoadingTimeout = () => {
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
-  };
-
   /**
-   * handleDeliveryOptionChange => user picks "pickupPoint" or "homeDelivery".
+   * Called when user changes radio to "pickupPoint" or "homeDelivery."
    */
   const handleDeliveryOptionChange = async (option: string) => {
     setDeliveryOption(option);
 
     if (option === 'pickupPoint') {
       setLoading(true);
-      cleanupLoadingTimeout();
+
+      // Show the spinner for up to 5 seconds while we fetch points
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = setTimeout(() => {
-        if (pickupPoints.length > 0) {
-          setLoading(false);
-        }
+        // Stop spinner if points are loaded
+        setLoading(false);
       }, 5000);
 
-      // 1) Fetch possible pickup points
-      const fetchedPickupPoints = await fetchPickupPoints(customerDetails);
-      if (!fetchedPickupPoints) {
-        throw new Error("fetchedPickupPoints is null or undefined");
-      }
-
-
-      // 2) Immediately update session => "pickupPoint"
-      //    But we won't specify the actual pickup point address yet
-      //    because user hasn't chosen one. Just pass empty providerDetails
-      console.log(fetchedPickupPoints) // [] but should be full of pickup points
-
-      await updateDeliveryDetailsInBackend('pickupPoint', {
-        provider: 'postnord',
-        // You might pass an empty deliveryAddress or skip it
-        selectedPickupPoint: fetchedPickupPoints[0]
-      });
-
-      // 3) Re-fetch session so local state sees updated basket_details
-      await fetchSession();
+      // Attempt to fetch pickup points
+      await fetchPickupPoints(customerDetails);
     } else {
       // user chose homeDelivery
-      setLoading(false);
       setPickupPoints([]);
       setSelectedPoint(null);
+      setLoading(false);
 
-      // build home address from user's details
-      const homeAddress = {
-        address: customerDetails.address || '',
-        city: customerDetails.city || '',
-        postalCode: customerDetails.postalCode || '',
-      };
-
-      // 1) update session => "homeDelivery"
+      // Optionally update session so it knows the user switched to homeDelivery.
+      // Usually you'd want to store the user’s home address in session here.
       await updateDeliveryDetailsInBackend('homeDelivery', {
+        // e.g. this might be "provider: 'postnord'" etc.
         provider: 'postnord',
-        deliveryAddress: homeAddress,
+        deliveryAddress: {
+          address: customerDetails.address || '',
+          city: customerDetails.city || '',
+          postalCode: customerDetails.postalCode || '',
+        },
         providerDetails: {},
       });
-
-      // 2) re-fetch session
-      await fetchSession();
     }
   };
 
   /**
-   * handleSelectedPointChange => user selects a specific "pickupPoint" from the dropdown or the map.
+   * Called when the user chooses a specific pickup point in the <select> or on the map.
+   * We then call updateDeliveryDetailsInBackend so session sees the chosen point.
    */
   const handleSelectedPointChange = async (newSelectedPoint: string | null) => {
     setSelectedPoint(newSelectedPoint);
-
     if (deliveryOption === 'pickupPoint' && newSelectedPoint) {
-      // 1) find that pickupPoint in local array
-      const selectedPickupPoint = pickupPoints.find(
+      const selectedPickup = pickupPoints.find(
         (p) => p.servicePointId === newSelectedPoint
       );
-      if (selectedPickupPoint) {
-        // 2) build a minimal address
-        const newDeliveryAddress = {
-          address:
-            selectedPickupPoint.visitingAddress.streetName +
-            ' ' +
-            selectedPickupPoint.visitingAddress.streetNumber,
-          city: selectedPickupPoint.visitingAddress.city,
-          postalCode: selectedPickupPoint.visitingAddress.postalCode,
-        };
-
-        // 3) call updateDeliveryDetailsInBackend => pass the entire pickupPoint under providerDetails
+      if (selectedPickup) {
+        // Example session update, storing entire selectedPickup object
         await updateDeliveryDetailsInBackend('pickupPoint', {
           provider: 'postnord',
-          deliveryAddress: newDeliveryAddress,
-          providerDetails: {
-            postnord: {
-              servicePointId: selectedPickupPoint, // must be the entire object
-            },
-          },
+          selectedPickupPoint: selectedPickup,
         });
-
-        // 4) re-fetch session
-        await fetchSession();
       }
     }
   };
 
   /**
-   * If user is on "pickupPoint" and changes postal code => re-fetch
+   * If user has "pickupPoint" selected and changes city or postalCode,
+   * re-fetch the points. (You could also check for address changes.)
    */
   useEffect(() => {
     if (deliveryOption === 'pickupPoint' && customerDetails.postalCode) {
@@ -223,7 +168,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerDetails.postalCode, deliveryOption]);
 
-  /** Helper for translating days to Danish, if needed. */
+  /** Helper if you want to translate opening hours day names to DK. */
   const translateDay = (day: string): string => {
     const days: Record<string, string> = {
       Monday: 'Mandag',
@@ -243,7 +188,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     <div id="shipping-and-payment" className="mt-8">
       <h2 className="text-xl font-bold mb-4">Leveringsmuligheder</h2>
 
-      {/* Pickup Point Option */}
+      {/* --- Pickup Point Option --- */}
       <div className="mb-4">
         <label className="flex items-center cursor-pointer">
           <input
@@ -267,6 +212,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
           </div>
         </label>
 
+        {/* If user selected "pickupPoint", show spinner + available points */}
         {deliveryOption === 'pickupPoint' && (
           <>
             {loading ? (
@@ -286,10 +232,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                       {pickupPoints.map((point) => {
                         const displayText = `${point.name} - ${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}`;
                         return (
-                          <option
-                            key={point.servicePointId}
-                            value={point.servicePointId}
-                          >
+                          <option key={point.servicePointId} value={point.servicePointId}>
                             {displayText}
                           </option>
                         );
@@ -316,7 +259,10 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                         <ul className="list-none p-0 m-0 text-xs text-gray-600">
                           {selectedPickup.openingHours?.postalServices?.length ? (
                             selectedPickup.openingHours.postalServices.map((day) => (
-                              <li key={day.openDay} className="flex justify-between w-64">
+                              <li
+                                key={day.openDay}
+                                className="flex justify-between w-64"
+                              >
                                 <span>{translateDay(day.openDay)}</span>
                                 <span>
                                   {day.openTime} - {day.closeTime}
@@ -329,6 +275,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                         </ul>
                       </div>
 
+                      {/* Map with markers */}
                       <div className="md:w-1/2">
                         <MapComponent
                           pickupPoints={pickupPoints}
@@ -345,7 +292,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
         )}
       </div>
 
-      {/* Home Delivery Option */}
+      {/* --- Home Delivery Option --- */}
       <div className="mb-4">
         <label className="flex items-center cursor-pointer">
           <input
