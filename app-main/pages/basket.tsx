@@ -13,6 +13,8 @@ import OrderConfirmation, {
   IBasketSummary,
 } from '../components/OrderConfirmation';
 import BasketItems from '../components/BasketItems';
+
+// -- This is our updated CustomerDetailsForm (see below) --
 import CustomerDetailsForm from '../components/CustomerDetailsForm'; // Example form
 
 interface BasketProps {}
@@ -37,7 +39,7 @@ const Basket: React.FC<BasketProps> = () => {
   const [packagesData, setPackagesData] = useState<Record<string, any>>({});
   const [drinksData, setDrinksData] = useState<Record<string, any>>({});
 
-  // For expand/collapse of items
+  // For expand/collapse
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
   // For any "exploded" animation logic
   const [explodedItems, setExplodedItems] = useState<Record<number, boolean>>({});

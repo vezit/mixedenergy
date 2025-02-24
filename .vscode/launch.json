@@ -70,7 +70,7 @@
       "request": "launch",
       // Update path if your browser exe is installed elsewhere
       "runtimeExecutable": "C:\\Program Files\\chrome-win\\chrome.exe",
-      "url": "http://localhost:3000",
+      "url": "http://mixedenergy.ngrok.dev",
       "webRoot": "${workspaceFolder}/app-main",
       "disableNetworkCache": true
     }

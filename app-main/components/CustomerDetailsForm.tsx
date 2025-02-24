@@ -1,5 +1,4 @@
 import React, {
-  useCallback,
   useEffect,
   useState,
   Dispatch,
@@ -8,9 +7,7 @@ import React, {
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 import { ICustomerDetails } from '../types/ICustomerDetails';
 
-/** 
- * Valid keys of ICustomerDetails
- */
+/** Valid keys of ICustomerDetails */
 type CustomerDetailsKey = keyof ICustomerDetails;
 
 /** Error messages keyed by field name. */
@@ -24,8 +21,16 @@ interface ITouchedFields {
 }
 
 interface CustomerDetailsFormProps {
+  /** The current details from context, so we can pre-fill */
   customerDetails: ICustomerDetails;
+
+  /** 
+   * This should update the DB (or Supabase) in the background.
+   * We call this when a field is valid onBlur.
+   */
   updateCustomerDetails: (details: Partial<ICustomerDetails>) => Promise<void>;
+
+  /** If you still want to do something shipping-related, you have it here */
   updateDeliveryDetailsInBackend: (option: string, data?: Record<string, any>) => void;
 
   errors: IErrors;
@@ -47,45 +52,36 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   submitAttempted,
 }) => {
   /**
-   * A simple debounce utility to delay server writes.
+   * Local state for the visible input values as the user types.
+   * We initialize each field with what's in `customerDetails` from context.
    */
-  const debounce = (func: (...args: any[]) => void, delay: number) => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    return (...args: any[]) => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        func(...args);
-      }, delay);
-    };
-  };
+  const [localDetails, setLocalDetails] = useState<ICustomerDetails>({
+    fullName: customerDetails.fullName || '',
+    mobileNumber: customerDetails.mobileNumber || '',
+    email: customerDetails.email || '',
+    address: customerDetails.address || '',
+    postalCode: customerDetails.postalCode || '',
+    city: customerDetails.city || '',
+    country: customerDetails.country || 'Danmark',
+  });
 
   /**
-   * Send partial updates to Supabase (via parent).
+   * Keep localDetails in sync if parent/context changes
+   * (e.g. if the form is reloaded with new data).
    */
-  const updateCustomerDetailsInSupabase = async (
-    updatedDetails: Partial<ICustomerDetails>
-  ): Promise<void> => {
-    try {
-      await updateCustomerDetails(updatedDetails);
-    } catch (error) {
-      console.error('Error updating customer details in Supabase:', error);
-    }
-  };
+  useEffect(() => {
+    setLocalDetails((prev) => ({
+      ...prev,
+      ...customerDetails,
+    }));
+  }, [customerDetails]);
 
-  /** Debounced version of the update function. */
-  const debouncedUpdate = useCallback(
-    debounce(updateCustomerDetailsInSupabase, 800),
-    []
-  );
-
-  /** Basic client-side validation. */
-  const validateField = (
-    fieldName: CustomerDetailsKey,
-    value: string | undefined
-  ) => {
+  /** Basic client-side validation for each field. */
+  const validateField = (fieldName: CustomerDetailsKey, value: string | undefined) => {
     if (!value || !value.trim()) {
       return 'This field is required';
     }
+
     if (fieldName === 'mobileNumber') {
       const mobileNumberRegex = /^\d{8}$/;
       if (!mobileNumberRegex.test(value.trim())) {
@@ -102,34 +98,44 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
         return 'Please enter a valid 4-digit postal code';
       }
     }
+
     return null;
   };
 
-  /** Handle user typing in inputs. */
+  /** Handle typing in each input (only updates local state). */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const fieldName = name as CustomerDetailsKey;
-
-    // Immediately update local state in parent (so UI sees the change)
-    updateCustomerDetails({ [fieldName]: value });
-
-    // Validate the field
-    const errorMsg = validateField(fieldName, value);
-    setErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
-
-    // Debounced push to Supabase
-    debouncedUpdate({ [fieldName]: value });
+    setLocalDetails((prev) => ({ ...prev, [name]: value }));
   };
 
-  /** Mark field as touched and validate on blur. */
-  const handleInputBlur = (fieldName: CustomerDetailsKey) => {
+  /**
+   * When the user leaves the field:
+   * - Mark it as touched
+   * - Validate it
+   * - If valid, call `updateCustomerDetails({ ... })` to save in DB
+   */
+  const handleInputBlur = async (fieldName: CustomerDetailsKey) => {
     setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
-    const value = customerDetails[fieldName];
+
+    const value = localDetails[fieldName];
     const errorMsg = validateField(fieldName, value);
     setErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
+
+    // If no validation error, do the background save
+    if (!errorMsg) {
+      try {
+        await updateCustomerDetails({ [fieldName]: value });
+        // Optionally, if you want to update shipping data whenever the address changes:
+        // if (fieldName === 'postalCode' || fieldName === 'address' || ...) {
+        //   updateDeliveryDetailsInBackend('homeDelivery', {});
+        // }
+      } catch (error) {
+        console.error('Error updating customer details in Supabase:', error);
+      }
+    }
   };
 
-  /** Required fields for "allFieldsValid" logic. */
+  /** Required fields for your final check. (Used if you do a final “Submit.”) */
   const requiredFields: CustomerDetailsKey[] = [
     'fullName',
     'mobileNumber',
@@ -139,24 +145,21 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     'city',
   ];
 
-  /** Checks if all required fields are valid. */
+  /** Quick check for final "all valid" if needed. */
   const allFieldsValid = () => {
     const allFilled = requiredFields.every(
-      (field) =>
-        customerDetails[field] && customerDetails[field]!.trim() !== ''
+      (field) => localDetails[field] && localDetails[field]!.trim() !== ''
     );
     const noErrors = requiredFields.every((field) => !errors[field]);
     return allFilled && noErrors;
   };
 
-  /**
-   * Validate everything once on mount (for immediate feedback).
-   */
+  /** We can do an initial validation pass on mount if desired. */
   useEffect(() => {
     const newErrors: IErrors = { ...errors };
     requiredFields.forEach((field) => {
-      const value = customerDetails[field];
-      const errorMsg = validateField(field, value);
+      const val = localDetails[field];
+      const errorMsg = validateField(field, val);
       if (errorMsg) {
         newErrors[field] = errorMsg;
       }
@@ -165,36 +168,13 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * We only want to call `updateDeliveryDetailsInBackend` ONCE when
-   * all fields (esp. postalCode) become valid, AND again if the user
-   * changes postalCode to a new valid value.
-   */
-  const [lastValidPostalCode, setLastValidPostalCode] = useState<string | null>(
-    null
-  );
-
-  useEffect(() => {
-    if (!allFieldsValid()) return;
-
-    // If this is the first time or postal code changed
-    if (customerDetails.postalCode !== lastValidPostalCode) {
-      updateDeliveryDetailsInBackend('homeDelivery', {});
-      setLastValidPostalCode(customerDetails.postalCode || null);
-    }
-    // We ONLY depend on postalCode validity and the "allFieldsValid" outcome.
-    // We do NOT put errors or other fields into the dependency array or it would
-    // keep triggering every time any field changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerDetails.postalCode, allFieldsValid()]);
-
   /** Renders an icon for valid/invalid fields. */
   const renderIcon = (fieldName: CustomerDetailsKey) => {
     if (errors[fieldName]) {
       return (
         <ExclamationCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-red-600" />
       );
-    } else if (customerDetails[fieldName]) {
+    } else if (localDetails[fieldName]) {
       return (
         <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
       );
@@ -205,23 +185,23 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   return (
     <div id="customer-details">
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
-      <form>
+      <form onSubmit={(e) => e.preventDefault()}>
         {/* Full Name */}
         <div className="mb-9 relative">
           <input
             type="text"
             name="fullName"
             id="fullName"
-            value={customerDetails.fullName || ''}
-            onBlur={() => handleInputBlur('fullName')}
+            value={localDetails.fullName || ''}
             onChange={handleInputChange}
+            onBlur={() => handleInputBlur('fullName')}
             className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
             placeholder=" "
           />
           <label
             htmlFor="fullName"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
-              ${customerDetails.fullName ? 'top-0 text-xs' : 'top-2 text-base'}
+              ${localDetails.fullName ? 'top-0 text-xs' : 'top-2 text-base'}
             `}
           >
             Navn *
@@ -241,16 +221,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             type="text"
             name="mobileNumber"
             id="mobileNumber"
-            value={customerDetails.mobileNumber || ''}
-            onBlur={() => handleInputBlur('mobileNumber')}
+            value={localDetails.mobileNumber || ''}
             onChange={handleInputChange}
+            onBlur={() => handleInputBlur('mobileNumber')}
             className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
             placeholder=" "
           />
           <label
             htmlFor="mobileNumber"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
-              ${customerDetails.mobileNumber ? 'top-0 text-xs' : 'top-2 text-base'}
+              ${localDetails.mobileNumber ? 'top-0 text-xs' : 'top-2 text-base'}
             `}
           >
             Mobilnummer *
@@ -270,16 +250,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             type="email"
             name="email"
             id="email"
-            value={customerDetails.email || ''}
-            onBlur={() => handleInputBlur('email')}
+            value={localDetails.email || ''}
             onChange={handleInputChange}
+            onBlur={() => handleInputBlur('email')}
             className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
             placeholder=" "
           />
           <label
             htmlFor="email"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
-              ${customerDetails.email ? 'top-0 text-xs' : 'top-2 text-base'}
+              ${localDetails.email ? 'top-0 text-xs' : 'top-2 text-base'}
             `}
           >
             E-mail *
@@ -299,16 +279,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             type="text"
             name="address"
             id="address"
-            value={customerDetails.address || ''}
-            onBlur={() => handleInputBlur('address')}
+            value={localDetails.address || ''}
             onChange={handleInputChange}
+            onBlur={() => handleInputBlur('address')}
             className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
             placeholder=" "
           />
           <label
             htmlFor="address"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
-              ${customerDetails.address ? 'top-0 text-xs' : 'top-2 text-base'}
+              ${localDetails.address ? 'top-0 text-xs' : 'top-2 text-base'}
             `}
           >
             Adresse *
@@ -328,16 +308,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             type="text"
             name="postalCode"
             id="postalCode"
-            value={customerDetails.postalCode || ''}
-            onBlur={() => handleInputBlur('postalCode')}
+            value={localDetails.postalCode || ''}
             onChange={handleInputChange}
+            onBlur={() => handleInputBlur('postalCode')}
             className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
             placeholder=" "
           />
           <label
             htmlFor="postalCode"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
-              ${customerDetails.postalCode ? 'top-0 text-xs' : 'top-2 text-base'}
+              ${localDetails.postalCode ? 'top-0 text-xs' : 'top-2 text-base'}
             `}
           >
             Postnummer *
@@ -357,16 +337,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             type="text"
             name="city"
             id="city"
-            value={customerDetails.city || ''}
-            onBlur={() => handleInputBlur('city')}
+            value={localDetails.city || ''}
             onChange={handleInputChange}
+            onBlur={() => handleInputBlur('city')}
             className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
             placeholder=" "
           />
           <label
             htmlFor="city"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
-              ${customerDetails.city ? 'top-0 text-xs' : 'top-2 text-base'}
+              ${localDetails.city ? 'top-0 text-xs' : 'top-2 text-base'}
             `}
           >
             By *
@@ -386,8 +366,8 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             type="text"
             name="country"
             id="country"
-            value={customerDetails.country || 'Danmark'}
-            onChange={handleInputChange}
+            value={localDetails.country || 'Danmark'}
+            onChange={() => {}}
             className="w-full px-3 pt-4 h-10 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
             disabled
           />

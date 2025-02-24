@@ -1,5 +1,5 @@
 # Byte-compiled / optimized / DLL files
-*.env
+*.env*
 *.old
 *.log
 *.bak
@@ -25,3 +25,4 @@ app-main/data
 app-main/.env.development
 app-main/.env.production
 .next/trace
+app-main/.env.prod

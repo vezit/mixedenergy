@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   mixedenergy-app-main:
-    image: vicmrp/mixedenergy-app-main:nodejs22-1.0.0
+    image: vicmrp/mixedenergy-app-main:nodejs22-1.1.0
 
     user: node
     command: sleep infinity

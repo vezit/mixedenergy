@@ -84,7 +84,7 @@ export default function Home(): JSX.Element {
             <div className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
               <div className="w-full h-60">
                 <img
-                  src={`${SUPABASE_URL}/${product.image}`}
+                  src={`${SUPABASE_URL}${product.image}`}
                   alt={product.title}
                   className="w-full h-full object-cover"
                 />
