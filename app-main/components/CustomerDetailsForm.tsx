@@ -54,6 +54,10 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   /**
    * Local state for the visible input values as the user types.
    * We initialize each field with what's in `customerDetails` from context.
+   *
+   * IMPORTANT: We must include ALL required properties from ICustomerDetails,
+   * or TypeScript will complain. If `customerType` and `streetNumberts` are required,
+   * we must provide them here too.
    */
   const [localDetails, setLocalDetails] = useState<ICustomerDetails>({
     fullName: customerDetails.fullName || '',
@@ -63,6 +67,10 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     postalCode: customerDetails.postalCode || '',
     city: customerDetails.city || '',
     country: customerDetails.country || 'Danmark',
+
+    // If these are required in your ICustomerDetails, provide defaults:
+    customerType: customerDetails.customerType || '',
+    streetNumberts: customerDetails.streetNumberts || '', 
   });
 
   /**
@@ -381,6 +389,31 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             <CheckCircleIcon className="absolute right-3 top-2.5 h-6 w-6 text-green-500" />
           )}
         </div>
+
+        {/* Example for other required fields: customerType, streetNumberts (if needed in UI) */}
+        {/*
+        <div className="mb-9 relative">
+          <input
+            type="text"
+            name="customerType"
+            id="customerType"
+            value={localDetails.customerType || ''}
+            onChange={handleInputChange}
+            onBlur={() => handleInputBlur('customerType')}
+            className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
+            placeholder=" "
+          />
+          <label
+            htmlFor="customerType"
+            className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
+              ${localDetails.customerType ? 'top-0 text-xs' : 'top-2 text-base'}
+            `}
+          >
+            Customer Type
+          </label>
+          {renderIcon('customerType')}
+        </div>
+        */}
       </form>
     </div>
   );
