@@ -5,14 +5,15 @@
  * remove it for stricter typing.
  */
 export interface ICustomerDetails {
-    customerType: string;
-    fullName: string;
-    mobileNumber: string;
-    email: string;
-    address: string;
-    streetNumber: string;
-    postalCode: string;
-    city: string;
-    country: string;
-  }
+  fullName: string;
+  mobileNumber: string;
+  email: string;
+  address: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  customerType?: string;    // optional if you want
+  streetNumber?: string;    // optional if you want
+}
+
   
