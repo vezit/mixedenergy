@@ -102,12 +102,12 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
    */
   const handlePayment = async () => {
     setSubmitAttempted(true);
-
-    // Basic client-side validation for required customer fields
+  
+    // 1) Basic client-side validation for required fields
     const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
     const newErrors: ErrorMap = { ...errors };
     const newTouchedFields: TouchedFieldsMap = { ...touchedFields };
-
+  
     let customerDetailsValid = true;
     for (const field of requiredFields) {
       if (!customerDetails[field] || !customerDetails[field].trim()) {
@@ -116,15 +116,15 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
         customerDetailsValid = false;
       }
     }
-
+  
     setErrors(newErrors);
     setTouchedFields(newTouchedFields);
-
+  
     if (!customerDetailsValid) {
       document.getElementById('customer-details')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-
+  
     // If pickupPoint is chosen but none is selected
     if (finalDeliveryOption === 'pickupPoint') {
       if (!selectedPoint) {
@@ -133,62 +133,79 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
         return;
       }
     }
-
+  
     // If basket is empty
     if (!basketItems || basketItems.length === 0) {
       router.push('/');
       return;
     }
-
+  
     // Check terms acceptance
     if (!termsAccepted) {
       setTermsError(
-        'Du skal acceptere vores handelsbetingelser før du kan fortsætte. Sæt venligst flueben i boksen herover.'
+        'Du skal acceptere vores handelsbetingelser før du kan fortsætte. ' +
+          'Sæt venligst flueben i boksen herover.'
       );
       document.getElementById('order-confirmation')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-
-    // Attempt Payment flow
+  
+    // 2) Attempt the Payment flow
     setIsProcessingPayment(true);
     try {
-      // 1) Update the server's delivery details so basketSummary is synced
+      // 2a) Update server's delivery details so basketSummary is synced
       await updateDeliveryDetailsInBackend(finalDeliveryOption, {
         selectedPickupPoint: selectedPoint,
       });
-
-      // 2) Create an order ID. In a production environment, you might generate or retrieve this from your database.
+  
+      // 2b) (Optional) Generate an order ID or retrieve from database
+      //     This is NOT strictly required by QuickPay if you’re already
+      //     using session_id or something else as the order_id.
       const orderId = 'ORDER-' + Date.now();
-
-      // 3) Calculate total amount in øre. Make sure to include any additional fees.
+  
+      // 2c) Calculate total amount in øre (including potential delivery fees, pant, etc.)
       const deliveryFee = basketSummary?.deliveryDetails?.deliveryFee || 0;
-      const totalAmount = totalPrice + totalRecyclingFee + deliveryFee; // amount in øre
-
-      // 4) Create the PaymentLink via QuickPay
-      const response = await fetch('/api/quickpay/createPaymentLink', {
+      const totalAmount = totalPrice + totalRecyclingFee + deliveryFee; // in øre
+  
+      // 3) CREATE the QuickPay "payment" object (via your /api/quickpay/createPayment)
+      const createPaymentRes = await fetch('/api/quickpay/createPayment', {
         method: 'POST',
+        credentials: 'include', // if you need cookies
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderId,
-          amount: totalAmount,
-          currency: 'DKK',
-          customerDetails,
-          items: basketItems,
+          // If you want to pass in the "order_id" or any extra info:
+          customOrderId: orderId,
+          // Possibly pass in the totalAmount here or store it in your DB.
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment link');
+  
+      if (!createPaymentRes.ok) {
+        throw new Error('Failed to create payment in QuickPay');
       }
-
-      const data = await response.json();
-
-      if (data.paymentLink) {
-        // Redirect the user to the QuickPay payment terminal
-        window.location.href = data.paymentLink;
-      } else {
-        throw new Error('Payment link not received');
+  
+      const { paymentId } = await createPaymentRes.json();
+      if (!paymentId) {
+        throw new Error('No paymentId returned from createPayment');
       }
+  
+      // 4) GET the Payment Link (via your /api/quickpay/getPaymentLink/[paymentId])
+      //    This will finalize the link with amount, callback_url, etc.
+      const getPaymentLinkRes = await fetch(`/api/quickpay/getPaymentLink/${paymentId}?amount=${totalAmount}`, {
+        method: 'GET',
+        credentials: 'include', // if you need cookies
+      });
+  
+      if (!getPaymentLinkRes.ok) {
+        throw new Error('Failed to get payment link from QuickPay');
+      }
+  
+      const linkData = await getPaymentLinkRes.json();
+      if (!linkData.linkUrl) {
+        throw new Error('No linkUrl returned from QuickPay');
+      }
+  
+      // 5) Redirect the user to QuickPay’s hosted payment window
+      window.location.href = linkData.linkUrl;
     } catch (error) {
       console.error('Error during payment process:', error);
       alert('Der opstod en fejl under betalingsprocessen. Prøv igen senere.');
