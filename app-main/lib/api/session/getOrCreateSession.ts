@@ -80,7 +80,7 @@ export async function getOrCreateSession(cookieHeader?: string, noBasket = false
   }
 
   // 3) If no cookie or DB row doesn't exist => create a brand-new session_id
-  sessionId = uuidv4().slice(0, 30); // Consider removing .slice(0,30) if collisions are a concern
+  sessionId = uuidv4().slice(0, 20); // Consider removing .slice(0,30) if collisions are a concern
   newlyCreated = true;
 
   console.log('[getOrCreateSession] Creating NEW session:', sessionId);

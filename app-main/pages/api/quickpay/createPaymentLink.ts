@@ -3,8 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
 
 const QUICKPAY_API_KEY = process.env.QUICKPAY_API_KEY || ''; 
-const QUICKPAY_PRIVATE_KEY = process.env.QUICKPAY_PRIVATE_KEY || '';
 const QUICKPAY_BASE_URL = 'https://api.quickpay.net'; 
+const PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL // e.g. NEXT_PUBLIC_BASE_URL=https://mixedenergy.ngrok.dev
 
 /**
  * Example endpoint to create a payment and generate a payment link via QuickPay.
@@ -68,9 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       body: JSON.stringify({
         amount, // in øre
-        continue_url: 'https://vicre-nextjs-app01.ngrok.app/payment-success',
-        cancel_url: 'https://vicre-nextjs-app01.ngrok.app/basket',
-        callback_url: 'https://vicre-nextjs-app01.ngrok.app/api/quickpay/callback',
+        continue_url: `${PUBLIC_BASE_URL}/payment-success`,
+        cancel_url: `${PUBLIC_BASE_URL}/basket`,
+        _url: `${PUBLIC_BASE_URL}/api/quickpay/callback`,
         auto_capture: true, 
         customer_email: customerDetails?.email || '',
         // Optionally specify payment_methods to limit which methods are shown
