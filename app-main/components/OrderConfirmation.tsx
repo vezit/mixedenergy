@@ -2,16 +2,7 @@ import React, { FC, useState } from 'react';
 import LoadingButton from './LoadingButton';
 import { useRouter } from 'next/router';
 import { useBasket } from './BasketContext';
-
-export interface ICustomerDetails {
-  fullName: string;
-  mobileNumber: string;
-  email: string;
-  address?: string;
-  postalCode?: string;
-  city?: string;
-  [key: string]: any;
-}
+import { ICustomerDetails } from '../types/ICustomerDetails';
 
 export interface IDeliveryAddress {
   name?: string;
@@ -104,7 +95,8 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     setSubmitAttempted(true);
   
     // 1) Basic client-side validation for required fields
-    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'];
+    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'] as const;
+
     const newErrors: ErrorMap = { ...errors };
     const newTouchedFields: TouchedFieldsMap = { ...touchedFields };
   

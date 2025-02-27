@@ -71,6 +71,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // QuickPay’s /link response typically has: { url: "https://payment.quickpay.net/payments/..." }
     const data = response.data;
 
+    
+
     // 6) Return the link so the frontend can redirect user to pay
     return res.status(200).json({
       linkUrl: data.url || null,

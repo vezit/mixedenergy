@@ -56,6 +56,8 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
    * We initialize each field with what's in `customerDetails` from context.
    */
   const [localDetails, setLocalDetails] = useState<ICustomerDetails>({
+    customerType: customerDetails.customerType || '',
+    streetNumber: customerDetails.streetNumber || '',
     fullName: customerDetails.fullName || '',
     mobileNumber: customerDetails.mobileNumber || '',
     email: customerDetails.email || '',
@@ -64,7 +66,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     city: customerDetails.city || '',
     country: customerDetails.country || 'Danmark',
   });
-
+  
   /**
    * Keep localDetails in sync if parent/context changes
    * (e.g. if the form is reloaded with new data).

@@ -3,6 +3,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import getRawBody from 'raw-body'
 import crypto from 'crypto'
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
 // Tell Next.js NOT to parse the body automatically
 export const config = {
@@ -58,11 +59,6 @@ export default async function quickpayCallbackHandler(
       // ... mark order as paid, send email, etc.
 
       // copy session into order
-
-      // once that is done, we delete the session
-
-      // send email to user
-      
 
     } else {
       console.log(`Payment #${payload.id} state is: ${payload.state}`)

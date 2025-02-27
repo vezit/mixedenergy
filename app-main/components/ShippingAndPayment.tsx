@@ -1,15 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import MapComponent, { PickupPoint } from './MapComponent';
 import LoadingSpinner from './LoadingSpinner';
-
-interface ICustomerDetails {
-  address?: string;
-  city?: string;
-  postalCode?: string;
-  fullName?: string;
-  mobileNumber?: string;
-  email?: string;
-}
+import { ICustomerDetails } from '../types/ICustomerDetails';
 
 interface ShippingAndPaymentProps {
   deliveryOption: string;
