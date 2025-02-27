@@ -1,21 +1,14 @@
-// File: pages/api/quickpay/quickpay-callback.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next'
 import getRawBody from 'raw-body'
 import crypto from 'crypto'
 import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
-// Tell Next.js NOT to parse the body automatically
 export const config = {
   api: {
     bodyParser: false,
   },
 }
 
-/**
- * QuickPay callback handler
- * We must HMAC the exact raw body using the "private key" from QuickPay account settings.
- */
 export default async function quickpayCallbackHandler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -31,11 +24,10 @@ export default async function quickpayCallbackHandler(
       return res.status(401).json({ error: 'Missing quickpay-checksum-sha256 header' })
     }
 
-    // 1) Read the raw body
     const rawBuf = await getRawBody(req)
     const rawBody = rawBuf.toString('utf8')
 
-    // 2) Compute HMAC of the raw body with the private key
+    // Verify HMAC signature
     const computedHmac = crypto
       .createHmac('sha256', privateKey)
       .update(rawBody)
@@ -49,22 +41,78 @@ export default async function quickpayCallbackHandler(
       return res.status(401).json({ error: 'Invalid signature' })
     }
 
-    // 3) At this point, the request is verified. Parse JSON if needed
     const payload = JSON.parse(rawBody)
     console.log('QuickPay callback data:', payload)
 
-    // Example: If the payment is accepted
+    // If the payment is accepted => copy session -> orders
     if (payload.accepted) {
       console.log(`Payment #${payload.id} is accepted!`)
-      // ... mark order as paid, send email, etc.
 
-      // copy session into order
+      // 1) According to your note, the QuickPay "order_id" is your "session_id"
+      const sessionId = payload.order_id
+      if (!sessionId) {
+        console.error('No session_id (order_id) found in QuickPay payload!')
+        return res.status(200).json({ message: 'Missing session_id in callback' })
+      }
 
+      // 2) Fetch that session from your "sessions" table
+      const { data: sessionRow, error: sessionError } = await supabaseAdmin
+        .from('sessions')
+        .select('*')
+        .eq('session_id', sessionId)
+        .maybeSingle()
+
+      if (sessionError || !sessionRow) {
+        console.error('Could not find session for session_id:', sessionId, sessionError)
+        return res.status(200).json({ message: 'Session not found' })
+      }
+
+      // 3) Insert into "orders" using data from the session
+      //    Choose what you want to store for "order_id".
+      //    Often, you might use the QuickPay "id" or keep the same sessionId.
+      const { data: newOrder, error: newOrderError } = await supabaseAdmin
+        .from('orders')
+        .insert([
+          {
+            order_key: sessionRow.session_id,
+
+            session_id: sessionRow.session_id,
+
+            // Let's store QuickPay's numeric "id" as our "order_id" in orders
+            order_id: String(payload.id),
+
+            // Copy session's basket_details
+            basket_details: sessionRow.basket_details,
+
+            // Optionally store the entire QuickPay payload for reference
+            quickpay_details: payload,
+
+            // Mark as paid
+            status: 'paid',
+          },
+        ])
+        .single<{ id: string }>()
+
+      if (newOrderError) {
+        console.error('Error inserting into orders:', newOrderError)
+        return res.status(200).json({ message: 'Error copying session into order' })
+      }
+
+      console.log('New order inserted with DB ID')
+
+      // (Optional) Update the "sessions" table to store that final order_id
+      // await supabaseAdmin
+      //   .from('sessions')
+      //   .update({ order_id: String(payload.id) })
+      //   .eq('session_id', sessionId)
+
+      // Additional post-payment steps: send email, etc.
     } else {
+      // Handle other states
       console.log(`Payment #${payload.id} state is: ${payload.state}`)
     }
 
-    // 4) Tell QuickPay we got it
+    // Return success response to QuickPay
     return res.status(200).json({ message: 'Callback received successfully' })
   } catch (err: any) {
     console.error('Error in QuickPay callback handler:', err)
