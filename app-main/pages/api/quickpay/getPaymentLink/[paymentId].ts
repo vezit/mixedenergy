@@ -4,7 +4,14 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import FormData from 'form-data';
 import axios from 'axios';
 import { parse } from 'cookie';
-import { getBasket } from '../../../../lib/api/session/session'; // <-- Import your session helper
+import { getBasket } from '../../../../lib/api/session/session'; // <-- your custom helper
+
+// Example of your existing BasketItem interface without totalPrice / totalRecyclingFee:
+export interface BasketItem {
+  slug: string;
+  quantity: number;
+  // no totalPrice or totalRecyclingFee here
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Only allow GET
@@ -38,19 +45,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 3) Calculate final total in øre:
-    //    sum of each item's totalPrice plus deliveryFee (if any).
-    const items = basketDetails.items || [];
-    let totalItemPrice = 0;
+    //    sum of each item's totalPrice + totalRecyclingFee + deliveryFee.
+    //    We do a type assertion so we can read totalPrice/totalRecyclingFee 
+    //    even though they're not in the BasketItem interface.
+    const items = basketDetails.items as BasketItem[]; // or any[] if needed
+    let totalPrice = 0;
+    let totalRecyclingFee = 0;
+
     for (const item of items) {
-      totalItemPrice += (item as any).totalPrice || 0;
+      // Cast to an extended type that includes optional totalPrice / totalRecyclingFee
+      const extendedItem = item as BasketItem & {
+        totalPrice?: number;
+        totalRecyclingFee?: number;
+      };
+
+      totalPrice += extendedItem.totalPrice || 0;
+      totalRecyclingFee += extendedItem.totalRecyclingFee || 0;
     }
+
     const deliveryFee = basketDetails?.deliveryDetails?.deliveryFee || 0;
-    const finalAmount = totalItemPrice + deliveryFee; // in øre
+    const finalAmount = totalPrice + totalRecyclingFee + deliveryFee; // in øre
 
     // 4) Prepare form-data with the final amount & callback URLs
     const formData = new FormData();
     formData.append('amount', String(finalAmount));
-    formData.append('continue_url', `${PUBLIC_BASE_URL}/payment-success`);
+    formData.append('continue_url', `${PUBLIC_BASE_URL}/payment-success?orderId=${sessionId}`);
     formData.append('cancel_url', `${PUBLIC_BASE_URL}/basket`);
     formData.append('callback_url', `${PUBLIC_BASE_URL}/api/quickpay/quickpay-callback`);
 
@@ -71,12 +90,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // QuickPay’s /link response typically has: { url: "https://payment.quickpay.net/payments/..." }
     const data = response.data;
 
-    
-
     // 6) Return the link so the frontend can redirect user to pay
     return res.status(200).json({
       linkUrl: data.url || null,
-      quickpayResponse: data, // optional, for debugging
+      quickpayResponse: data, // optional for debugging
     });
   } catch (error: any) {
     console.error(
