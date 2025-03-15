@@ -4,17 +4,18 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import Loading from '../../components/Loading'; // Adjust the path if needed
+import Loading from '../../components/Loading';
 import { JSX } from 'react';
 
 interface Drink {
   name: string;
   size: string;
   image: string;
+  ingredients?: string;
+  description?: string;
   nutrition?: {
     per100ml?: { [key: string]: string | number };
   };
-  // ...additional fields if necessary
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -53,7 +54,7 @@ export default function DrinkDetail(): JSX.Element {
     return <p>Drink not found.</p>;
   }
 
-  const imageUrl = `${SUPABASE_URL}${drink.image}`
+  const imageUrl = `${SUPABASE_URL}${drink.image}`;
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-8">
@@ -68,9 +69,23 @@ export default function DrinkDetail(): JSX.Element {
       />
       <p className="text-xl text-gray-700 mt-4">Size: {drink.size}</p>
 
-      <div className="mt-4">
+      {drink.description && (
+        <div className="mt-4 w-full max-w-2xl">
+          <h2 className="text-xl font-bold">Description:</h2>
+          <p className="text-gray-600 ml-1">{drink.description}</p>
+        </div>
+      )}
+
+      {drink.ingredients && (
+        <div className="mt-4 w-full max-w-2xl">
+          <h2 className="text-xl font-bold">Ingredients:</h2>
+          <p className="text-gray-600 ml-1">{drink.ingredients}</p>
+        </div>
+      )}
+
+      <div className="mt-4 w-full max-w-2xl">
         <h2 className="text-xl font-bold">Nutritional Information (per 100 mL):</h2>
-        <ul className="list-disc list-inside">
+        <ul className="list-disc list-inside ml-1">
           {drink.nutrition?.per100ml ? (
             Object.entries(drink.nutrition.per100ml).map(([key, value]) => (
               <li key={key}>
@@ -81,6 +96,13 @@ export default function DrinkDetail(): JSX.Element {
             <li>No nutritional information available.</li>
           )}
         </ul>
+      </div>
+
+      <div className="mt-4 w-full max-w-2xl">
+        <h2 className="text-xl font-bold">More Information:</h2>
+        <p className="text-gray-600 ml-1">
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+        </p>
       </div>
     </div>
   );
