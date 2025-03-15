@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { useBasket } from '../../../components/BasketContext';
 import Loading from '../../../components/Loading';
@@ -173,8 +174,8 @@ export default function BlandSelvMixProduct() {
         sessionId,
         packageSlug: slug,
         selectedSize,
-        isMysteryBox: false,  // because user is picking manually
-        sugarPreference: 'alle',  // or you can let user pick
+        isMysteryBox: false,  // user is picking manually
+        sugarPreference: 'alle',  // or let user pick if you prefer
         selectedProducts,
       };
       console.debug('[createOrUpdateTemporarySelection] =>', body);
@@ -198,7 +199,7 @@ export default function BlandSelvMixProduct() {
     }
   }
 
-  // 3) addToBasket => create the custom selection on the server, then call addItemToBasket
+  // addToBasket => create the custom selection on the server, then call addItemToBasket
   async function addToBasket() {
     if (!selectedSize) {
       alert('Select a package size first.');
@@ -291,33 +292,31 @@ export default function BlandSelvMixProduct() {
           {/* List drinks for user selection */}
           <div className="mt-4">
             <p>Select drinks (exactly {maxProducts}):</p>
-            {Object.keys(drinksData).map((slug) => {
-              const drink = drinksData[slug];
-              const currentQty = selectedProducts[slug] || 0;
+            {Object.keys(drinksData).map((drinkSlug) => {
+              const drink = drinksData[drinkSlug];
+              const currentQty = selectedProducts[drinkSlug] || 0;
 
               return (
-                <div
-                  key={slug}
-                  className="flex items-center justify-between mt-2"
-                >
-                  <div className="flex items-center">
+                <div key={drinkSlug} className="flex items-center justify-between mt-2">
+                  {/* Wrap the image + name in a Link */}
+                  <Link href={`/drinks/${drinkSlug}`} className="flex items-center">
                     <div className="w-12 aspect-[463/775] relative mr-4">
                       {drink.image && (
                         <Image
                           src={`${SUPABASE_URL}${drink.image}`}
                           alt={drink.name}
                           fill
-                          sizes='48'
+                          sizes="48"
                           className="object-cover rounded-lg"
                         />
                       )}
                     </div>
                     <span>{drink.name}</span>
-                  </div>
+                  </Link>
 
                   <div className="flex items-center">
                     <button
-                      onClick={() => handleProductQuantityChange(slug, 'decrement')}
+                      onClick={() => handleProductQuantityChange(drinkSlug, 'decrement')}
                       className="px-2 py-1 bg-gray-200 rounded-l"
                       disabled={currentQty === 0}
                     >
@@ -325,7 +324,7 @@ export default function BlandSelvMixProduct() {
                     </button>
                     <span className="px-4 py-2 bg-gray-100">{currentQty}</span>
                     <button
-                      onClick={() => handleProductQuantityChange(slug, 'increment')}
+                      onClick={() => handleProductQuantityChange(drinkSlug, 'increment')}
                       className="px-2 py-1 bg-gray-200 rounded-r"
                       disabled={totalSelected >= maxProducts}
                     >
@@ -350,7 +349,6 @@ export default function BlandSelvMixProduct() {
           >
             Add Mixed Package to Cart
           </LoadingConfettiButton>
-
         </div>
       </div>
 
