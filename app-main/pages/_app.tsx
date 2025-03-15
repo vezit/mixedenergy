@@ -64,10 +64,6 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
     <SessionProvider initialSession={pageProps.initialSession}>
       <BasketProvider>
         <div className="flex flex-col min-h-screen">
-          {/* Development Warning */}
-          <div className="bg-orange-500 text-white text-center p-2">
-            This website is still under development.
-          </div>
 
           {/* Cookie/Local Storage Warning */}
           {!isStorageEnabled && (
