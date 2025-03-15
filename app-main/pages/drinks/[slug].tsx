@@ -69,22 +69,15 @@ export default function DrinkDetail(): JSX.Element {
       />
       <p className="text-xl text-gray-700 mt-4">Size: {drink.size}</p>
 
-      {drink.description && (
-        <div className="mt-4 w-full max-w-2xl">
-          <h2 className="text-xl font-bold">Description:</h2>
-          <p className="text-gray-600 ml-1">{drink.description}</p>
-        </div>
-      )}
-
       {drink.ingredients && (
         <div className="mt-4 w-full max-w-2xl">
-          <h2 className="text-xl font-bold">Ingredients:</h2>
+          <h2 className="text-xl font-bold">Ingredienser:</h2>
           <p className="text-gray-600 ml-1">{drink.ingredients}</p>
         </div>
       )}
 
       <div className="mt-4 w-full max-w-2xl">
-        <h2 className="text-xl font-bold">Nutritional Information (per 100 mL):</h2>
+        <h2 className="text-xl font-bold">Næringsindhold (per 100 mL):</h2>
         <ul className="list-disc list-inside ml-1">
           {drink.nutrition?.per100ml ? (
             Object.entries(drink.nutrition.per100ml).map(([key, value]) => (
@@ -98,12 +91,12 @@ export default function DrinkDetail(): JSX.Element {
         </ul>
       </div>
 
-      <div className="mt-4 w-full max-w-2xl">
-        <h2 className="text-xl font-bold">More Information:</h2>
-        <p className="text-gray-600 ml-1">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-        </p>
-      </div>
+      {drink.description && (
+        <div className="mt-4 w-full max-w-2xl">
+          <h2 className="text-xl font-bold">Varebeskrivelse:</h2>
+          <p className="text-gray-600 ml-1">{drink.description}</p>
+        </div>
+      )}
     </div>
   );
 }
