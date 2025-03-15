@@ -93,7 +93,7 @@ export default function DrinkDetail(): JSX.Element {
 
       {drink.description && (
         <div className="mt-4 w-full max-w-2xl">
-          <h2 className="text-xl font-bold">Varebeskrivelse:</h2>
+          <h2 className="text-xl font-bold">Varebetegnelse:</h2>
           <p className="text-gray-600 ml-1">{drink.description}</p>
         </div>
       )}
