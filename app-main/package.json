@@ -12,13 +12,14 @@
         "dev:debug": "NODE_OPTIONS='--inspect=0.0.0.0:9229' next dev",
         "build": "next build",
         "start": "next start"
-      },
+    },
     "dependencies": {
         "@google-cloud/storage": "^7.14.0",
         "@googlemaps/js-api-loader": "^1.16.8",
         "@heroicons/react": "^2.2.0",
         "@supabase/supabase-js": "^2.47.14",
         "@tailwindcss/aspect-ratio": "^0.4.2",
+        "@woocommerce/woocommerce-rest-api": "^1.0.1",
         "axios": "^1.7.9",
         "canvas-confetti": "^1.9.3",
         "cookie": "^1.0.2",
@@ -43,6 +44,7 @@
         "@types/nodemailer": "^6.4.17",
         "@types/pdfkit": "^0.13.8",
         "@types/react": "^19.0.2",
+        "@types/woocommerce__woocommerce-rest-api": "^1.0.5",
         "autoprefixer": "^10.4.20",
         "postcss": "^8.4.49",
         "supabase": "^2.2.1",

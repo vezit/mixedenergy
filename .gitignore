@@ -26,3 +26,4 @@ app-main/.env.development
 app-main/.env.production
 .next/trace
 app-main/.env.prod
+_ngrok_auth
