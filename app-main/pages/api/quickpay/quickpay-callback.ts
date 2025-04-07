@@ -1,9 +1,7 @@
-// pages/api/quickpay/quickpay-callback.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import getRawBody from 'raw-body'
 import crypto from 'crypto'
-import { supabaseAdmin } from '../../../lib/api/supabaseAdmin'
-import { syncOrderToWoo } from '../../../lib/api/woocommerce/sync'
+import { supabaseAdmin } from '../../../lib/api/supabaseAdmin';
 
 export const config = {
   api: {
@@ -46,79 +44,72 @@ export default async function quickpayCallbackHandler(
     const payload = JSON.parse(rawBody)
     console.log('QuickPay callback data:', payload)
 
-    // If the payment is accepted => store order in Supabase (if not already) and then sync
+    // If the payment is accepted => copy session -> orders
     if (payload.accepted) {
       console.log(`Payment #${payload.id} is accepted!`)
 
-      // 1) QuickPay "order_id" is your "session_id"
+      // 1) According to your note, the QuickPay "order_id" is your "session_id"
       const sessionId = payload.order_id
       if (!sessionId) {
         console.error('No session_id (order_id) found in QuickPay payload!')
         return res.status(200).json({ message: 'Missing session_id in callback' })
       }
 
-      // 2) Find or upsert into "orders" to reflect that it’s now paid
-      //    For example, if you already inserted an order row earlier,
-      //    you could just update the status to "paid". Otherwise, insert anew.
-      const { data: existingOrder, error: existingOrderError } = await supabaseAdmin
-        .from('orders')
+      // 2) Fetch that session from your "sessions" table
+      const { data: sessionRow, error: sessionError } = await supabaseAdmin
+        .from('sessions')
         .select('*')
         .eq('session_id', sessionId)
         .maybeSingle()
 
-      if (existingOrderError) {
-        console.error('[Supabase] Error finding order:', existingOrderError)
-        return res.status(200).json({ message: 'Supabase error checking order' })
+      if (sessionError || !sessionRow) {
+        console.error('Could not find session for session_id:', sessionId, sessionError)
+        return res.status(200).json({ message: 'Session not found' })
       }
 
-      let finalOrder
-      if (existingOrder) {
-        // Mark as paid + store quickpay details
-        const { data: updated, error: updateErr } = await supabaseAdmin
-          .from('orders')
-          .update({
-            status: 'paid',
-            quickpay_details: payload,
+      // 3) Insert into "orders" using data from the session
+      //    Choose what you want to store for "order_id".
+      //    Often, you might use the QuickPay "id" or keep the same sessionId.
+      const { data: newOrder, error: newOrderError } = await supabaseAdmin
+        .from('orders')
+        .insert([
+          {
+            order_key: sessionRow.session_id,
+
+            session_id: sessionRow.session_id,
+
+            // Let's store QuickPay's numeric "id" as our "order_id" in orders
             order_id: String(payload.id),
-          })
-          .eq('id', existingOrder.id)
-          .single()
-        if (updateErr || !updated) {
-          console.error('[Supabase] Error updating existing order:', updateErr)
-          return res.status(200).json({ message: 'Error updating order' })
-        }
-        finalOrder = updated
-      } else {
-        // Insert a new row if none exists
-        // (But typically you'd already have an order row in `orders`.)
-        const { data: inserted, error: insertErr } = await supabaseAdmin
-          .from('orders')
-          .insert([
-            {
-              order_key: sessionId,
-              session_id: sessionId,
-              order_id: String(payload.id),
-              basket_details: {},      // Or fetch from session table if you do that
-              quickpay_details: payload,
-              status: 'paid',
-            },
-          ])
-          .single()
-        if (insertErr || !inserted) {
-          console.error('[Supabase] Error inserting new order:', insertErr)
-          return res.status(200).json({ message: 'Error inserting new order' })
-        }
-        finalOrder = inserted
+
+            // Copy session's basket_details
+            basket_details: sessionRow.basket_details,
+
+            // Optionally store the entire QuickPay payload for reference
+            quickpay_details: payload,
+
+            // Mark as paid
+            status: 'paid',
+          },
+        ])
+        .single<{ id: string }>()
+
+      if (newOrderError) {
+        console.error('Error inserting into orders:', newOrderError)
+        return res.status(200).json({ message: 'Error copying session into order' })
       }
 
-      // 3) Now sync this final order to WooCommerce
-      try {
-        await syncOrderToWoo(finalOrder)
-      } catch (wooErr) {
-        console.error('[WooCommerce] Sync failed:', wooErr)
-      }
+      console.log('New order inserted with DB ID')
+
+      // (Optional) Update the "sessions" table to store that final order_id
+      // await supabaseAdmin
+      //   .from('sessions')
+      //   .update({ order_id: String(payload.id) })
+      //   .eq('session_id', sessionId)
+
+      // Additional post-payment steps: send email, etc.
     } else {
-      console.log(`Payment #${payload.id} is not accepted. State: ${payload.state}`)
+      // Handle other states
+      console.log(`Payment #${payload.id} state is: ${payload.state}`)
     }
 
     // Return success response to QuickPay
