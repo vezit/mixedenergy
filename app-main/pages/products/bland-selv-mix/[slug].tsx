@@ -240,7 +240,7 @@ export default function BlandSelvMixProduct() {
     return <Loading />;
   }
   if (!product) {
-    return <p>Product not found.</p>;
+    return <p>Produkt ikke fundet.</p>;
   }
 
   const totalSelected = getTotalSelected();
@@ -261,7 +261,7 @@ export default function BlandSelvMixProduct() {
             />
           )}
           <div className="mt-6">
-            <h2 className="text-2xl font-bold mb-2">Description</h2>
+            <h2 className="text-2xl font-bold mb-2">Beskrivelse</h2>
             <p className="text-lg text-gray-700">{product.description}</p>
           </div>
         </div>
@@ -270,7 +270,7 @@ export default function BlandSelvMixProduct() {
         <div className="md:w-1/2 md:pl-8 w-full">
           {/* Pick a size */}
           <div className="mt-4">
-            <p>Select Package Size:</p>
+            <p>Vælg pakkestørrelse:</p>
             {product.packages && product.packages.length > 0 ? (
               product.packages.map((pkg) => (
                 <label key={pkg.size} className="mr-4">
@@ -281,17 +281,17 @@ export default function BlandSelvMixProduct() {
                     checked={selectedSize === pkg.size}
                     onChange={() => setSelectedSize(pkg.size)}
                   />
-                  {pkg.size} pcs
+                  {pkg.size} stk
                 </label>
               ))
             ) : (
-              <p>No package sizes available.</p>
+              <p>Ingen pakkestørrelser tilgængelige.</p>
             )}
           </div>
 
           {/* List drinks for user selection */}
           <div className="mt-4">
-            <p>Select drinks (exactly {maxProducts}):</p>
+          <p>Vælg drikkevarer (præcis {maxProducts}):</p>
             {Object.keys(drinksData).map((drinkSlug) => {
               const drink = drinksData[drinkSlug];
               const currentQty = selectedProducts[drinkSlug] || 0;
@@ -335,7 +335,7 @@ export default function BlandSelvMixProduct() {
               );
             })}
             <p className="mt-2 text-sm text-gray-600">
-              Selected {totalSelected} of {maxProducts} drinks
+            Valgt {totalSelected} ud af {maxProducts} drikkevarer
             </p>
           </div>
 
@@ -347,7 +347,7 @@ export default function BlandSelvMixProduct() {
             className="mt-4 bg-red-500 text-white px-6 py-2 rounded-full shadow 
              hover:bg-red-600 transition w-full disabled:bg-gray-300"
           >
-            Add Mixed Package to Cart
+            Tilføj blandet pakke til kurv
           </LoadingConfettiButton>
         </div>
       </div>

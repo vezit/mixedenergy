@@ -326,7 +326,7 @@ export default function ViBlanderForDigProduct() {
     return <Loading />;
   }
   if (!product) {
-    return <p>Product not found.</p>;
+    return <p>Produkt ikke fundet.</p>;
   }
 
   return (
@@ -344,7 +344,7 @@ export default function ViBlanderForDigProduct() {
             />
           )}
           <div className="mt-6">
-            <h2 className="text-2xl font-bold mb-2">Description</h2>
+            <h2 className="text-2xl font-bold mb-2">Beskrivelse</h2>
             <p className="text-lg text-gray-700">{product.description}</p>
           </div>
         </div>
@@ -353,7 +353,7 @@ export default function ViBlanderForDigProduct() {
         <div className="md:w-1/2 md:pl-8 flex-1 flex flex-col justify-between">
           {/* 1) Select package size */}
           <div className="mt-4">
-            <p>Select Package Size:</p>
+            <p>Vælg pakkestørrelse:</p>
             {product.packages && product.packages.length > 0 ? (
               product.packages.map((pkg) => (
                 <label key={pkg.size} className="mr-4">
@@ -364,17 +364,17 @@ export default function ViBlanderForDigProduct() {
                     checked={selectedSize === pkg.size}
                     onChange={() => setSelectedSize(pkg.size)}
                   />
-                  {pkg.size} pcs
+                  {pkg.size} stk
                 </label>
               ))
             ) : (
-              <p>No package sizes available.</p>
+              <p>Ingen pakkestørrelser tilgængelige.</p>
             )}
           </div>
 
           {/* 2) Sugar preference */}
           <div className="mt-4">
-            <p>With or without sugar:</p>
+            <p>Med eller uden sukker:</p>
             <label className="mr-4">
               <input
                 type="radio"
@@ -447,7 +447,7 @@ export default function ViBlanderForDigProduct() {
               loading={isGenerating}
               className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-full shadow hover:bg-blue-600 transition w-full"
             >
-              Regenerate Package
+              Generér ny pakke
             </LoadingButton>
 
             <LoadingConfettiButton
@@ -456,7 +456,7 @@ export default function ViBlanderForDigProduct() {
               loading={isAddingToCart}
               className="mt-4 bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600 transition w-full"
             >
-              Add to Cart
+              Tilføj til kurv
             </LoadingConfettiButton>
 
             <div className="text-2xl font-bold mt-4">
