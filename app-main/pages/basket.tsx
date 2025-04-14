@@ -45,7 +45,8 @@ const Basket: React.FC<BasketProps> = () => {
   const [explodedItems, setExplodedItems] = useState<Record<number, boolean>>({});
 
   // Delivery & Payment
-  const [deliveryOption, setDeliveryOption] = useState<string>('pickupPoint');
+  const [deliveryOption, setDeliveryOption] = useState<string>('homeDelivery');
+
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
   const [basketSummary, setBasketSummary] = useState<IBasketSummary | null>(null);
 
