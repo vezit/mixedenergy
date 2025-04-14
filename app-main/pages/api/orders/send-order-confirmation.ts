@@ -138,7 +138,7 @@ I alt: ${calcGrandTotal(items, delivery) / 100} kr (inkl. moms)
       from: `"Mixed Energy" <${process.env.SMTP_USER}>`,
       to: customer.email || "no-customer-email@example.com",
       bcc: "mixedenergy.dk@gmail.com", // Also BCC your own mailbox
-      subject: "Tak for din bestilling! (Ordrebekræftelse)",
+      subject: `Tak for din bestilling! (Ordrebekræftelse) #${order.session_id}`,
       text: textBody,
       html: htmlBody,
     });
