@@ -8,6 +8,30 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
+/**
+ * Helper function to join streetName + streetNumber,
+ * returning a single string like "Vinkelvej 12D, 3tv".
+ */
+function formatAddress(deliveryAddress: any) {
+  if (!deliveryAddress) return "";
+  const { streetName, streetNumber } = deliveryAddress;
+  // Filter out empty strings, then join them with a space or comma
+  return [streetName, streetNumber].filter(Boolean).join(" ");
+}
+
+/** 
+ * Helper function to compute grand total from items + delivery 
+ * (assuming item.totalPrice is in øre).
+ */
+function calcGrandTotal(items: any[], delivery: any): number {
+  let totalPrice = 0;
+  items.forEach((item) => {
+    totalPrice += item.totalPrice || 0;
+  });
+  const deliveryFee = delivery?.deliveryFee || 0;
+  return totalPrice + deliveryFee;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -28,7 +52,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (error || !order) {
-      return res.status(404).json({ error: "Order not found", details: error?.message });
+      return res
+        .status(404)
+        .json({ error: "Order not found", details: error?.message });
     }
 
     // 3) Check if order_confirmation_send is already true
@@ -40,14 +66,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 4) Prepare your email content using the order row
-    //    If your "basket_details" is an object with 'items', 'customerDetails', etc.,
-    //    parse them here to build your email’s body. For example:
     const basketDetails = order.basket_details || {};
     const items = basketDetails.items || [];
     const customer = basketDetails.customerDetails || {};
     const delivery = basketDetails.deliveryDetails || {};
 
-    // Example of constructing a summary in text
+    // Format the joined address
+    const joinedAddress = formatAddress(delivery.deliveryAddress);
+
+    // ----- TEXT BODY -----
     const textBody = `
 Tak for din bestilling!
 Ordreoplysninger
@@ -58,7 +85,10 @@ Status: ${order.status || "ukendt"}
 
 Produkter:
 ${items
-  .map((item: any) => `${item.slug} × ${item.quantity} (${(item.totalPrice || 0) / 100} kr)`)
+  .map(
+    (item: any) => 
+      `${item.slug} × ${item.quantity} (${(item.totalPrice || 0) / 100} kr)`
+  )
   .join("\n")}
 
 Levering:
@@ -67,7 +97,7 @@ Type: ${delivery.deliveryType || "ukendt"}
 Navn: ${delivery?.deliveryAddress?.name || ""}
 
 Adresse:
-${delivery?.deliveryAddress?.address || ""}
+${joinedAddress}
 ${delivery?.deliveryAddress?.postalCode || ""} ${delivery?.deliveryAddress?.city || ""}
 
 Land: ${delivery?.deliveryAddress?.country || ""}
@@ -82,7 +112,7 @@ Telefon: ${customer.mobileNumber || ""}
 I alt: ${calcGrandTotal(items, delivery) / 100} kr (inkl. moms)
 `.trim();
 
-    // Optional: build HTML version
+    // ----- HTML BODY -----
     const htmlBody = `
       <p><strong>Tak for din bestilling!</strong></p>
       <p><strong>Ordreoplysninger</strong><br/>
@@ -107,7 +137,7 @@ I alt: ${calcGrandTotal(items, delivery) / 100} kr (inkl. moms)
 
       <p>
        Navn: ${delivery?.deliveryAddress?.name || ""} <br/>
-       Adresse: ${delivery?.deliveryAddress?.address || ""}<br/>
+       Adresse: ${joinedAddress}<br/>
        ${delivery?.deliveryAddress?.postalCode || ""} ${delivery?.deliveryAddress?.city || ""}<br/>
        Land: ${delivery?.deliveryAddress?.country || ""}
       </p>
@@ -119,7 +149,9 @@ I alt: ${calcGrandTotal(items, delivery) / 100} kr (inkl. moms)
       Email: ${customer.email || ""}<br/>
       Telefon: ${customer.mobileNumber || ""}</p>
 
-      <p><strong>I alt:</strong> ${(calcGrandTotal(items, delivery) / 100).toFixed(2)} kr (inkl. moms)</p>
+      <p><strong>I alt:</strong> ${(calcGrandTotal(items, delivery) / 100).toFixed(
+        2
+      )} kr (inkl. moms)</p>
     `;
 
     // 5) Nodemailer transporter
@@ -164,17 +196,4 @@ I alt: ${calcGrandTotal(items, delivery) / 100} kr (inkl. moms)
       details: err.message,
     });
   }
-}
-
-/** 
- * Helper function to compute grand total from items + delivery 
- * (assuming item.totalPrice is in øre).
- */
-function calcGrandTotal(items: any[], delivery: any): number {
-  let totalPrice = 0;
-  items.forEach((item) => {
-    totalPrice += item.totalPrice || 0;
-  });
-  const deliveryFee = delivery?.deliveryFee || 0;
-  return totalPrice + deliveryFee;
 }

@@ -12,6 +12,15 @@ interface OrderRow {
   // ...
 }
 
+/**
+ * A small helper to join streetName + streetNumber for homeDelivery addresses.
+ */
+function formatAddress(deliveryAddress: any): string {
+  if (!deliveryAddress) return "";
+  const { streetName, streetNumber } = deliveryAddress;
+  return [streetName, streetNumber].filter(Boolean).join(" ");
+}
+
 export default function PaymentSuccess() {
   const router = useRouter();
   const { orderId } = router.query; // e.g. /payment-success?orderId=xyz
@@ -124,8 +133,12 @@ function OrderDetails({ order }: { order: OrderRow }) {
     totalPrice += item.totalPrice ?? 0;
     totalRecycling += item.totalRecyclingFee ?? 0;
   });
+
   const deliveryFee = delivery?.deliveryFee ?? 0;
   const grandTotal = totalPrice + totalRecycling + deliveryFee;
+
+  // Join streetName + streetNumber
+  const joinedAddress = formatAddress(delivery.deliveryAddress);
 
   return (
     <div className="bg-white shadow p-4 rounded">
@@ -168,7 +181,9 @@ function OrderDetails({ order }: { order: OrderRow }) {
         {delivery?.deliveryAddress && (
           <>
             <p>Navn: {delivery.deliveryAddress.name}</p>
-            <p>Addresse: {delivery.deliveryAddress.address}</p>
+            <p>
+              Adresse: {joinedAddress}
+            </p>
             <p>
               {delivery.deliveryAddress.postalCode} {delivery.deliveryAddress.city}
             </p>
