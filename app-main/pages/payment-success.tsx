@@ -1,17 +1,15 @@
-// File: pages/payment-success.tsx
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 
 /** This matches your DB row in "orders" */
 interface OrderRow {
   id: number;
   session_id: string;
   order_id: string;
-  basket_details?: any;
-  quickpay_details?: any;
   status?: string;
-  // etc.
+  order_confirmation_send?: boolean;
+  basket_details?: any;
+  // ...
 }
 
 export default function PaymentSuccess() {
@@ -19,7 +17,7 @@ export default function PaymentSuccess() {
   const { orderId } = router.query; // e.g. /payment-success?orderId=xyz
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [accepted, setAccepted] = useState(false);
   const [order, setOrder] = useState<OrderRow | null>(null);
 
@@ -28,7 +26,7 @@ export default function PaymentSuccess() {
 
     const checkPayment = async () => {
       setLoading(true);
-      setError('');
+      setError("");
       try {
         const res = await fetch(`/api/quickpay/payment-status?orderId=${orderId}`);
         if (!res.ok) {
@@ -37,19 +35,30 @@ export default function PaymentSuccess() {
         const data = await res.json();
 
         if (data.error) {
-          // e.g. "Order not found" or other
           setError(data.error);
           setAccepted(false);
           setOrder(null);
         } else {
-          // data.accepted = boolean
-          // data.order = entire row
           setAccepted(data.accepted);
           setOrder(data.order);
+          // ---------------------------------
+          // 1) If payment accepted & confirmation not yet sent => send order confirmation
+          // ---------------------------------
+          if (data.accepted && data.order && !data.order.order_confirmation_send) {
+            try {
+              await fetch("/api/orders/send-order-confirmation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId: data.order.id }),
+              });
+            } catch (err) {
+              console.error("Failed sending confirmation email:", err);
+            }
+          }
         }
       } catch (err: any) {
-        console.error('Error verifying payment:', err);
-        setError('Kunne ikke hente ordre. Prøv igen.');
+        console.error("Error verifying payment:", err);
+        setError("Kunne ikke hente ordre. Prøv igen.");
       } finally {
         setLoading(false);
       }
@@ -97,24 +106,18 @@ export default function PaymentSuccess() {
   return (
     <div className="p-4 max-w-xl mx-auto">
       <h2 className="text-2xl font-bold text-green-700 mb-4">Tak for din bestilling!</h2>
-
-      {order && (
-        <OrderDetails order={order} />
-      )}
+      {order && <OrderDetails order={order} />}
     </div>
   );
 }
 
 /** A small sub-component to show order details to the customer */
 function OrderDetails({ order }: { order: OrderRow }) {
-  // Our DB row has basket_details: JSONB
   const { basket_details } = order || {};
-  // For convenience, let's parse out relevant details:
   const items = basket_details?.items || [];
   const customer = basket_details?.customerDetails || {};
   const delivery = basket_details?.deliveryDetails || {};
 
-  // Example: compute total from the final stored basket
   let totalPrice = 0;
   let totalRecycling = 0;
   items.forEach((item: any) => {
@@ -122,7 +125,7 @@ function OrderDetails({ order }: { order: OrderRow }) {
     totalRecycling += item.totalRecyclingFee ?? 0;
   });
   const deliveryFee = delivery?.deliveryFee ?? 0;
-  const grandTotal = totalPrice + totalRecycling + deliveryFee; // in øre
+  const grandTotal = totalPrice + totalRecycling + deliveryFee;
 
   return (
     <div className="bg-white shadow p-4 rounded">
