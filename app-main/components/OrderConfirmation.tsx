@@ -6,12 +6,12 @@ import { ICustomerDetails } from '../types/ICustomerDetails';
 
 export interface IDeliveryAddress {
   name?: string;
-  address?: string;
+  address?: string;      // might still be used for pickup point addresses
   postalCode?: string;
   city?: string;
   country?: string;
-  streetName?: string;
-  streetNumber?: string;
+  streetName?: string;   // used for home delivery
+  streetNumber?: string; // used for home delivery
   [key: string]: any;
 }
 
@@ -25,7 +25,7 @@ export interface IBasketSummary {
   deliveryDetails?: {
     deliveryOption?: string; // e.g. 'pickupPoint' | 'homeDelivery'
     deliveryAddress?: IDeliveryAddress;
-    deliveryFee?: number; // in "øre"
+    deliveryFee?: number; // in øre
     providerDetails?: any;
   };
 }
@@ -58,6 +58,17 @@ interface OrderConfirmationProps {
   setSubmitAttempted: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+/**
+ * Helper to join streetName + streetNumber 
+ * into a single string like "Vinkelvej 12D, 3tv".
+ */
+function formatAddress(deliveryAddress: IDeliveryAddress): string {
+  if (!deliveryAddress) return '';
+  const { streetName, streetNumber } = deliveryAddress;
+  // Filter out falsy values, join them with a space
+  return [streetName, streetNumber].filter(Boolean).join(' ');
+}
+
 const OrderConfirmation: FC<OrderConfirmationProps> = ({
   customerDetails,
   deliveryOption,
@@ -81,25 +92,31 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
   const router = useRouter();
   const basketContext = useBasket();
 
-  // The address that we actually show in the “Ordreoversigt,”
-  // coming straight from the DB if it exists.
+  // The address from the DB if it exists
   const finalDeliveryAddress = basketSummary?.deliveryDetails?.deliveryAddress || {};
-
-  // For clarity, read the server’s “deliveryOption” or fallback to local
-  const finalDeliveryOption = basketSummary?.deliveryDetails?.deliveryOption || deliveryOption;
+  // The final type from the DB or fallback to local
+  const finalDeliveryOption =
+    basketSummary?.deliveryDetails?.deliveryOption || deliveryOption;
 
   /**
-   * Handle "Betal" or "Gennemfør køb" logic
+   * Called when the user clicks "Gennemfør køb"
    */
   const handlePayment = async () => {
     setSubmitAttempted(true);
-  
-    // 1) Basic client-side validation for required fields
-    const requiredFields = ['fullName', 'mobileNumber', 'email', 'address', 'postalCode', 'city'] as const;
+
+    // 1) Basic client-side validation
+    const requiredFields = [
+      'fullName',
+      'mobileNumber',
+      'email',
+      'address',
+      'postalCode',
+      'city',
+    ] as const;
 
     const newErrors: ErrorMap = { ...errors };
     const newTouchedFields: TouchedFieldsMap = { ...touchedFields };
-  
+
     let customerDetailsValid = true;
     for (const field of requiredFields) {
       if (!customerDetails[field] || !customerDetails[field].trim()) {
@@ -108,95 +125,96 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
         customerDetailsValid = false;
       }
     }
-  
+
     setErrors(newErrors);
     setTouchedFields(newTouchedFields);
-  
+
     if (!customerDetailsValid) {
-      document.getElementById('customer-details')?.scrollIntoView({ behavior: 'smooth' });
+      document
+        .getElementById('customer-details')
+        ?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-  
-    // If pickupPoint is chosen but none is selected
+
+    // If pickupPoint is chosen but no point selected
     if (finalDeliveryOption === 'pickupPoint') {
       if (!selectedPoint) {
-        document.getElementById('shipping-and-payment')?.scrollIntoView({ behavior: 'smooth' });
+        document
+          .getElementById('shipping-and-payment')
+          ?.scrollIntoView({ behavior: 'smooth' });
         alert('Vælg venligst et afhentningssted.');
         return;
       }
     }
-  
+
     // If basket is empty
     if (!basketItems || basketItems.length === 0) {
       router.push('/');
       return;
     }
-  
+
     // Check terms acceptance
     if (!termsAccepted) {
       setTermsError(
         'Du skal acceptere vores handelsbetingelser før du kan fortsætte. ' +
           'Sæt venligst flueben i boksen herover.'
       );
-      document.getElementById('order-confirmation')?.scrollIntoView({ behavior: 'smooth' });
+      document
+        .getElementById('order-confirmation')
+        ?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-  
-    // 2) Attempt the Payment flow
+
+    // 2) Attempt Payment flow
     setIsProcessingPayment(true);
     try {
-      // 2a) Update server's delivery details so basketSummary is synced
+      // 2a) Update session with final details
       await updateDeliveryDetailsInBackend(finalDeliveryOption, {
         selectedPickupPoint: selectedPoint,
       });
-  
-      // 2b) (Optional) Generate an order ID or retrieve from database
-      //     This is NOT strictly required by QuickPay if you’re already
-      //     using session_id or something else as the order_id.
+
+      // 2b) Possibly create an order ID
       const orderId = 'ORDER-' + Date.now();
-  
-      // 2c) Calculate total amount in øre (including potential delivery fees, pant, etc.)
+
+      // 2c) total in øre
       const deliveryFee = basketSummary?.deliveryDetails?.deliveryFee || 0;
-      const totalAmount = totalPrice + totalRecyclingFee + deliveryFee; // in øre
-  
-      // 3) CREATE the QuickPay "payment" object (via your /api/quickpay/createPayment)
+      const totalAmount = totalPrice + totalRecyclingFee + deliveryFee;
+
+      // 3) Create Payment
       const createPaymentRes = await fetch('/api/quickpay/createPayment', {
         method: 'POST',
-        credentials: 'include', // if you need cookies
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // If you want to pass in the "order_id" or any extra info:
           customOrderId: orderId,
-          // Possibly pass in the totalAmount here or store it in your DB.
         }),
       });
-  
       if (!createPaymentRes.ok) {
         throw new Error('Failed to create payment in QuickPay');
       }
-  
       const { paymentId } = await createPaymentRes.json();
       if (!paymentId) {
         throw new Error('No paymentId returned from createPayment');
       }
-  
-      // 4) GET the Payment Link (via your /api/quickpay/getPaymentLink/[paymentId])
-      //    This will finalize the link with amount, callback_url, etc.
-      const getPaymentLinkRes = await fetch(`/api/quickpay/getPaymentLink/${paymentId}?amount=${totalAmount}`, {
-        method: 'GET',
-        credentials: 'include', // if you need cookies
-      });
-  
+
+      // 4) Get Payment Link
+      const getPaymentLinkRes = await fetch(
+        `/api/quickpay/getPaymentLink/${paymentId}?amount=${totalAmount}`,
+        {
+          method: 'GET',
+          credentials: 'include',
+        }
+      );
       if (!getPaymentLinkRes.ok) {
         throw new Error('Failed to get payment link from QuickPay');
       }
-  
+
       const linkData = await getPaymentLinkRes.json();
       if (!linkData.linkUrl) {
         throw new Error('No linkUrl returned from QuickPay');
       }
-  
-      // 5) Redirect the user to QuickPay’s hosted payment window
+
+      // 5) Redirect to QuickPay’s hosted window
       window.location.href = linkData.linkUrl;
     } catch (error) {
       console.error('Error during payment process:', error);
@@ -216,15 +234,34 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
 
         <div className="mb-4">
           <h4 className="font-bold">Leveringstype:</h4>
-          <p>{finalDeliveryOption === 'pickupPoint' ? 'Afhentningssted' : 'Hjemmelevering'}</p>
+          <p>
+            {finalDeliveryOption === 'pickupPoint' ? 'Afhentningssted' : 'Hjemmelevering'}
+          </p>
         </div>
 
         <div className="mb-4">
           <h4 className="font-bold">Leveringsadresse:</h4>
+          {/* 
+             If "pickupPoint," you might use finalDeliveryAddress.address 
+             Instead, for homeDelivery, we show streetName + streetNumber 
+          */}
           <p>{finalDeliveryAddress.name || ''}</p>
-          <p>{finalDeliveryAddress.address || ''}</p>
+
+          {/* 
+            Join streetName + streetNumber (like payment-success / email).
+            If it's a pickupPoint, maybe finalDeliveryAddress.address still
+            works. You can handle that logic however you wish.
+          */}
           <p>
-            {finalDeliveryAddress.postalCode || ''} {finalDeliveryAddress.city || ''}
+            {finalDeliveryOption === 'pickupPoint'
+              ? finalDeliveryAddress.address || '' // for pickup points
+              : formatAddress(finalDeliveryAddress) // for home delivery
+            }
+          </p>
+
+          <p>
+            {finalDeliveryAddress.postalCode || ''}{' '}
+            {finalDeliveryAddress.city || ''}
           </p>
           <p>{finalDeliveryAddress.country || ''}</p>
         </div>
@@ -241,7 +278,9 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
           <p>
             Antal pakker: {basketItems.reduce((acc, item) => acc + item.quantity, 0)}
           </p>
-          <p>Total pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr</p>
+          <p>
+            Total pris: {((totalPrice + totalRecyclingFee) / 100).toFixed(2)} kr
+          </p>
           <p>Pant: {(totalRecyclingFee / 100).toFixed(2)} kr</p>
           <p>
             Leveringsgebyr:{' '}
