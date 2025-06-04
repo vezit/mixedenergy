@@ -1,39 +1,25 @@
 {
   "version": "0.2.0",
   "configurations": [
-
     {
-      // (1) Launch Next.js dev with --inspect
       "name": "Next.js: Full Stack",
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:debug"],  // We'll define "dev:debug" in package.json
+      "runtimeArgs": ["run", "dev:debug"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "sourceMaps": true,
       "restart": true,
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      // Point to the folder where package.json is located:
+      "skipFiles": ["<node_internals>/**"],
       "cwd": "${workspaceFolder}/app-main",
-      // If you rely on source maps or TypeScript, specify output files:
-      "outFiles": [
-        "${workspaceFolder}/app-main/.next/**/*.js"
-      ],
-      // Next.js can produce source maps in development
+      "outFiles": ["${workspaceFolder}/app-main/.next/**/*.js"],
       "resolveSourceMapLocations": [
         "${workspaceFolder}/app-main/.next/**/*.js",
         "!**/node_modules/**"
       ]
     },
-
     {
-      // (2) Attach to the Node.js worker process
-      // In Next.js 13/15, your code typically runs on port 9230,
-      // even though you start on 9229. So this is where your breakpoints
-      // will likely hit.
       "name": "Attach to Next.js Router Server (9230)",
       "type": "node",
       "request": "attach",
@@ -41,15 +27,9 @@
       "address": "127.0.0.1",
       "localRoot": "${workspaceFolder}/app-main",
       "remoteRoot": "/usr/src/project/app-main",
-      "skipFiles": [
-        "<node_internals>/**"
-      ]
+      "skipFiles": ["<node_internals>/**"]
     },
-
     {
-      // (3) Attach to the original process on 9229
-      // Sometimes you might need to debug the top-level Next CLI. 
-      // If your breakpoints don't hit in "9230", try "9229" for older versions of Next.
       "name": "Attach to Next.js Launcher (9229)",
       "type": "node",
       "request": "attach",
@@ -57,34 +37,24 @@
       "address": "127.0.0.1",
       "localRoot": "${workspaceFolder}/app-main",
       "remoteRoot": "/usr/src/project/app-main",
-      "skipFiles": [
-        "<node_internals>/**"
-      ]
+      "skipFiles": ["<node_internals>/**"]
     },
-
     {
-      // (4) Launch a browser for client-side debugging 
-      // (Chrome or Edge)
       "name": "Browser: chromium",
-      "type": "msedge", // or "chrome"
+      "type": "pwa-chrome",
       "request": "launch",
-      // Update path if your browser exe is installed elsewhere
-      "runtimeExecutable": "C:\\Program Files\\chrome-win\\chrome.exe",
-      "url": "http://mixedenergy.ngrok.dev",
+      "runtimeExecutable": "/usr/bin/chromium-browser",
+      "url": "http://localhost:3000", // use the local one from Next output
       "webRoot": "${workspaceFolder}/app-main",
       "disableNetworkCache": true
     }
   ],
-
   "compounds": [
     {
-      // (5) Start All: run Next.js, attach to the router server, and open the browser
-      // If you also want to attach to the launcher on 9229, you can add that too
       "name": "Start All",
       "configurations": [
         "Next.js: Full Stack",
-        "Attach to Next.js Router Server (9230)",
-        "Browser: chromium"
+        "Attach to Next.js Router Server (9230)"
       ]
     }
   ]

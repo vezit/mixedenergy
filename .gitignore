@@ -24,6 +24,7 @@ requirements.txt
 app-main/data
 app-main/.env.development
 app-main/.env.production
+app-main/package-lock.json
 .next/trace
 app-main/.env.prod
 _ngrok_auth
