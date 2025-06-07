@@ -1,0 +1,51 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.container {
+  position: relative;
+  width: 90%;
+  max-width: 600px;
+  overflow: hidden;
+}
+
+.track {
+  display: flex;
+  width: fit-content;
+  animation: scroll linear infinite;
+}
+
+.image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  margin: 0 4px;
+  border-radius: 6px;
+}
+
+.highlight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 84px;
+  margin-left: -42px;
+  border-left: 2px solid #fff;
+  border-right: 2px solid #fff;
+  pointer-events: none;
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
