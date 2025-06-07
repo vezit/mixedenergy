@@ -26,14 +26,18 @@ const RouletteAnimation: React.FC<RouletteAnimationProps> = ({ images, duration 
     const interval = setInterval(playTick, 120);
     const timer = setTimeout(() => {
       clearInterval(interval);
-      audioCtx.close();
+      if (audioCtx.state !== 'closed') {
+        audioCtx.close();
+      }
       onComplete?.();
     }, duration);
 
     return () => {
       clearInterval(interval);
       clearTimeout(timer);
-      audioCtx.close();
+      if (audioCtx.state !== 'closed') {
+        audioCtx.close();
+      }
     };
   }, [duration, onComplete]);
 

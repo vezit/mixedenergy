@@ -224,6 +224,7 @@ export default function ViBlanderForDigProduct() {
   async function createTemporarySelection(isMysteryBox: boolean) {
     if (!sessionId || !slug || !selectedSize) return;
 
+    setShowRoulette(true);
     setIsGenerating(true);
     try {
       const body = {
@@ -261,7 +262,6 @@ export default function ViBlanderForDigProduct() {
       alert('Error creating selection');
     } finally {
       setIsGenerating(false);
-
       setShowFireworks(true);
     }
   }
@@ -297,7 +297,6 @@ export default function ViBlanderForDigProduct() {
    */
   async function regenerateSelection() {
     setShowFireworks(false);
-    setShowRoulette(true);
     await createTemporarySelection(true);
   }
 
