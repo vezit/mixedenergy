@@ -261,7 +261,7 @@ export default function ViBlanderForDigProduct() {
       alert('Error creating selection');
     } finally {
       setIsGenerating(false);
-      setShowRoulette(false);
+
       setShowFireworks(true);
     }
   }

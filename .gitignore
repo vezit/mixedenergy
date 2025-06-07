@@ -28,3 +28,5 @@ app-main/package-lock.json
 .next/trace
 app-main/.env.prod
 _ngrok_auth
+app-main/tsconfig.tsbuildinfo
+package-lock.json

@@ -41,7 +41,12 @@
 .track {
   display: flex;
   width: fit-content;
-  animation: scroll linear infinite;
+  animation-name: scroll;
+  animation-timing-function: cubic-bezier(0.1, 0.7, 0.3, 1);
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+  animation-duration: var(--duration, 8000ms);
+
 }
 
 .image {
