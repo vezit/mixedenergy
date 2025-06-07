@@ -45,6 +45,7 @@ const RouletteAnimation: React.FC<RouletteAnimationProps> = ({ images, duration 
     .fill(null)
     .flatMap(() => images);
 
+
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
