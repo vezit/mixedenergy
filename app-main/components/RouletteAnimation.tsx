@@ -27,6 +27,7 @@ const RouletteAnimation: React.FC<RouletteAnimationProps> = ({ images, duration 
         </div>
         <div className={styles.highlight}></div>
       </div>
+      <div className={styles.text}>Åbner pakke...</div>
     </div>
   );
 };

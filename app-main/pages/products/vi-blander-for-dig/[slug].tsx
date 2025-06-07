@@ -11,6 +11,7 @@ import LoadingButton from '../../../components/LoadingButton';
 import LoadingConfettiButton from '../../../components/LoadingConfettiButton';
 import ConfettiAnimation from '../../../components/ConfettiAnimation';
 import RouletteAnimation from '../../../components/RouletteAnimation';
+import FireworkAnimation from '../../../components/FireworkAnimation';
 import { getCookie } from '../../../lib/cookies';
 
 /** Data from DB about package sizes. */
@@ -77,6 +78,7 @@ export default function ViBlanderForDigProduct() {
   const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [showRoulette, setShowRoulette] = useState<boolean>(false);
+  const [showFireworks, setShowFireworks] = useState<boolean>(false);
 
   // The session_id read from cookie
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -260,6 +262,7 @@ export default function ViBlanderForDigProduct() {
     } finally {
       setIsGenerating(false);
       setShowRoulette(false);
+      setShowFireworks(true);
     }
   }
 
@@ -293,6 +296,7 @@ export default function ViBlanderForDigProduct() {
    * Overwrite selection => call createTemporarySelection again
    */
   async function regenerateSelection() {
+    setShowFireworks(false);
     setShowRoulette(true);
     await createTemporarySelection(true);
   }
@@ -490,6 +494,9 @@ export default function ViBlanderForDigProduct() {
           images={Object.values(drinksData).map((d) => `${SUPABASE_URL}${d.image}`)}
           onComplete={() => setShowRoulette(false)}
         />
+      )}
+      {showFireworks && (
+        <FireworkAnimation onAnimationEnd={() => setShowFireworks(false)} />
       )}
     </div>
   );
