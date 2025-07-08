@@ -56,8 +56,12 @@ export async function getOrCreateSession(cookieHeader?: string, noBasket = false
       .maybeSingle()
 
     if (ordersErr) {
-      console.error('[getOrCreateSession] Error checking orders table:', ordersErr)
-      throw new Error(`Error checking orders for session_id: ${ordersErr.message}`)
+      if ((ordersErr as any).code === '42P01') {
+        console.warn('[getOrCreateSession] orders table missing, skipping check.')
+      } else {
+        console.error('[getOrCreateSession] Error checking orders table:', ordersErr)
+        throw new Error(`Error checking orders for session_id: ${ordersErr.message}`)
+      }
     }
 
     if (inOrders) {
@@ -175,12 +179,17 @@ async function generateUniqueSessionId(): Promise<string> {
       .select('session_id', { count: 'exact', head: true })
       .eq('session_id', candidate)
 
+    let ordersCount = 0
     if (ordErr) {
-      console.error('[generateUniqueSessionId] Error checking orders table:', ordErr)
-      throw new Error(ordErr.message)
+      if ((ordErr as any).code === '42P01') {
+        console.warn('[generateUniqueSessionId] orders table missing, skipping check.')
+      } else {
+        console.error('[generateUniqueSessionId] Error checking orders table:', ordErr)
+        throw new Error(ordErr.message)
+      }
+    } else {
+      ordersCount = inOrders?.length ?? 0
     }
-
-    const ordersCount = inOrders?.length ?? 0
 
     // If neither table has this ID => success
     if (sessionsCount === 0 && ordersCount === 0) {
