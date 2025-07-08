@@ -127,8 +127,9 @@ export function SessionProvider({ children, initialSession }: SessionProviderPro
       setLoading(true);
       setError(null);
 
-      const query = noBasket ? '?noBasket=1' : '';
-      const resp = await axios.get('/api/supabase/session' + query);
+      const resp = await axios.get<{ session?: SessionRow }>('/api/supabase/session', {
+        params: noBasket ? { noBasket: 1 } : {},
+      });
       // Usually returns { newlyCreated, session }
       const fetchedSession = resp.data.session || null;
       setSession(fetchedSession);
