@@ -7,7 +7,7 @@ DROP FUNCTION IF EXISTS public.accept_cookies(text);
 -- Drop tables (in order to avoid foreign key issues)
 DROP TABLE IF EXISTS public.package_drinks;
 DROP TABLE IF EXISTS public.package_sizes;
--- DROP TABLE IF EXISTS public.orders;
+DROP TABLE IF EXISTS public.orders;
 DROP TABLE IF EXISTS public.sessions;
 DROP TABLE IF EXISTS public.postal_service;
 DROP TABLE IF EXISTS public.drinks;
@@ -66,33 +66,33 @@ CREATE TABLE IF NOT EXISTS public.package_drinks (
   drink_id BIGINT REFERENCES public.drinks (id) ON DELETE CASCADE
 );
 
--- -- ORDERS
--- CREATE TABLE IF NOT EXISTS public.orders (
---   id BIGSERIAL PRIMARY KEY,
---   order_key TEXT,
---   session_id TEXT UNIQUE,
---   order_id TEXT UNIQUE,
---   basket_details JSONB,
---   quickpay_details JSONB,
---   status TEXT,
---   order_confirmation_send BOOLEAN,
---   order_invoice_send BOOLEAN,
+-- ORDERS
+CREATE TABLE IF NOT EXISTS public.orders (
+  id BIGSERIAL PRIMARY KEY,
+  order_key TEXT,
+  session_id TEXT UNIQUE,
+  order_id TEXT UNIQUE,
+  basket_details JSONB,
+  quickpay_details JSONB,
+  status TEXT,
+  order_confirmation_send BOOLEAN,
+  order_invoice_send BOOLEAN,
 
---   /* Shipmondo & tracking fields */
---   shipmondo_shipment_id TEXT,         -- store the Shipmondo shipment ID
---   tracking_number TEXT,               -- store the tracking number
---   tracking_url TEXT,                  -- store a direct tracking URL if needed
---   carrier TEXT,                       -- store which carrier (e.g. 'gls', 'postnord') was used
---   shipping_label_url TEXT,            -- store a link to the PDF label if needed
---   shipping_cost INT,                  -- store shipping cost in øre (e.g. 6500 => 65.00 DKK)
---   shipping_method TEXT,               -- store the chosen shipping method (homeDelivery, pickupPoint, etc.)
+  /* Shipmondo & tracking fields */
+  shipmondo_shipment_id TEXT,         -- store the Shipmondo shipment ID
+  tracking_number TEXT,               -- store the tracking number
+  tracking_url TEXT,                  -- store a direct tracking URL if needed
+  carrier TEXT,                       -- store which carrier (e.g. 'gls', 'postnord') was used
+  shipping_label_url TEXT,            -- store a link to the PDF label if needed
+  shipping_cost INT,                  -- store shipping cost in øre (e.g. 6500 => 65.00 DKK)
+  shipping_method TEXT,               -- store the chosen shipping method (homeDelivery, pickupPoint, etc.)
 
---   /* Other integration or shipping data */
---   shipping_address JSONB,             -- store shipping address details if separate from basket_details
---   tracking_status TEXT,               -- latest known status from Shipmondo webhooks
---   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
---   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
--- );
+  /* Other integration or shipping data */
+  shipping_address JSONB,             -- store shipping address details if separate from basket_details
+  tracking_status TEXT,               -- latest known status from Shipmondo webhooks
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
 
 -- SESSIONS
 -- Note the "DEFAULT now()" for created_at/updated_at
