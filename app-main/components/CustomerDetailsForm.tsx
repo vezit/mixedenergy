@@ -84,12 +84,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
       return 'This field is required';
     }
 
-    if (fieldName === 'mobileNumber') {
-      const mobileNumberRegex = /^\d{8}$/;
-      if (!mobileNumberRegex.test(value.trim())) {
-        return 'Please enter a valid 8-digit mobile number';
-      }
-    } else if (fieldName === 'email') {
+    if (fieldName === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(value.trim())) {
         return 'Please enter a valid email address';
@@ -104,10 +99,19 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
     return null;
   };
 
-  /** Handle typing in each input (only updates local state). */
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setLocalDetails((prev) => ({ ...prev, [name]: value }));
+  /**
+   * Handle any change within the form. This also catches browser autofill
+   * events so all fields are kept in sync with state.
+   */
+  const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
+    const formData = new FormData(e.currentTarget);
+    const updatedDetails: Partial<ICustomerDetails> = {};
+    formData.forEach((value, key) => {
+      updatedDetails[key as CustomerDetailsKey] = value.toString();
+    });
+    setLocalDetails((prev) => ({ ...prev, ...updatedDetails }));
+    // Persist immediately so autofilled values aren't lost on submit
+    void updateCustomerDetails(updatedDetails);
   };
 
   /**
@@ -187,19 +191,19 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   return (
     <div id="customer-details">
       <h2 className="text-2xl font-bold mb-4">Kundeoplysninger</h2>
-      <form onSubmit={(e) => e.preventDefault()}>
+      <form onSubmit={(e) => e.preventDefault()} onChange={handleFormChange} autoComplete="on">
         {/* Full Name */}
         <div className="mb-9 relative">
-          <input
-            type="text"
-            name="fullName"
-            id="fullName"
-            value={localDetails.fullName || ''}
-            onChange={handleInputChange}
-            onBlur={() => handleInputBlur('fullName')}
-            className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
-            placeholder=" "
-          />
+            <input
+              type="text"
+              name="fullName"
+              id="fullName"
+              autoComplete="name"
+              value={localDetails.fullName || ''}
+              onBlur={() => handleInputBlur('fullName')}
+              className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
+              placeholder=" "
+            />
           <label
             htmlFor="fullName"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
@@ -219,16 +223,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
         {/* Mobile Number */}
         <div className="mb-9 relative">
-          <input
-            type="text"
-            name="mobileNumber"
-            id="mobileNumber"
-            value={localDetails.mobileNumber || ''}
-            onChange={handleInputChange}
-            onBlur={() => handleInputBlur('mobileNumber')}
-            className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
-            placeholder=" "
-          />
+            <input
+              type="text"
+              name="mobileNumber"
+              id="mobileNumber"
+              autoComplete="tel"
+              value={localDetails.mobileNumber || ''}
+              onBlur={() => handleInputBlur('mobileNumber')}
+              className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
+              placeholder=" "
+            />
           <label
             htmlFor="mobileNumber"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
@@ -248,16 +252,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
         {/* Email */}
         <div className="mb-9 relative">
-          <input
-            type="email"
-            name="email"
-            id="email"
-            value={localDetails.email || ''}
-            onChange={handleInputChange}
-            onBlur={() => handleInputBlur('email')}
-            className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
-            placeholder=" "
-          />
+            <input
+              type="email"
+              name="email"
+              id="email"
+              autoComplete="email"
+              value={localDetails.email || ''}
+              onBlur={() => handleInputBlur('email')}
+              className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
+              placeholder=" "
+            />
           <label
             htmlFor="email"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
@@ -277,16 +281,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
         {/* Address */}
         <div className="mb-9 relative">
-          <input
-            type="text"
-            name="address"
-            id="address"
-            value={localDetails.address || ''}
-            onChange={handleInputChange}
-            onBlur={() => handleInputBlur('address')}
-            className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
-            placeholder=" "
-          />
+            <input
+              type="text"
+              name="address"
+              id="address"
+              autoComplete="street-address"
+              value={localDetails.address || ''}
+              onBlur={() => handleInputBlur('address')}
+              className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
+              placeholder=" "
+            />
           <label
             htmlFor="address"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
@@ -306,16 +310,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
         {/* Postal Code */}
         <div className="mb-9 relative">
-          <input
-            type="text"
-            name="postalCode"
-            id="postalCode"
-            value={localDetails.postalCode || ''}
-            onChange={handleInputChange}
-            onBlur={() => handleInputBlur('postalCode')}
-            className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
-            placeholder=" "
-          />
+            <input
+              type="text"
+              name="postalCode"
+              id="postalCode"
+              autoComplete="postal-code"
+              value={localDetails.postalCode || ''}
+              onBlur={() => handleInputBlur('postalCode')}
+              className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
+              placeholder=" "
+            />
           <label
             htmlFor="postalCode"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
@@ -335,16 +339,16 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
         {/* City */}
         <div className="mb-9 relative">
-          <input
-            type="text"
-            name="city"
-            id="city"
-            value={localDetails.city || ''}
-            onChange={handleInputChange}
-            onBlur={() => handleInputBlur('city')}
-            className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
-            placeholder=" "
-          />
+            <input
+              type="text"
+              name="city"
+              id="city"
+              autoComplete="address-level2"
+              value={localDetails.city || ''}
+              onBlur={() => handleInputBlur('city')}
+              className="peer w-full h-10 px-3 pt-4 pb-2 border rounded font-semibold focus:outline-none"
+              placeholder=" "
+            />
           <label
             htmlFor="city"
             className={`absolute left-3 text-gray-500 pointer-events-none font-semibold transition-all
@@ -364,15 +368,14 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
         {/* Country (Read-Only) */}
         <div className="mb-9 relative">
-          <input
-            type="text"
-            name="country"
-            id="country"
-            value={localDetails.country || 'Danmark'}
-            onChange={() => {}}
-            className="w-full px-3 pt-4 h-10 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
-            disabled
-          />
+            <input
+              type="text"
+              name="country"
+              id="country"
+              value={localDetails.country || 'Danmark'}
+              className="w-full px-3 pt-4 h-10 pb-2 border rounded bg-gray-100 cursor-not-allowed font-semibold"
+              disabled
+            />
           <label
             htmlFor="country"
             className="absolute left-3 text-gray-500 pointer-events-none font-semibold top-0 text-xs"
