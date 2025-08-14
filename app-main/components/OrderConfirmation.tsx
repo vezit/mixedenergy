@@ -23,7 +23,7 @@ export interface IBasketItem {
 
 export interface IBasketSummary {
   deliveryDetails?: {
-    deliveryOption?: string; // e.g. 'pickupPoint' | 'homeDelivery'
+    deliveryType?: string; // e.g. 'pickupPoint' | 'homeDelivery'
     deliveryAddress?: IDeliveryAddress;
     deliveryFee?: number; // in øre
     providerDetails?: any;
@@ -41,9 +41,11 @@ interface TouchedFieldsMap {
 interface OrderConfirmationProps {
   customerDetails: ICustomerDetails;
   deliveryOption: string;
+  deliveryProvider: string;
   selectedPoint: any;
   updateDeliveryDetailsInBackend: (
     deliveryOption: string,
+    provider: string,
     extras?: { selectedPickupPoint?: any }
   ) => Promise<void>;
   totalPrice: number;
@@ -72,6 +74,7 @@ function formatAddress(deliveryAddress: IDeliveryAddress): string {
 const OrderConfirmation: FC<OrderConfirmationProps> = ({
   customerDetails,
   deliveryOption,
+  deliveryProvider,
   selectedPoint,
   updateDeliveryDetailsInBackend,
   totalPrice,
@@ -96,7 +99,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
   const finalDeliveryAddress = basketSummary?.deliveryDetails?.deliveryAddress || {};
   // The final type from the DB or fallback to local
   const finalDeliveryOption =
-    basketSummary?.deliveryDetails?.deliveryOption || deliveryOption;
+    basketSummary?.deliveryDetails?.deliveryType || deliveryOption;
 
   /**
    * Called when the user clicks "Gennemfør køb"
@@ -169,7 +172,7 @@ const OrderConfirmation: FC<OrderConfirmationProps> = ({
     setIsProcessingPayment(true);
     try {
       // 2a) Update session with final details
-      await updateDeliveryDetailsInBackend(finalDeliveryOption, {
+      await updateDeliveryDetailsInBackend(finalDeliveryOption, deliveryProvider, {
         selectedPickupPoint: selectedPoint,
       });
 

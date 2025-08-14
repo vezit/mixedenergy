@@ -46,6 +46,7 @@ const Basket: React.FC<BasketProps> = () => {
 
   // Delivery & Payment
   const [deliveryOption, setDeliveryOption] = useState<string>('homeDelivery');
+  const [deliveryProvider, setDeliveryProvider] = useState<string>('postnord');
 
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
   const [basketSummary, setBasketSummary] = useState<IBasketSummary | null>(null);
@@ -72,20 +73,17 @@ const Basket: React.FC<BasketProps> = () => {
    */
   const updateDeliveryDetailsInBackend = async (
     deliveryType: string,
+    provider: string,
     extras?: { selectedPickupPoint?: any }
   ): Promise<void> => {
     try {
-      // Example data for the call:
-      const provider = 'postnord'; // or 'gls'
       let deliveryAddress = {};
-      let providerDetails = {};
+      let providerDetails: any = {};
 
       if (deliveryType === 'pickupPoint' && extras?.selectedPickupPoint) {
         // E.g. store the pickup point object or ID under providerDetails
-        providerDetails = {
-          postnord: {
-            servicePoint: extras.selectedPickupPoint, // entire object
-          },
+        providerDetails[provider] = {
+          servicePoint: extras.selectedPickupPoint, // entire object
         };
         // Also store some address for the "Ordreoversigt"
         deliveryAddress = {
@@ -147,14 +145,20 @@ const Basket: React.FC<BasketProps> = () => {
     if (session?.basket_details) {
       setBasketSummary(session.basket_details);
 
-      const storedDeliveryOption = session.basket_details.deliveryDetails?.deliveryOption;
+      const storedDeliveryOption =
+        session.basket_details.deliveryDetails?.deliveryType;
       if (storedDeliveryOption) {
         setDeliveryOption(storedDeliveryOption);
       }
 
+      const storedProvider = session.basket_details.deliveryDetails?.provider;
+      if (storedProvider) {
+        setDeliveryProvider(storedProvider);
+      }
+
       // If there's a stored pickup point in the DB, set local selectedPoint
       const sp =
-        session.basket_details.deliveryDetails?.providerDetails?.postnord?.servicePoint;
+        session.basket_details.deliveryDetails?.providerDetails?.[storedProvider!]?.servicePoint;
       if (sp?.servicePointId) {
         setSelectedPoint(sp);
       }
@@ -225,6 +229,8 @@ const Basket: React.FC<BasketProps> = () => {
             <ShippingAndPayment
               deliveryOption={deliveryOption}
               setDeliveryOption={setDeliveryOption}
+              deliveryProvider={deliveryProvider}
+              setDeliveryProvider={setDeliveryProvider}
               customerDetails={customerDetails}
               updateDeliveryDetailsInBackend={updateDeliveryDetailsInBackend}
               selectedPoint={selectedPoint}
@@ -236,6 +242,7 @@ const Basket: React.FC<BasketProps> = () => {
           <OrderConfirmation
             customerDetails={customerDetails}
             deliveryOption={deliveryOption}
+            deliveryProvider={deliveryProvider}
             selectedPoint={selectedPoint}
             updateDeliveryDetailsInBackend={updateDeliveryDetailsInBackend}
             totalPrice={totalPrice}

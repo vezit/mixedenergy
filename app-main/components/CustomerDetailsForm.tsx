@@ -31,7 +31,11 @@ interface CustomerDetailsFormProps {
   updateCustomerDetails: (details: Partial<ICustomerDetails>) => Promise<void>;
 
   /** If you still want to do something shipping-related, you have it here */
-  updateDeliveryDetailsInBackend: (option: string, data?: Record<string, any>) => void;
+  updateDeliveryDetailsInBackend: (
+    option: string,
+    provider: string,
+    data?: Record<string, any>
+  ) => void;
 
   errors: IErrors;
   setErrors: Dispatch<SetStateAction<IErrors>>;
