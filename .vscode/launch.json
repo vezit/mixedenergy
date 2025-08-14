@@ -66,11 +66,10 @@
       // (4) Launch a browser for client-side debugging 
       // (Chrome or Edge)
       "name": "Browser: chromium",
-      "type": "msedge", // or "chrome"
-      "request": "launch",
-      // Update path if your browser exe is installed elsewhere
-      "runtimeExecutable": "C:\\Program Files\\chrome-win\\chrome.exe",
-      "url": "http://mixedenergy.ngrok.dev",
+      "type": "chrome", // or "chrome"
+      "request": "launch",    
+      // "runtimeExecutable": "/usr/bin/chromium-browser",
+      "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}/app-main",
       "disableNetworkCache": true
     }
