@@ -84,12 +84,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
       return 'This field is required';
     }
 
-    if (fieldName === 'mobileNumber') {
-      const mobileNumberRegex = /^\d{8}$/;
-      if (!mobileNumberRegex.test(value.trim())) {
-        return 'Please enter a valid 8-digit mobile number';
-      }
-    } else if (fieldName === 'email') {
+    if (fieldName === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(value.trim())) {
         return 'Please enter a valid email address';
