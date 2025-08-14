@@ -129,22 +129,22 @@ export async function updateSession({
         finalDeliveryAddress.name = cust.fullName || '';
 
       } else if (deliveryOption === 'pickupPoint') {
-        // Use data from providerDetails.postnord.servicePointId
-        // (assuming you store the entire pickup point object there)
-        const pickupPoint = providerDetails?.postnord?.servicePoint;
+        const pickupPoint = providerDetails?.[provider]?.servicePoint;
         if (!pickupPoint) {
-          
-
-          throw new Error('[updateSession] Missing providerDetails.postnord.servicePointId for pickupPoint');
+          throw new Error(
+            `[updateSession] Missing providerDetails.${provider}.servicePoint for pickupPoint`
+          );
         }
 
-        finalDeliveryAddress.streetName = pickupPoint.visitingAddress?.streetName || '';
-        finalDeliveryAddress.streetNumber = pickupPoint.visitingAddress?.streetNumber || '';
-        finalDeliveryAddress.postalCode = pickupPoint.visitingAddress?.postalCode || '';
+        finalDeliveryAddress.streetName =
+          pickupPoint.visitingAddress?.streetName || '';
+        finalDeliveryAddress.streetNumber =
+          pickupPoint.visitingAddress?.streetNumber || '';
+        finalDeliveryAddress.postalCode =
+          pickupPoint.visitingAddress?.postalCode || '';
         finalDeliveryAddress.city = pickupPoint.visitingAddress?.city || '';
         finalDeliveryAddress.name = pickupPoint.name || '';
 
-        // Store the entire pickup point as well, if you want to reference it later
         finalDeliveryAddress.pickupPointInfo = pickupPoint;
       }
 

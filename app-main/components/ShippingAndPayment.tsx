@@ -6,6 +6,8 @@ import { ICustomerDetails } from '../types/ICustomerDetails';
 interface ShippingAndPaymentProps {
   deliveryOption: string;
   setDeliveryOption: (option: string) => void;
+  deliveryProvider: string;
+  setDeliveryProvider: (provider: string) => void;
   customerDetails: ICustomerDetails;
   /**
    * Must call "updateSession('updateDeliveryDetails', ... )" behind the scenes,
@@ -13,7 +15,8 @@ interface ShippingAndPaymentProps {
    */
   updateDeliveryDetailsInBackend: (
     deliveryType: string,
-    data: { [key: string]: any }
+    provider: string,
+    data?: { [key: string]: any }
   ) => Promise<void>;
   selectedPoint: PickupPoint | null;
   setSelectedPoint: (point: PickupPoint | null) => void;
@@ -22,6 +25,8 @@ interface ShippingAndPaymentProps {
 const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
   deliveryOption,
   setDeliveryOption,
+  deliveryProvider,
+  setDeliveryProvider,
   customerDetails,
   updateDeliveryDetailsInBackend,
   selectedPoint,
@@ -58,7 +63,11 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     }
 
     const { streetName, streetNumber } = splitAddress(address);
-    let url = `/api/postnord/servicepoints?city=${encodeURIComponent(
+    let baseUrl = '/api/postnord/servicepoints';
+    if (deliveryProvider === 'gls') {
+      baseUrl = '/api/gls/servicepoints';
+    }
+    let url = `${baseUrl}?city=${encodeURIComponent(
       city
     )}&postalCode=${encodeURIComponent(postalCode)}`;
 
@@ -89,8 +98,12 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
   /**
    * Called when user changes radio to "pickupPoint" or "homeDelivery."
    */
-  const handleDeliveryOptionChange = async (option: string) => {
+  const handleDeliveryOptionChange = async (
+    option: string,
+    provider: string
+  ) => {
     setDeliveryOption(option);
+    setDeliveryProvider(provider);
 
     if (option === 'pickupPoint') {
       setLoading(true);
@@ -111,9 +124,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
       setLoading(false);
 
       // Update session so it knows the user switched to homeDelivery
-      await updateDeliveryDetailsInBackend('homeDelivery', {
-        provider: 'postnord',
-      });
+      await updateDeliveryDetailsInBackend('homeDelivery', provider);
     }
   };
 
@@ -130,8 +141,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     if (found) {
       setSelectedPoint(found);
       // Update the session with the selected point
-      await updateDeliveryDetailsInBackend('pickupPoint', {
-        provider: 'postnord',
+      await updateDeliveryDetailsInBackend('pickupPoint', deliveryProvider, {
         selectedPickupPoint: found,
       });
     }
@@ -142,7 +152,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
       fetchPickupPoints(customerDetails);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerDetails.postalCode, deliveryOption]);
+  }, [customerDetails.postalCode, deliveryOption, deliveryProvider]);
 
   /** Helper if you want to translate opening hours day names to DK. */
   const translateDay = (day: string): string => {
@@ -166,15 +176,17 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
     <div id="shipping-and-payment" className="mt-8">
       <h2 className="text-xl font-bold mb-4">Leveringsmuligheder</h2>
 
-      {/* --- Pickup Point Option --- */}
+      {/* --- Pickup Point Option: PostNord --- */}
       <div className="mb-4">
         <label className="flex items-center cursor-pointer">
           <input
             type="radio"
             name="deliveryOption"
-            value="pickupPoint"
-            checked={deliveryOption === 'pickupPoint'}
-            onChange={() => handleDeliveryOptionChange('pickupPoint')}
+            value="postnord_pickupPoint"
+            checked={
+              deliveryOption === 'pickupPoint' && deliveryProvider === 'postnord'
+            }
+            onChange={() => handleDeliveryOptionChange('pickupPoint', 'postnord')}
             className="mr-2"
           />
           <div className="flex items-center">
@@ -190,8 +202,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
           </div>
         </label>
 
-        {/* If user selected "pickupPoint", show spinner + available points */}
-        {deliveryOption === 'pickupPoint' && (
+        {deliveryOption === 'pickupPoint' && deliveryProvider === 'postnord' && (
           <>
             {loading ? (
               <div className="mt-4">
@@ -237,10 +248,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                         <ul className="list-none p-0 m-0 text-xs text-gray-600">
                           {selectedPickup.openingHours?.postalServices?.length ? (
                             selectedPickup.openingHours.postalServices.map((day) => (
-                              <li
-                                key={day.openDay}
-                                className="flex justify-between w-64"
-                              >
+                              <li key={day.openDay} className="flex justify-between w-64">
                                 <span>{translateDay(day.openDay)}</span>
                                 <span>
                                   {day.openTime} - {day.closeTime}
@@ -253,16 +261,7 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
                         </ul>
                       </div>
 
-                      {/* Map with markers */}
-                      <div className="md:w-1/2">
-                        {/* <MapComponent
-                          pickupPoints={pickupPoints}
-                          selectedPoint={
-                            selectedPickup ? selectedPickup.servicePointId : null
-                          }
-                          setSelectedPoint={(spid) => handleSelectedPointChange(spid)}
-                        /> */}
-                      </div>
+                      <div className="md:w-1/2"></div>
                     </div>
                   )}
                 </div>
@@ -272,15 +271,112 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
         )}
       </div>
 
-      {/* --- Home Delivery Option --- */}
+      {/* --- Pickup Point Option: GLS --- */}
       <div className="mb-4">
         <label className="flex items-center cursor-pointer">
           <input
             type="radio"
             name="deliveryOption"
-            value="homeDelivery"
-            checked={deliveryOption === 'homeDelivery'}
-            onChange={() => handleDeliveryOptionChange('homeDelivery')}
+            value="gls_pickupPoint"
+            checked={
+              deliveryOption === 'pickupPoint' && deliveryProvider === 'gls'
+            }
+            onChange={() => handleDeliveryOptionChange('pickupPoint', 'gls')}
+            className="mr-2"
+          />
+          <div className="flex items-center">
+            <span className="text-sm font-semibold">
+              GLS PakkeShop - Vælg selv udleveringssted
+            </span>
+            <img
+              src="/images/gls-logo.png"
+              alt="gls"
+              className="inline-block ml-2 h-4"
+              style={{ verticalAlign: 'middle' }}
+            />
+          </div>
+        </label>
+
+        {deliveryOption === 'pickupPoint' && deliveryProvider === 'gls' && (
+          <>
+            {loading ? (
+              <div className="mt-4">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              pickupPoints.length > 0 && (
+                <div className="mt-4 border-t pt-4">
+                  <div className="mb-4">
+                    <select
+                      value={selectedPickup?.servicePointId || ''}
+                      onChange={(e) => handleSelectedPointChange(e.target.value)}
+                      className="border border-gray-300 rounded p-2 w-full mb-4 text-sm"
+                    >
+                      <option value="">Vælg pakkeshop...</option>
+                      {pickupPoints.map((point) => {
+                        const displayText = `${point.name} - ${point.visitingAddress.streetName} ${point.visitingAddress.streetNumber}`;
+                        return (
+                          <option key={point.servicePointId} value={point.servicePointId}>
+                            {displayText}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {selectedPickup && (
+                    <div className="flex flex-col md:flex-row md:space-x-4">
+                      <div className="md:w-1/2 mb-4 md:mb-0">
+                        <h3 className="text-sm font-bold">
+                          {selectedPickup.name} -{' '}
+                          {selectedPickup.visitingAddress.streetName}{' '}
+                          {selectedPickup.visitingAddress.streetNumber}
+                        </h3>
+                        <p className="text-sm mb-2">
+                          {selectedPickup.visitingAddress.postalCode}{' '}
+                          {selectedPickup.visitingAddress.city.toUpperCase()}
+                        </p>
+                        <hr className="my-2" />
+                        <b className="text-xs text-gray-500 font-bold block mb-2">
+                          Åbningstider
+                        </b>
+                        <ul className="list-none p-0 m-0 text-xs text-gray-600">
+                          {selectedPickup.openingHours?.postalServices?.length ? (
+                            selectedPickup.openingHours.postalServices.map((day) => (
+                              <li key={day.openDay} className="flex justify-between w-64">
+                                <span>{translateDay(day.openDay)}</span>
+                                <span>
+                                  {day.openTime} - {day.closeTime}
+                                </span>
+                              </li>
+                            ))
+                          ) : (
+                            <li>Ingen åbningstider tilgængelige</li>
+                          )}
+                        </ul>
+                      </div>
+
+                      <div className="md:w-1/2"></div>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+          </>
+        )}
+      </div>
+
+      {/* --- Home Delivery Option: PostNord --- */}
+      <div className="mb-4">
+        <label className="flex items-center cursor-pointer">
+          <input
+            type="radio"
+            name="deliveryOption"
+            value="postnord_homeDelivery"
+            checked={
+              deliveryOption === 'homeDelivery' && deliveryProvider === 'postnord'
+            }
+            onChange={() => handleDeliveryOptionChange('homeDelivery', 'postnord')}
             className="mr-2"
           />
           <div className="flex items-center">
@@ -290,6 +386,31 @@ const ShippingAndPayment: React.FC<ShippingAndPaymentProps> = ({
             <img
               src="/images/postnord-logo.png"
               alt="postnord"
+              className="inline-block ml-2 h-4"
+              style={{ verticalAlign: 'middle' }}
+            />
+          </div>
+        </label>
+      </div>
+
+      {/* --- Home Delivery Option: GLS --- */}
+      <div className="mb-4">
+        <label className="flex items-center cursor-pointer">
+          <input
+            type="radio"
+            name="deliveryOption"
+            value="gls_homeDelivery"
+            checked={
+              deliveryOption === 'homeDelivery' && deliveryProvider === 'gls'
+            }
+            onChange={() => handleDeliveryOptionChange('homeDelivery', 'gls')}
+            className="mr-2"
+          />
+          <div className="flex items-center">
+            <span className="text-sm font-semibold">GLS Hjemmelevering</span>
+            <img
+              src="/images/gls-logo.png"
+              alt="gls"
               className="inline-block ml-2 h-4"
               style={{ verticalAlign: 'middle' }}
             />
